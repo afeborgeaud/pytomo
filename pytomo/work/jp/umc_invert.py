@@ -42,7 +42,7 @@ if __name__ == '__main__':
         dr = np.round((depth_max - depth_min) / (n_triangles-1), 5)
         print("dr={}".format(dr))
 
-        n_umc_samples = 4
+        n_umc_samples = 1
 
         model_ref = SeismicModel.ak135()
 
@@ -64,18 +64,23 @@ if __name__ == '__main__':
 
     dataset = get_dataset(tlen, nspc, sampling_hz)
 
+    windows = WindowMaker.windows_from_dataset(
+        dataset, 'prem', ['S'], t_before=10., t_after=40.)
+
     outputs = compute_models_parallel(
         dataset, sample_models, tlen, nspc, sampling_hz,
         comm)
 
-    windows = WindowMaker.windows_from_dataset(
-        dataset, 'prem', ['S'], t_before=10., t_after=40.)
-
     if rank == 0:
+        fig, ax = dataset.plot_event(
+            0, windows, align_zero=True, color='black')
+        _, ax = outputs[0][0].plot_component(
+            2, windows, ax=ax, align_zero=True, color='red')
+        plt.show()
+
         misfit_dict = umc.process_outputs(
             outputs, dataset, sample_models, windows)
         print(misfit_dict)
-
 
         fig, ax = sample_models[0].plot(parameters=['vsh'])
         for sample in sample_models[1:]:

@@ -16,8 +16,8 @@ class UniformMonteCarlo:
     """
 
     def __init__(
-        self, model, model_params, range_dict,
-        mesh_type='boxcar', seed=None):
+            self, model, model_params, range_dict,
+            mesh_type='boxcar', seed=None):
         self.model_params = model_params
         self.range_dict = range_dict
         if mesh_type == 'triangle':
@@ -28,21 +28,70 @@ class UniformMonteCarlo:
             raise ValueError("Expect 'triangle' or 'boxcar'")
         self.rng = np.random.default_rng(seed)
 
-    def sample_one_model(self):
+    def sample_one_model(self, model_id):
         value_dict = dict()
         for param_type in self.model_params._types:
             values = self.rng.uniform(
                 self.range_dict[param_type][0],
                 self.range_dict[param_type][1],
-                self.model_params._n_nodes-1)
+                self.model_params._n_nodes)
             value_dict[param_type] = values
         model_sample = self.model.build_model(
             self.mesh, self.model_params, value_dict)
+        model_sample._model_id = model_id
         return model_sample
 
     def sample_models(self, ns):
-        models = [self.sample_one_model() for i in range(ns)]
+        models = [self.sample_one_model('model_{}'.format(i))
+                  for i in range(ns)]
         return models
+
+    def process_outputs(self, outputs, dataset, models, windows):
+        '''Process the output of pydsm.dsm.compute_models_parallel.
+        Args:
+            outputs (list(list(PyDSMOutput))): "shape" = (n_models, n_events)
+            dataset (pydsm.Dataset): dataset with observed data. Same as the
+                one used for input to compute_models_parallel()
+            models (list(pydsm.SeismicModel)): seismic models
+            windows (list(pydsm.Windows)): time windows. See
+                pydsm.windows_from_dataset()
+        Returns:
+            misfit_dict (dict): values are ndarray((n_models, n_windows))
+                containing misfit values (corr, variance)
+        '''
+        n_mod = len(models)
+        n_ev = len(dataset.events)
+        n_traces = dataset.nr
+
+        corrs = np.empty((n_mod, n_traces), dtype=np.float32)
+        variances = np.empty((n_mod, n_traces), dtype=np.float32)
+
+        for imod in range(n_mod):
+            win_count = 0
+            for iev in range(n_ev):
+                output = outputs[imod][iev]
+                start, end = dataset.get_bounds_from_event_index(iev)
+                data = dataset.data[start:end]
+                
+                output.to_time_domain()
+
+                for i in range(len(data)):
+                    window = windows[win_count].to_array()
+                    i_start = int(window[0] * dataset.sampling)
+                    i_end = int(window[1] * dataset.sampling)
+                    u_cut = output.us[2, i, i_start:i_end]
+                    data_cut = data[i, i_start:i_end]
+
+                    corr = np.corrcoef(u_cut, data_cut)[0, 1]
+                    variance = (np.dot(u_cut-data_cut, u_cut-data_cut)
+                        / np.dot(data_cut, data_cut))
+                    corrs[imod, win_count] = corr
+                    variances[imod, win_count] = variance
+
+                    win_count += 1
+        misfit_dict = {'corr': corrs, 'variance': variances}
+        return misfit_dict
+
 
 if __name__ == '__main__':
     types = [ParameterType.VSH, ParameterType.VPH]

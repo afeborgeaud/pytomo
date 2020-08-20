@@ -1,0 +1,14 @@
+# length of the synthetics (in seconds)
+tlen 1638.4
+# number of frequency points for the synthetics
+nspc 64
+# sampling frequency for the synthetics
+sampling_hz 20
+# number of randomly sampled models
+n_mod 4
+# number of models in one block of the parallel computation
+n_block 2
+# name of the output file containing the inversion result
+result_path inv_result.pkl
+# level of verbosity. 0: quiet, 1: minimal (e.g., timings), 2: debug
+verbose 1

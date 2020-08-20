@@ -71,16 +71,17 @@ class UniformMonteCarlo:
             for iev in range(n_ev):
                 output = outputs[imod][iev]
                 start, end = dataset.get_bounds_from_event_index(iev)
-                data = dataset.data[start:end]
+                data = dataset.data[:, start:end, :]
                 
                 output.to_time_domain()
 
-                for i in range(len(data)):
+                for i in range(end-start):
                     window = windows[win_count].to_array()
+                    icomp = window.component.value
                     i_start = int(window[0] * dataset.sampling)
                     i_end = int(window[1] * dataset.sampling)
-                    u_cut = output.us[2, i, i_start:i_end]
-                    data_cut = data[i, i_start:i_end]
+                    u_cut = output.us[icomp, i, i_start:i_end]
+                    data_cut = data[icomp, i, i_start:i_end]
 
                     corr = np.corrcoef(u_cut, data_cut)[0, 1]
                     variance = (np.dot(u_cut-data_cut, u_cut-data_cut)
@@ -89,6 +90,7 @@ class UniformMonteCarlo:
                     variances[imod, win_count] = variance
 
                     win_count += 1
+                    
         misfit_dict = {'corr': corrs, 'variance': variances}
         return misfit_dict
 
@@ -106,8 +108,10 @@ if __name__ == '__main__':
         mesh_type='triangle', seed=0)
     sample_models = umc.sample_models(50)
 
-    fig, ax = sample_models[0].plot(parameters=['vsh', 'vph'])
+    fig, ax = sample_models[0].plot(
+        types=[ParameterType.VSH, ParameterType.VPH])
     for sample in sample_models[1:]:
-        sample.plot(ax=ax, parameters=['vsh', 'vph'])
+        sample.plot(
+            ax=ax, types=[ParameterType.VSH, ParameterType.VPH])
     ax.get_legend().remove()
     plt.show()

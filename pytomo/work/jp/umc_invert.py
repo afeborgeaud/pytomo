@@ -1,7 +1,10 @@
-from pytomo.inversion.umc import UniformMonteCarlo
+from pytomo.inversion.cmc import ConstrainedMonteCarlo, InputFile
+from pytomo.work.jp.params import get_model, get_dataset
+from pytomo.inversion.inversionresult import InversionResult
 from pydsm.seismicmodel import SeismicModel
 from pydsm.modelparameters import ModelParameters, ParameterType
 import numpy as np
+import time
 import matplotlib.pyplot as plt
 from pydsm.event import Event
 from pydsm.station import Station
@@ -9,83 +12,102 @@ from pydsm.utils.cmtcatalog import read_catalog
 from pydsm.dataset import Dataset
 from pydsm.dsm import PyDSMInput, compute, compute_models_parallel
 from pydsm.windowmaker import WindowMaker
+from pydsm.component import Component
 from mpi4py import MPI
-
-def get_dataset(tlen=1634.8, nspc=64, sampling_hz=20):
-    catalog = read_catalog()
-    event = Event.event_from_catalog(
-        catalog, '200707211534A')
-    events = [event]
-    stations = [
-        Station('{:03d}'.format(i), 'DSM', i, 0.) for i in range(10,36)]
-    dataset = Dataset.dataset_from_arrays(
-        events, [stations], sampling_hz=sampling_hz)
-    
-    model = SeismicModel.prem()
-    pydsm_input = PyDSMInput.input_from_arrays(
-        event, stations, model, tlen, nspc, sampling_hz)
-    pydsm_output = compute(pydsm_input, mode=2)
-    pydsm_output.to_time_domain()
-    dataset.data = pydsm_output.us[2] # select T component
-
-    return dataset
+import sys
 
 if __name__ == '__main__':
     comm = MPI.COMM_WORLD
     n_cores = comm.Get_size()
     rank = comm.Get_rank()
+
+    input_file = InputFile(sys.argv[1])
+    params = input_file.read()
+
+    tlen = params['tlen']
+    nspc = params['nspc']
+    sampling_hz = params['sampling_hz']
+    verbose = params['verbose']
+    result_path = params['result_path']
+    n_mod = params['n_mod']
+    n_block = params['n_block']
+    
+    n_pass = n_mod // n_block
+    assert n_mod % n_block == 0
     
     if rank == 0:
-        depth_max = 900
-        depth_min = 6371. - 6336.6 # Moho
-        n_triangles = 18
-        dr = np.round((depth_max - depth_min) / (n_triangles-1), 5)
-        print("dr={}".format(dr))
-
-        n_umc_samples = 1
-
-        model_ref = SeismicModel.ak135()
-
+        n_upper_mantle = 20
+        n_mtz = 10
+        n_lower_mantle = 12
         types = [ParameterType.VSH]
-        radii = np.array([6371 - depth_max + i * dr for i in range(n_triangles)])
-        model_params = ModelParameters(types, radii)
-        range_dict = {ParameterType.VSH: [-0.2, 0.2]}
+        g = 1.
+        l = 1.
+        seed = 42
 
-        umc = UniformMonteCarlo(
-            model_ref, model_params, range_dict,
-            mesh_type='triangle', seed=0)
-        sample_models = umc.sample_models(n_umc_samples)
+        model_ref, model_params = get_model(
+            n_upper_mantle, n_mtz, n_lower_mantle, types, verbose=verbose)
+
+        cov = ConstrainedMonteCarlo.smooth_damp_cov(
+            model_params._n_nodes, g, l)
+
+        cmc = ConstrainedMonteCarlo(
+            model_ref, model_params, cov,
+            mesh_type='boxcar', seed=seed)
+        models = cmc.sample_models(n_mod)
     else:
-        sample_models = None
-
-    tlen = 1634.8
-    nspc = 128
-    sampling_hz = 20
+        model_params = None
+        models = None
+        model_ref = None
 
     dataset = get_dataset(tlen, nspc, sampling_hz)
+    
+    if rank == 0:
+        windows_S = WindowMaker.windows_from_dataset(
+            dataset, 'prem', ['S'],
+            [Component.T], t_before=30., t_after=50.)
+        windows_P = WindowMaker.windows_from_dataset(
+            dataset, 'prem', ['P'],
+            [Component.Z], t_before=30., t_after=50.)
+        windows = windows_S + windows_P
+    else:
+        windows = None
 
-    windows = WindowMaker.windows_from_dataset(
-        dataset, 'prem', ['S'], t_before=10., t_after=40.)
+    ipass = 0
+    misfit_dict = None
+    if rank == 0:
+        start_time = time.time_ns()
+    while ipass < n_pass:
+        if rank == 0:
+            start = ipass * n_block
+            end = start + n_block
+            current_models = models[start:end]
+        else:
+            current_models = None
+        outputs = compute_models_parallel(
+            dataset, current_models, tlen, nspc, sampling_hz,
+            comm, mode=0)
+        
+        if rank == 0:
+            if misfit_dict is None:
+                misfit_dict = cmc.process_outputs(
+                    outputs, dataset, current_models, windows)
+                result = InversionResult(
+                    dataset, current_models, windows, misfit_dict)
+            else:
+                result.add_result(current_models, misfit_dict)
 
-    outputs = compute_models_parallel(
-        dataset, sample_models, tlen, nspc, sampling_hz,
-        comm)
+        ipass += 1
+        comm.Barrier()
 
     if rank == 0:
-        fig, ax = dataset.plot_event(
-            0, windows, align_zero=True, color='black')
-        _, ax = outputs[0][0].plot_component(
-            2, windows, ax=ax, align_zero=True, color='red')
-        plt.show()
+        end_time = time.time_ns()
+        result.save(result_path)
+        if verbose > 0:
+            print('Models and misfits computation done in {} s'
+                .format((end_time-start_time) * 1e-9))
+            print('Results saved to \'{}\''.format(result_path))
 
-        misfit_dict = umc.process_outputs(
-            outputs, dataset, sample_models, windows)
-        print(misfit_dict)
-
-        fig, ax = sample_models[0].plot(parameters=['vsh'])
-        for sample in sample_models[1:]:
-            sample.plot(ax=ax, parameters=['vsh'])
-        model_ref.plot(ax=ax, parameters=['vsh'], color='black')
-        ax.get_legend().remove()
-        ax.set(ylim=[6371-depth_max, 6371], xlim=[3, 7])
-        plt.show()
+    # if rank == 0:
+    #     fig, ax = result.plot_models(types=[ParameterType.VSH])
+    #     ax.set(ylim=[model_params._radii[0]-100, 6371])
+    #     plt.show()

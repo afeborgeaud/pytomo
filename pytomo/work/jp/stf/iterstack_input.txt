@@ -1,0 +1,10 @@
+sac_files /work/anselme/CA_ANEL_NEW/VERTICAL/200503211223A/*Z
+min_cc 0.6
+freq 0.005
+freq2 1.
+t_before 10
+t_after 30
+phasenames p P Pdiff
+modelname prem
+shift_polarity True
+out_dir figures

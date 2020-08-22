@@ -1,7 +1,7 @@
 sac_files /mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/200501132353A/*Z
-min_cc 0.6
+min_cc 0.5
 freq 0.005
-freq2 1.
+freq2 0.33
 t_before 10
 t_after 30
 phasenames p P Pdiff

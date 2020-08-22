@@ -7,4 +7,4 @@ t_after 30
 phasenames p P Pdiff
 modelname prem
 shift_polarity True
-out_dir figures
+out_dir results

@@ -341,6 +341,8 @@ class IterStack:
         stf_dict = dict(wavelet_dict)
         for event_id in wavelet_dict.keys():
             wavelet = wavelet_dict[event_id]
+            if wavelet.max() < -wavelet.min():
+                wavelet *= -1
             # integrate to get source-time function
             stf = np.cumsum(wavelet) / self.sampling
 

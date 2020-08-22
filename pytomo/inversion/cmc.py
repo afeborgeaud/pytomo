@@ -19,6 +19,7 @@ class InputFile:
     def read(self):
         params = dict()
         params['verbose'] = 0
+        params['filter_type'] = None
         with open(self.input_file, 'r') as f:
             for line in f:
                 if line.strip().startswith('#'):
@@ -50,6 +51,12 @@ class InputFile:
             value_parsed = full_path
         elif key == 'verbose':
             value_parsed = int(value)
+        elif key == 'freq':
+            value_parsed = float(value)
+        elif key == 'freq2':
+            value_parsed = float(value)
+        elif key == 'filter_type':
+            value_parsed = value.strip().lower()
         else:
             print('Warning: key {} undefined. Ignoring.'.format(key))
             return None, None
@@ -153,6 +160,15 @@ class ConstrainedMonteCarlo:
 
     @staticmethod
     def smooth_damp_cov(n, g, l):
+        '''Compute the precision matrix (inverse of covariance)
+        to impose smoothness and damping on normally distributed models.
+        Args:
+            n (int): number of model parameters
+            g (float): coefficient for smoothing (larger is smoother)
+            l (float): coefficient for damping (larger is more damped)
+        Return:
+            prec (ndarray((n,n))): precision matrix
+        '''
         G = np.zeros((n, n), np.float32)
         L = np.zeros((n, n), np.float32)
 
@@ -164,7 +180,7 @@ class ConstrainedMonteCarlo:
             G[i, i+1] = g
 
         # empirical scaling factors
-        L *= 4.
+        L *= 3.
         G *= 4.
 
         cov = L.T@L + G.T@G

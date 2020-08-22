@@ -1,10 +1,73 @@
-from pydsm.windows import Windows
+from pydsm.window import Window
+from pydsm.windowmaker import WindowMaker
 from pydsm.dataset import Dataset
 import numpy as np
 import os
 import glob
+import sys
 import matplotlib.pyplot as plt
 from stream import read_sac
+
+class InputFile:
+    """Input file for IterStack.
+
+    Args:
+        input_file (str): path of IterStack input file
+    """
+    def __init__(self, input_file):
+        self.input_file = input_file
+    
+    def read(self):
+        params = dict()
+        params['verbose'] = 0
+        params['modelname'] = 'prem'
+        params['phasenames'] = ['p', 'P', 'Pdiff']
+        params['min_cc'] = 0.6
+        params['freq'] = 0.005
+        params['freq2'] = 1.
+        params['shift_polarity'] = True
+        params['t_before'] = 10
+        params['t_after'] = 30
+        with open(self.input_file, 'r') as f:
+            for line in f:
+                if line.strip().startswith('#'):
+                    continue
+                key, value = self._parse_line(line)
+                if key is not None:
+                    params[key] = value
+        return params
+
+    def _parse_line(self, line):
+        key, value = line.strip().split()[:2]
+        if key == 'sac_files':
+            full_path = os.path.expanduser(value.strip())
+            value_parsed = full_path
+        elif key == 'freq':
+            value_parsed = float(value)
+        elif key == 'freq2':
+            value_parsed = float(value)
+        elif key == 'min_cc':
+            value_parsed = float(value)
+        elif key == 't_before':
+            value_parsed = float(value)
+        elif key == 't_after':
+            value_parsed = float(value)
+        elif key == 'phasenames':
+            values = line.strip().split()[1:]
+            value_parsed = [name.strip() for name in values]
+        elif key == 'modelname':
+            value_parsed = value.strip().lower()
+        elif key == 'shift_polarity':
+            value_parsed = bool(value)
+        elif key == 'out_dir':
+            full_path = os.path.expanduser(value.strip())
+            value_parsed = full_path
+        elif key == 'verbose':
+            value_parsed = int(value)
+        else:
+            print('Warning: key {} undefined. Ignoring.'.format(key))
+            return None, None
+        return key, value_parsed
 
 class IterStack:
     """Iterative stacking for source wavelet
@@ -19,7 +82,9 @@ class IterStack:
             modelname='prem', phasenames=['p', 'P', 'Pdiff'],
             t_before=10, t_after=30., min_cc=0.6,
             sampling=20, shift_polarity=True,
-            freq=1.):
+            freq=0.005, freq2=1.):
+        assert freq2 > freq
+
         self.traces = []
         for i in range(len(traces)):
             self.traces.append(traces[i].copy())
@@ -31,7 +96,7 @@ class IterStack:
         self.sampling = sampling
         self.shift_polarity = shift_polarity
 
-        self.filter_traces(freq=freq)
+        self.filter_traces(freq, freq2)
         # TODO resample to same sampling
 
     def compute(self):
@@ -84,30 +149,33 @@ class IterStack:
         # TODO speed up by grouping events
         windows = []
         for trace in self.traces:
-            winmaker = Windows.windows_from_obspy_traces(
-                trace, self.modelname, self.phasenames)
             # keep only the first arrival
-            window = winmaker.get_windows(self.t_before, self.t_after)[0]
+            window = WindowMaker.windows_from_obspy_traces(
+                trace, self.modelname, self.phasenames,
+                self.t_before, self.t_after)[0]
             windows.append(window)
         return windows
 
-    def filter_traces(self, freq=1., zerophase=True):
+    def filter_traces(self, freqmin=0.005, freqmax=1., zerophase=True):
         for i, trace in enumerate(self.traces):
             self.traces[i] = trace.filter(
-                'lowpass', freq=freq, zerophase=zerophase)
+                'bandpass', freqmin=freqmin, freqmax=freqmax,
+                zerophase=zerophase)
 
     def initialize(self, windows):
-        npts = int((windows[0][1] - windows[0][0]) * self.sampling)
+        window_arr = windows[0].to_array()
+        npts = int((window_arr[1] - window_arr[0]) * self.sampling)
         wavelet_dict = dict()
         for trace in self.traces:
             wavelet_dict[trace.stats.sac.kevnm] = np.zeros(
                 npts, dtype=np.float32)
 
         for window, trace in zip(windows, self.traces):
-            if np.isnan(window[0]) or np.isnan(window[1]):
+            window_arr = window.to_array()
+            if np.isnan(window_arr[0]) or np.isnan(window_arr[1]):
                 continue
-            start = int(window[0] * self.sampling)
-            end = int(window[1] * self.sampling)
+            start = int(window_arr[0] * self.sampling)
+            end = int(window_arr[1] * self.sampling)
 
             waveform_cut = np.array(trace.data[start:end])
             waveform_cut /= np.max(np.abs(waveform_cut))
@@ -124,12 +192,13 @@ class IterStack:
         if masks is None:
             masks = np.full(len(windows), True, dtype=np.bool)
         for window, trace, mask in zip(windows, self.traces, masks):
-            if np.isnan(window[0]) or np.isnan(window[1]):
+            window_arr = window.to_array()
+            if np.isnan(window_arr[0]) or np.isnan(window_arr[1]):
                 continue
             if not mask:
                 continue
-            start = int((window[0]-buffer) * self.sampling)
-            end = int((window[1]+buffer) * self.sampling)
+            start = int((window_arr[0]-buffer) * self.sampling)
+            end = int((window_arr[1]+buffer) * self.sampling)
             
             wavelet0 = wavelet_dict[trace.stats.sac.kevnm]
 
@@ -152,12 +221,13 @@ class IterStack:
             masks = np.full(len(windows), True, dtype=np.bool)
         traces_aligned = []
         for window, trace, mask in zip(windows, self.traces, masks):
-            if np.isnan(window[0]) or np.isnan(window[1]) or not mask:
+            window_arr = window.to_array()
+            if np.isnan(window_arr[0]) or np.isnan(window_arr[1]) or not mask:
                 traces_aligned.append(trace)
                 continue
 
-            start = int((window[0]-buffer) * self.sampling)
-            end = int((window[1]+buffer) * self.sampling)
+            start = int((window_arr[0]-buffer) * self.sampling)
+            end = int((window_arr[1]+buffer) * self.sampling)
 
             wavelet = wavelet_dict[trace.stats.sac.kevnm]
 
@@ -176,11 +246,13 @@ class IterStack:
         if masks is None:
             masks = np.full(len(windows), True, dtype=np.bool)
         for window, trace, mask in zip(windows, traces, masks):
-            if np.isnan(window[0]) or np.isnan(window[1]) or not mask:
+            window_arr = window.to_array()
+            if np.isnan(window_arr[0]) or np.isnan(window_arr[1]) or not mask:
                 continue
             t = trace.stats.starttime
             b = trace.stats.sac.b
-            traces_cut.append(trace.slice(t+window[0]+b, t+window[1]+b))
+            traces_cut.append(
+                trace.slice(t+window_arr[0]+b, t+window_arr[1]+b))
         return traces_cut
     
     @staticmethod
@@ -194,11 +266,12 @@ class IterStack:
         self, windows, wavelet_dict, min_cc):
         masks = np.full(len(windows), True, dtype=np.bool)
         for i, (window, trace) in enumerate(zip(windows, self.traces)):
-            if np.isnan(window[0]) or np.isnan(window[1]):
+            window_arr = window.to_array()
+            if np.isnan(window_arr[0]) or np.isnan(window_arr[1]):
                 masks[i] = False
                 continue
-            start = int(window[0] * self.sampling)
-            end = int(window[1] * self.sampling)
+            start = int(window_arr[0] * self.sampling)
+            end = int(window_arr[1] * self.sampling)
 
             wavelet = wavelet_dict[trace.stats.sac.kevnm]
             waveform_cut = trace.data[start:end]
@@ -269,7 +342,7 @@ class IterStack:
             tap[n-i-1] = tap[i]
         return wavelet * tap
 
-    def plot(self):
+    def save_figure(self, out_dir, **kwargs):
         traces_aligned = self.get_aligned_traces()
         traces_original = self.get_original_traces()
 
@@ -284,29 +357,72 @@ class IterStack:
                         dist_min = dist
                     waveform_norm = (trace.data 
                         / np.abs(trace.data).max())
-                    ax1.plot(trace.times(), waveform_norm+dist, 'b-')
+                    ax1.plot(
+                        trace.times(), waveform_norm+dist, 'b-', **kwargs)
             ts = np.arange(len(self.wavelet_dict[event_id])) / self.sampling
-            ax1.plot(ts, self.wavelet_dict[event_id]+dist_min-1, 'r-')
+            ax1.plot(
+                ts, self.wavelet_dict[event_id]+dist_min-1, 'r-', **kwargs)
             ts = np.arange(len(self.stf_dict[event_id])) / self.sampling
-            ax1.plot(ts, self.stf_dict[event_id]+dist_min-2, 'r-')
+            ax1.plot(
+                ts, self.stf_dict[event_id]+dist_min-2, 'r-', **kwargs)
             for trace in traces_original:
                 if trace.stats.sac.kevnm == event_id:
                     dist = trace.stats.sac.gcarc
                     waveform_norm = (trace.data 
                         / np.abs(trace.data).max())
-                    ax2.plot(trace.times(), waveform_norm+dist, 'b-')
+                    ax2.plot(
+                        trace.times(), waveform_norm+dist, 'b-', **kwargs)
             ax1.set(
                 xlabel='Time (s)',
                 ylabel='Distance (deg)')
             ax2.set(
                 xlabel='Time (s)')
-            plt.show()
+            
+            out_name = out_dir + '/' + event_id + '.pdf'
+            plt.savefig(out_name)
+    
+    def save_stf_catalog(self, out_dir):
+        '''Save the empirical source time functions to files. One file
+        per event, named event_id.stf.
+        Args:
+            out_dir (str): output directory
+        '''
+        for event_id in self.stf_dict.keys():
+            file_name = out_dir + '/' + event_id + '.stf'
+            ts = np.linspace(
+                0,
+                len(self.stf_dict[event_id])/self.sampling,
+                len(self.stf_dict[event_id]))
+            stf = np.vstack((ts, self.stf_dict[event_id])).T
+            np.savetxt(
+                file_name, stf)
 
 if __name__ == '__main__':
-    sac_names = ('/work/anselme/CA_ANEL_NEW/VERTICAL/200503211223A/*Z')
-    traces = read_sac(sac_names)
+    # sac_path = '/work/anselme/CA_ANEL_NEW/VERTICAL/200503211223A/*Z'
+    # out_dir = 'figures'
+    # sac_names = (sac_path)
+    # traces = read_sac(sac_names)
 
+    input_file = InputFile(sys.argv[1])
+    params = input_file.read()
+
+    sac_files = params['sac_files']
+    min_cc = params['min_cc']
+    freq = params['freq']
+    freq2 = params['freq2']
+    t_before = params['t_before']
+    t_after = params['t_after']
+    phasenames = params['phasenames']
+    modelname = params['modelname']
+    shift_polarity = params['shift_polarity']
+    out_dir = params['out_dir']
+
+    traces = read_sac(sac_files)
     iterstack = IterStack(
-        traces, freq=1., shift_polarity=True, min_cc=0.6)
+        traces, modelname, phasenames, t_before, t_after,
+        min_cc, freq=freq, freq2=freq2, shift_polarity=shift_polarity)
+
     iterstack.compute()
-    iterstack.plot()
+
+    iterstack.save_stf_catalog(out_dir)
+    iterstack.save_figure(out_dir)

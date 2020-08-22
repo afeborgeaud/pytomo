@@ -70,7 +70,7 @@ class InversionResult:
 
         cm = plt.get_cmap('Greys_r')
         c_norm  = colors.Normalize(vmin=avg_corrs.min(),
-                                   vmax=avg_corrs.max()*1.1)
+                                   vmax=avg_corrs.max()*1.3)
         scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
 
         color_val = scalar_map.to_rgba(avg_corrs[0])

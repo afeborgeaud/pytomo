@@ -31,9 +31,15 @@ if __name__ == '__main__':
     result_path = params['result_path']
     n_mod = params['n_mod']
     n_block = params['n_block']
-    
+    mode = params['mode']
+    freq = params['freq']
+    freq2 = params['freq2']
+    filter_type = params['filter_type']
+
     n_pass = n_mod // n_block
     assert n_mod % n_block == 0
+    if verbose > 1:
+        print('n_pass={}'.format(n_pass))
     
     if rank == 0:
         n_upper_mantle = 20
@@ -59,7 +65,10 @@ if __name__ == '__main__':
         models = None
         model_ref = None
 
-    dataset = get_dataset(tlen, nspc, sampling_hz)
+    dataset = get_dataset(tlen, nspc, sampling_hz, mode=mode)
+
+    if filter_type is not None:
+        dataset.filter(freq, freq2, filter_type)
     
     if rank == 0:
         windows_S = WindowMaker.windows_from_dataset(
@@ -68,7 +77,7 @@ if __name__ == '__main__':
         windows_P = WindowMaker.windows_from_dataset(
             dataset, 'prem', ['P'],
             [Component.Z], t_before=30., t_after=50.)
-        windows = windows_S + windows_P
+        windows = windows_S #+ windows_P
     else:
         windows = None
 
@@ -85,9 +94,15 @@ if __name__ == '__main__':
             current_models = None
         outputs = compute_models_parallel(
             dataset, current_models, tlen, nspc, sampling_hz,
-            comm, mode=0)
+            comm, mode=mode)
         
         if rank == 0:
+            if filter_type is not None:
+                for imod in range(len(outputs)):
+                    for iev in range(len(outputs[0])):
+                        outputs[imod][iev].filter(
+                            freq, freq2, filter_type)
+
             if misfit_dict is None:
                 misfit_dict = cmc.process_outputs(
                     outputs, dataset, current_models, windows)
@@ -107,7 +122,15 @@ if __name__ == '__main__':
                 .format((end_time-start_time) * 1e-9))
             print('Results saved to \'{}\''.format(result_path))
 
-    # if rank == 0:
-    #     fig, ax = result.plot_models(types=[ParameterType.VSH])
-    #     ax.set(ylim=[model_params._radii[0]-100, 6371])
-    #     plt.show()
+        # fig, ax = dataset.plot_event(
+        #     0, windows, component=Component.T,
+        #     align_zero=True, color='black')
+        # cycler = plt.rcParams['axes.prop_cycle']
+        # for imod, sty in enumerate(cycler[:n_block]):
+        #     _, ax = outputs[imod][0].plot_component(
+        #         Component.T, windows, ax=ax, align_zero=True, **sty)
+        # plt.show()
+
+        # fig, ax = result.plot_models(types=[ParameterType.VSH])
+        # ax.set(ylim=[model_params._radii[0]-100, 6371])
+        # plt.show()

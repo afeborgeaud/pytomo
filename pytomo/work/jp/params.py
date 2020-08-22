@@ -37,7 +37,7 @@ def get_model(
     
     return ak135, model_params
 
-def get_dataset(tlen=1638.4, nspc=64, sampling_hz=20):
+def get_dataset(tlen=1638.4, nspc=64, sampling_hz=20, mode=0):
     catalog = read_catalog()
     event = Event.event_from_catalog(
         catalog, '200707211534A')
@@ -52,7 +52,7 @@ def get_dataset(tlen=1638.4, nspc=64, sampling_hz=20):
     model = SeismicModel.ak135()
     pydsm_input = PyDSMInput.input_from_arrays(
         event, stations, model, tlen, nspc, sampling_hz)
-    pydsm_output = compute(pydsm_input, mode=0)
+    pydsm_output = compute(pydsm_input, mode=mode)
     pydsm_output.to_time_domain()
     dataset.data = pydsm_output.us
 

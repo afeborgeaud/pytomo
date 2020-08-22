@@ -452,11 +452,17 @@ if __name__ == '__main__':
     if verbose > 0:
         print('Reading sac files')
     traces = read_sac(sac_files)
+    if verbose > 0:
+        print('Done!')
     
+    if verbose > 0:
+        print('Initializing IterStack')
     iterstack = IterStack(
         traces, modelname, phasenames, t_before, t_after,
         min_cc, freq=freq, freq2=freq2, shift_polarity=shift_polarity,
         verbose=verbose)
+    if verbose > 0:
+        print('Done!')
 
     if verbose > 0:
         print('Start computing stf')

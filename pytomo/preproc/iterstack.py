@@ -107,6 +107,7 @@ class IterStack:
             wavelet_dict (dict): dictionary of wavelets for each event_id
         """
         wavelet_dict = dict()
+        self.count_dict = dict()
         windows = self.compute_windows()
         self.windows = windows
         if self.verbose > 0:
@@ -125,6 +126,13 @@ class IterStack:
             print(
                 'Number of time windows after selection: {}'
                 .format((masks==True).sum()))
+
+        for i, window in enumerate(windows):
+            if masks[i]:
+                if window.event.event_id not in self.count_dict:
+                    self.count_dict[window.event.event_id] = 1
+                else:
+                    self.count_dict[window.event.event_id] += 1
 
         wavelet_dict = self.run_one_iteration(
             windows, wavelet_dict, masks=masks)
@@ -411,6 +419,7 @@ class IterStack:
             
             out_name = out_dir + '/' + event_id + '.pdf'
             plt.savefig(out_name)
+            plt.close(fig)
     
     def save_stf_catalog(self, out_dir):
         '''Save the empirical source time functions to files. One file
@@ -427,6 +436,14 @@ class IterStack:
             stf = np.vstack((ts, self.stf_dict[event_id])).T
             np.savetxt(
                 file_name, stf)
+        catalog_info_name = out_dir + '/catalog_info.txt'
+        with open(catalog_info_name, 'w') as f:
+            f.write('id duration num_waveforms\n')
+            for event_id in self.stf_dict.keys():
+                f.write(
+                    '{} {} {}\n'.format(
+                        event_id, len(self.stf_dict[event_id])/self.sampling,
+                        self.count_dict[event_id]))
 
 if __name__ == '__main__':
     # sac_path = '/work/anselme/CA_ANEL_NEW/VERTICAL/200503211223A/*Z'

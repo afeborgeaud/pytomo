@@ -7,10 +7,10 @@ Tools for seismic data processing and tomography in Python. Use [pydsm](https://
 You'll need the following dependencies, which can be installed using the Conda package manager:
 ```shell
 # create environment pytomo
-conda create -n pydsm
+conda create -n pytomo
 # install dependencies
-conda install -n pydsm numpy mpi4py pandas matplotlib -y
-conda install -n pydsm -c conda-forge obspy geographiclib -y
+conda install -n pytomo numpy mpi4py pandas matplotlib -y
+conda install -n pytomo -c conda-forge obspy geographiclib -y
 # activate env
-conda activate pydsm
+conda activate pytomo
 ```

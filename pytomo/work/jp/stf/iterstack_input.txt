@@ -1,5 +1,5 @@
-sac_files /mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/200501132353A/*Z
-min_cc 0.
+sac_files /mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*Z
+min_cc 0.5
 freq 0.005
 freq2 0.2
 t_before 10

@@ -449,13 +449,20 @@ if __name__ == '__main__':
     out_dir = params['out_dir']
     verbose = params['verbose']
 
+    if verbose > 0:
+        print('Reading sac files')
     traces = read_sac(sac_files)
+    
     iterstack = IterStack(
         traces, modelname, phasenames, t_before, t_after,
         min_cc, freq=freq, freq2=freq2, shift_polarity=shift_polarity,
         verbose=verbose)
 
+    if verbose > 0:
+        print('Start computing stf')
     iterstack.compute()
+    if verbose > 0:
+        print('Done!')
 
     iterstack.save_stf_catalog(out_dir)
     iterstack.save_figure(out_dir)

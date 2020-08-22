@@ -82,7 +82,7 @@ class IterStack:
             modelname='prem', phasenames=['p', 'P', 'Pdiff'],
             t_before=10, t_after=30., min_cc=0.6,
             sampling=20, shift_polarity=True,
-            freq=0.005, freq2=1.):
+            freq=0.005, freq2=1., verbose=0):
         assert freq2 > freq
 
         self.traces = []
@@ -95,6 +95,7 @@ class IterStack:
         self.min_cc = min_cc
         self.sampling = sampling
         self.shift_polarity = shift_polarity
+        self.verbose = verbose
 
         self.filter_traces(freq, freq2)
         # TODO resample to same sampling
@@ -108,6 +109,10 @@ class IterStack:
         wavelet_dict = dict()
         windows = self.compute_windows()
         self.windows = windows
+        if self.verbose > 0:
+            print(
+                'Number of time windows before selection: {}'
+                .format(len(windows)))
 
         wavelet_dict = self.initialize(windows)
 
@@ -116,6 +121,10 @@ class IterStack:
         wavelet_dict = self.run_one_iteration(windows, wavelet_dict)
 
         masks = self.remove_bad_windows(windows, wavelet_dict, self.min_cc)
+        if self.verbose > 0:
+            print(
+                'Number of time windows after selection: {}'
+                .format((masks==True).sum()))
 
         wavelet_dict = self.run_one_iteration(
             windows, wavelet_dict, masks=masks)
@@ -438,11 +447,13 @@ if __name__ == '__main__':
     modelname = params['modelname']
     shift_polarity = params['shift_polarity']
     out_dir = params['out_dir']
+    verbose = params['verbose']
 
     traces = read_sac(sac_files)
     iterstack = IterStack(
         traces, modelname, phasenames, t_before, t_after,
-        min_cc, freq=freq, freq2=freq2, shift_polarity=shift_polarity)
+        min_cc, freq=freq, freq2=freq2, shift_polarity=shift_polarity,
+        verbose=verbose)
 
     iterstack.compute()
 

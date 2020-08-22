@@ -179,8 +179,20 @@ class IterStack:
 
             waveform_cut = np.array(trace.data[start:end])
             waveform_cut /= np.max(np.abs(waveform_cut))
+            
+            try:
+                wavelet_dict[trace.stats.sac.kevnm] += waveform_cut
+            except:
+                n1 = len(waveform_cut)
+                n2 = len(wavelet_dict[trace.stats.sac.kevnm])
+                if n1 < n2:
+                    waveform_cut = np.pad(
+                        waveform_cut, (0,n2-n1), mod='constant',
+                        constant_values=(0,0))
+                else:
+                    waveform_cut = waveform_cut[:n2]
+                wavelet_dict[trace.stats.sac.kevnm] += waveform_cut
 
-            wavelet_dict[trace.stats.sac.kevnm] += waveform_cut
         for event_id in wavelet_dict.keys():
             wavelet_dict[event_id] /= np.max(np.abs(wavelet_dict[event_id]))
         return wavelet_dict
@@ -275,6 +287,16 @@ class IterStack:
 
             wavelet = wavelet_dict[trace.stats.sac.kevnm]
             waveform_cut = trace.data[start:end]
+            
+            n1 = len(waveform_cut)
+            n2 = len(wavelet)
+            if n1 < n2:
+                waveform_cut = np.pad(
+                    waveform_cut, (0,n2-n1), mod='constant',
+                    constant_values=(0,0))
+            else:
+                waveform_cut = waveform_cut[:n2]
+
             corr = np.corrcoef(waveform_cut, wavelet)[0,1]
             if corr < min_cc:
                 masks[i] = False 

@@ -1,4 +1,4 @@
-sac_files /work/anselme/CA_ANEL_NEW/VERTICAL/200503211223A/*Z
+sac_files /mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/200501132353A/*Z
 min_cc 0.6
 freq 0.005
 freq2 1.

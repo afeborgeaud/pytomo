@@ -1,0 +1,2 @@
+id duration num_waveforms
+200503211223A 5.55 77

@@ -5,6 +5,7 @@ import numpy as np
 import os
 import glob
 import sys
+import time
 import matplotlib.pyplot as plt
 from stream import read_sac
 
@@ -127,7 +128,7 @@ class IterStack:
                 'Number of time windows after selection: {}'
                 .format((masks==True).sum()))
 
-        for i, window in enumerate(windows):
+        for i, window in enumerate(self.windows):
             if masks[i]:
                 if window.event.event_id not in self.count_dict:
                     self.count_dict[window.event.event_id] = 1
@@ -442,10 +443,14 @@ class IterStack:
         with open(catalog_info_name, 'w') as f:
             f.write('id duration num_waveforms\n')
             for event_id in self.stf_dict.keys():
-                f.write(
-                    '{} {} {}\n'.format(
-                        event_id, len(self.stf_dict[event_id])/self.sampling,
-                        self.count_dict[event_id]))
+                try:
+                    f.write(
+                        '{} {} {}\n'.format(
+                            event_id,
+                            len(self.stf_dict[event_id])/self.sampling,
+                            self.count_dict[event_id]))
+                except:
+                    print('Problem with key {}'.format(event_id))
 
 if __name__ == '__main__':
     # sac_path = '/work/anselme/CA_ANEL_NEW/VERTICAL/200503211223A/*Z'
@@ -468,26 +473,24 @@ if __name__ == '__main__':
     out_dir = params['out_dir']
     verbose = params['verbose']
 
+    start_time = time.time_ns()
     if verbose > 0:
         print('Reading sac files')
     traces = read_sac(sac_files)
-    if verbose > 0:
-        print('Done!')
-    
-    if verbose > 0:
-        print('Initializing IterStack')
+
     iterstack = IterStack(
         traces, modelname, phasenames, t_before, t_after,
         min_cc, freq=freq, freq2=freq2, shift_polarity=shift_polarity,
         verbose=verbose)
-    if verbose > 0:
-        print('Done!')
 
     if verbose > 0:
         print('Start computing stf')
     iterstack.compute()
+    
+    end_time = time.time_ns()
     if verbose > 0:
-        print('Done!')
+        print('STF computed in {} s'.format((end_time-start_time)*1e-9))
 
-    iterstack.save_stf_catalog(out_dir)
     iterstack.save_figure(out_dir)
+    iterstack.save_stf_catalog(out_dir)
+    

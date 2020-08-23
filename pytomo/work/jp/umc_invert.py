@@ -72,10 +72,10 @@ if __name__ == '__main__':
     
     if rank == 0:
         windows_S = WindowMaker.windows_from_dataset(
-            dataset, 'prem', ['S'],
+            dataset, 'prem', ['s', 'S'],
             [Component.T], t_before=30., t_after=50.)
         windows_P = WindowMaker.windows_from_dataset(
-            dataset, 'prem', ['P'],
+            dataset, 'prem', ['p', 'P'],
             [Component.Z], t_before=30., t_after=50.)
         windows = windows_S #+ windows_P
     else:

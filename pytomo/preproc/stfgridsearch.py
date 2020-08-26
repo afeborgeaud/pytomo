@@ -229,7 +229,7 @@ class STFGridSearch():
 
 if __name__ == '__main__':
     sac_files = glob.glob(
-        '/home/anselme/tmp/200501132353A/*[ZT]')
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/200501132353A/*[ZT]')
     model = SeismicModel.prem()
     tlen = 3276.8
     nspc = 256

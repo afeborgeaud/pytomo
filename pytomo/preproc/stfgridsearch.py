@@ -49,6 +49,9 @@ class STFGridSearch():
             self.dataset, self.seismic_model, self.tlen,
             self.nspc, self.sampling_hz, comm, mode=mode,
             verbose=verbose)
+        for output in outputs:
+            filename = output.event.event_id + '.pkl'
+            output.save(filename)
 
         self.outputs = outputs
 
@@ -226,10 +229,10 @@ class STFGridSearch():
 
 if __name__ == '__main__':
     sac_files = glob.glob(
-        '/work/anselme/CA_ANEL_NEW/VERTICAL/200707211534A/*[ZT]')
+        '/home/anselme/tmp/200501132353A/*[ZT]')
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 1024
+    nspc = 256
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.167

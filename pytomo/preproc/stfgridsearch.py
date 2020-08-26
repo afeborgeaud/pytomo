@@ -276,7 +276,7 @@ if __name__ == '__main__':
         dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
         durations, amplitudes)
 
-    misfit_dict = stfgrid.compute_parallel(comm, mode=2, verbose=1)
+    misfit_dict = stfgrid.compute_parallel(comm, mode=0, verbose=1)
     best_params_dict = stfgrid.get_best_parameters(misfit_dict)
     print(best_params_dict)
 

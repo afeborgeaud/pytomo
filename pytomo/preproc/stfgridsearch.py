@@ -49,9 +49,10 @@ class STFGridSearch():
             self.dataset, self.seismic_model, self.tlen,
             self.nspc, self.sampling_hz, comm, mode=mode,
             verbose=verbose)
-        for output in outputs:
-            filename = output.event.event_id + '.pkl'
-            output.save(filename)
+        if rank == 0:
+            for output in outputs:
+                filename = output.event.event_id + '.pkl'
+                output.save(filename)
 
         self.outputs = outputs
 
@@ -109,7 +110,7 @@ class STFGridSearch():
                 event_misfits[:, :, 2] /= (end - start + 1)
                 misfit_dict[output.event.event_id] = event_misfits
 
-                return misfit_dict
+            return misfit_dict
 
                     # fig, ax = output.plot_component(
                     #     Component.T, windows=self.windows,
@@ -229,10 +230,10 @@ class STFGridSearch():
 
 if __name__ == '__main__':
     sac_files = glob.glob(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/200501132353A/*[ZT]')
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/tmp/20*/*T')
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 256
+    nspc = 1024
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.167
@@ -257,7 +258,7 @@ if __name__ == '__main__':
         windows_P = WindowMaker.windows_from_dataset(
             dataset, 'prem', ['p', 'P', 'Pdiff'],
             [Component.Z], t_before=10., t_after=20.)
-        windows = windows_S + windows_P
+        windows = windows_S #+ windows_P
         windows = [
             window for window in windows
             if (
@@ -265,6 +266,7 @@ if __name__ == '__main__':
                 and window.get_epicentral_distance() <= distance_max)]
     else:
         dataset = None
+        windows = None
 
     durations = np.linspace(
             duration_min, duration_max,
@@ -276,14 +278,16 @@ if __name__ == '__main__':
         dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
         durations, amplitudes)
 
-    misfit_dict = stfgrid.compute_parallel(comm, mode=0, verbose=1)
-    best_params_dict = stfgrid.get_best_parameters(misfit_dict)
-    print(best_params_dict)
+    misfit_dict = stfgrid.compute_parallel(comm, mode=2, verbose=1)
+    
+    if rank == 0:
+        best_params_dict = stfgrid.get_best_parameters(misfit_dict)
+        print(best_params_dict)
 
-    catalog_name = 'stf_catalog.txt'
-    stfgrid.save_catalog(catalog_name, best_params_dict)
+        catalog_name = 'stf_catalog.txt'
+        stfgrid.save_catalog(catalog_name, best_params_dict)
 
-    for event_id in misfit_dict.keys():
-        filename = '{}.pdf'.format(event_id)
+        for event_id in misfit_dict.keys():
+            filename = '{}.pdf'.format(event_id)
         stfgrid.savefig(best_params_dict, event_id, filename)
     

@@ -36,17 +36,20 @@ class STFGridSearch():
                 freq, freq2, type='bandpass', zerophase=False)
 
     def load_outputs(self, comm, dir=None, mode=0, verbose=0):
-        try:
-            if rank == 0:
-                filenames = [
-                    os.path.join(dir, event.event_id+'.pkl')[0]
-                    for event in self.dataset.events]
+        if rank == 0:
+            filenames = [
+                os.path.join(dir, event.event_id+'.pkl')[0]
+                for event in self.dataset.events]
+            all_found = np.array([os.path.isfile(f) for f in filename]).all()
+
+            if all_found:
+                print('Loading pydsmoutputs from files')
                 outputs = [
                     PyDSMOutput.load(filename) for filename in filenames]
-                print('Loaded outputs')
-            else:
-                outputs = None
-        except:
+        else:
+            outputs = None
+
+        if not all_found:
             print('Computing outputs')
             outputs = compute_dataset_parallel(
             self.dataset, self.seismic_model, self.tlen,

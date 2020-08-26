@@ -43,9 +43,11 @@ class STFGridSearch():
                     for event in self.dataset.events]
                 outputs = [
                     PyDSMOutput.load(filename) for filename in filenames]
+                print('Loaded outputs')
             else:
                 outputs = None
         except:
+            print('Computing outputs')
             outputs = compute_dataset_parallel(
             self.dataset, self.seismic_model, self.tlen,
             self.nspc, self.sampling_hz, comm, mode=mode,
@@ -66,6 +68,7 @@ class STFGridSearch():
         '''
         outputs = self.load_outputs(comm, dir=dir, mode=mode, verbose=verbose)
         self.outputs = outputs
+        return None
         if rank == 0:
             for output in outputs:
                 filename = output.event.event_id + '.pkl'
@@ -245,10 +248,10 @@ class STFGridSearch():
 
 if __name__ == '__main__':
     sac_files = glob.glob(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/tmp/20*/*T')
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/tmp2/20*/*T')
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 1024
+    nspc = 64
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.167

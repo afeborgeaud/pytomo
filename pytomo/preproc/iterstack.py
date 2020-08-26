@@ -233,8 +233,8 @@ class IterStack:
             wavelet0 = wavelet_dict[trace.stats.sac.kevnm]
 
             waveform_cut_buffer = np.array(trace.data[start:end])
-            best_shift, polarity = self.find_best_shift(
-                waveform_cut_buffer, wavelet0)
+            best_shift, polarity = IterStack.find_best_shift(
+                waveform_cut_buffer, wavelet0, self.shift_polarity)
             waveform_cut = waveform_cut_buffer[
                 best_shift:best_shift+len(wavelet0)]
             waveform_cut /= np.max(np.abs(waveform_cut)) * polarity
@@ -262,8 +262,8 @@ class IterStack:
             wavelet = wavelet_dict[trace.stats.sac.kevnm]
 
             waveform_cut_buffer = np.array(trace.data[start:end])
-            best_shift, polarity = self.find_best_shift(
-                waveform_cut_buffer, wavelet)
+            best_shift, polarity = IterStack.find_best_shift(
+                waveform_cut_buffer, wavelet, self.shift_polarity)
             best_shift = best_shift/self.sampling - buffer
             
             trace_aligned = IterStack.shift_trace(trace, best_shift)
@@ -321,21 +321,21 @@ class IterStack:
         
         return masks
 
-    def find_best_shift(self, y, y_template):
+    @staticmethod
+    def find_best_shift(y, y_template, shift_polarity=False):
         n = len(y_template)
         n_shift = len(y) - n
         corrs = np.zeros(n_shift)
         for i in range(n_shift):
             y_shift = y[i:i+n]
             corrs[i] = np.corrcoef(y_shift, y_template)[0,1]
-        if corrs.max() >= -corrs.min():
+        if not shift_polarity:
             best_shift = np.argmax(corrs)
             polarity = 1.
         else:
-            best_shift = np.argmin(corrs)
-            polarity = -1.
-        if not self.shift_polarity:
-            polarity = 1.
+            if corrs.max() < -corrs.min():
+                best_shift = np.argmin(corrs)
+                polarity = -1.
         return best_shift, polarity
 
     def process_causal_wavelet(self, wavelet_dict, eps=0.01):

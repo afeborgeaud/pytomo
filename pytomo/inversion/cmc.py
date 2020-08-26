@@ -129,7 +129,8 @@ class ConstrainedMonteCarlo:
                 event = dataset.events[iev]
                 output = outputs[imod][iev]
                 start, end = dataset.get_bounds_from_event_index(iev)
-                data = dataset.data[:, start:end, :]
+                # data = dataset.data[:, start:end, :]
+                data = dataset.data
                 
                 output.to_time_domain()
 

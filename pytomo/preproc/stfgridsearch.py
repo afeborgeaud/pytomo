@@ -4,8 +4,10 @@ from pydsm.seismicmodel import SeismicModel
 from pydsm.windowmaker import WindowMaker
 from pydsm.component import Component
 from pydsm.spc.spctime import SourceTimeFunction
+from pydsm.dsm import PyDSMOutput
 from pytomo.preproc.iterstack import IterStack
 import glob
+import os
 from mpi4py import MPI
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,8 +34,25 @@ class STFGridSearch():
         if dataset is not None:
             self.dataset.filter(
                 freq, freq2, type='bandpass', zerophase=False)
+
+    def load_outputs(self, comm, dir=None, mode=0, verbose=0):
+        try:
+            if rank == 0:
+                filenames = [
+                    os.path.join(dir, event.event_id+'.pkl')[0]
+                    for event in self.dataset.events]
+                outputs = [
+                    PyDSMOutput.load(filename) for filename in filenames]
+            else:
+                outputs = None
+        except:
+            outputs = compute_dataset_parallel(
+            self.dataset, self.seismic_model, self.tlen,
+            self.nspc, self.sampling_hz, comm, mode=mode,
+            verbose=verbose)
+        return outputs
     
-    def compute_parallel(self, comm, mode=0, verbose=0):
+    def compute_parallel(self, comm, mode=0, dir=None, verbose=0):
         '''Compute using MPI.
         Args:
             comm (mpi4py.COMM_WORLD): MPI communicator
@@ -45,16 +64,12 @@ class STFGridSearch():
                 a[:,:,0] gives durations; a[:,:,1] gives amplitudes;
                 a[:,:,2] gives misfit values
         '''
-        outputs = compute_dataset_parallel(
-            self.dataset, self.seismic_model, self.tlen,
-            self.nspc, self.sampling_hz, comm, mode=mode,
-            verbose=verbose)
+        outputs = self.load_outputs(comm, dir=dir, mode=mode, verbose=verbose)
+        self.outputs = outputs
         if rank == 0:
             for output in outputs:
                 filename = output.event.event_id + '.pkl'
                 output.save(filename)
-
-        self.outputs = outputs
 
         if rank == 0:
             misfit_dict = dict()
@@ -244,6 +259,7 @@ if __name__ == '__main__':
     amp_inc = .2
     distance_min = 10.
     distance_max = 90.
+    dir_syn = '.'
 
     comm = MPI.COMM_WORLD
     n_cores = comm.Get_size()
@@ -278,7 +294,8 @@ if __name__ == '__main__':
         dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
         durations, amplitudes)
 
-    misfit_dict = stfgrid.compute_parallel(comm, mode=2, verbose=1)
+    misfit_dict = stfgrid.compute_parallel(
+        comm, mode=2, dir=dir_syn, verbose=1)
     
     if rank == 0:
         best_params_dict = stfgrid.get_best_parameters(misfit_dict)

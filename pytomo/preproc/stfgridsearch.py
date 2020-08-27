@@ -6,6 +6,7 @@ from pydsm.component import Component
 from pydsm.spc.spctime import SourceTimeFunction
 from pydsm.dsm import PyDSMOutput
 from pytomo.preproc.iterstack import IterStack
+from pytomo.preproc.stream import sac_files_iterator
 import glob
 import os
 from mpi4py import MPI
@@ -254,8 +255,8 @@ class STFGridSearch():
 
 
 if __name__ == '__main__':
-    sac_files = glob.glob(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T')
+    chunks = 5
+
     model = SeismicModel.prem()
     tlen = 3276.8
     nspc = 64
@@ -275,46 +276,51 @@ if __name__ == '__main__':
     n_cores = comm.Get_size()
     rank = comm.Get_rank()
 
-    if rank == 0:
-        dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
+    for sac_files in sac_files_iterator(
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T',
+        chunks, comm):
+        # sac_files = glob.glob(
+        #     '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T')
+        if rank == 0:
+            dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
 
-        windows_S = WindowMaker.windows_from_dataset(
-            dataset, 'prem', ['s', 'S', 'Sdiff'],
-            [Component.T], t_before=10., t_after=20.)
-        windows_P = WindowMaker.windows_from_dataset(
-            dataset, 'prem', ['p', 'P', 'Pdiff'],
-            [Component.Z], t_before=10., t_after=20.)
-        windows = windows_S #+ windows_P
-        windows = [
-            window for window in windows
-            if (
-                window.get_epicentral_distance() >= distance_min
-                and window.get_epicentral_distance() <= distance_max)]
-    else:
-        dataset = None
-        windows = None
+            windows_S = WindowMaker.windows_from_dataset(
+                dataset, 'prem', ['s', 'S', 'Sdiff'],
+                [Component.T], t_before=10., t_after=20.)
+            windows_P = WindowMaker.windows_from_dataset(
+                dataset, 'prem', ['p', 'P', 'Pdiff'],
+                [Component.Z], t_before=10., t_after=20.)
+            windows = windows_S #+ windows_P
+            windows = [
+                window for window in windows
+                if (
+                    window.get_epicentral_distance() >= distance_min
+                    and window.get_epicentral_distance() <= distance_max)]
+        else:
+            dataset = None
+            windows = None
 
-    durations = np.linspace(
-            duration_min, duration_max,
-            int((duration_max - duration_min)/duration_inc)+1)
-    amplitudes = np.linspace(1., amp, int((amp-1)/amp_inc)+1)
-    amplitudes = np.concatenate((1./amplitudes[:0:-1], amplitudes))
+        durations = np.linspace(
+                duration_min, duration_max,
+                int((duration_max - duration_min)/duration_inc)+1)
+        amplitudes = np.linspace(1., amp, int((amp-1)/amp_inc)+1)
+        amplitudes = np.concatenate((1./amplitudes[:0:-1], amplitudes))
 
-    stfgrid = STFGridSearch(
-        dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
-        durations, amplitudes)
+        stfgrid = STFGridSearch(
+            dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
+            durations, amplitudes)
 
-    misfit_dict = stfgrid.compute_parallel(
-        comm, mode=2, dir=dir_syn, verbose=1)
-    
-    if rank == 0:
-        best_params_dict = stfgrid.get_best_parameters(misfit_dict)
-        print(best_params_dict)
+        misfit_dict = stfgrid.compute_parallel(
+            comm, mode=2, dir=dir_syn, verbose=1)
+        
+        if rank == 0:
+            best_params_dict = stfgrid.get_best_parameters(misfit_dict)
+            print(best_params_dict)
 
-        catalog_name = 'stf_catalog.txt'
-        stfgrid.save_catalog(catalog_name, best_params_dict)
+            catalog_name = 'stf_catalog.txt'
+            stfgrid.save_catalog(catalog_name, best_params_dict)
 
-        for event_id in misfit_dict.keys():
-            filename = '{}.pdf'.format(event_id)
-        stfgrid.savefig(best_params_dict, event_id, filename)
+            for event_id in misfit_dict.keys():
+                filename = '{}.pdf'.format(event_id)
+            stfgrid.savefig(best_params_dict, event_id, filename)
     

@@ -255,7 +255,7 @@ class STFGridSearch():
 
 if __name__ == '__main__':
     sac_files = glob.glob(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/tmp/tmp/20*/*T')
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T')
     model = SeismicModel.prem()
     tlen = 3276.8
     nspc = 64

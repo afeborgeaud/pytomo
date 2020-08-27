@@ -38,24 +38,26 @@ class STFGridSearch():
     def load_outputs(self, comm, dir=None, mode=0, verbose=0):
         if rank == 0:
             filenames = [
-                os.path.join(dir, event.event_id+'.pkl')[0]
+                os.path.join(dir, event.event_id+'.pkl')
                 for event in self.dataset.events]
-            all_found = np.array([os.path.isfile(f) for f in filename]).all()
-
+            all_found = np.array([os.path.isfile(f) for f in filenames]).all()
+ 
             if all_found:
                 print('Loading pydsmoutputs from files')
                 outputs = [
                     PyDSMOutput.load(filename) for filename in filenames]
         else:
             outputs = None
+            all_found = None
+        comm.bcast(all_found, root=0)
 
         if not all_found:
             print('Computing outputs')
             outputs = compute_dataset_parallel(
-            self.dataset, self.seismic_model, self.tlen,
-            self.nspc, self.sampling_hz, comm, mode=mode,
-            verbose=verbose)
-        return outputs
+                self.dataset, self.seismic_model, self.tlen,
+                self.nspc, self.sampling_hz, comm, mode=mode,
+                verbose=verbose)
+        return outputs, all_found
     
     def compute_parallel(self, comm, mode=0, dir=None, verbose=0):
         '''Compute using MPI.
@@ -69,17 +71,22 @@ class STFGridSearch():
                 a[:,:,0] gives durations; a[:,:,1] gives amplitudes;
                 a[:,:,2] gives misfit values
         '''
-        outputs = self.load_outputs(comm, dir=dir, mode=mode, verbose=verbose)
+        outputs, read_from_file = self.load_outputs(comm, dir=dir, mode=mode, verbose=verbose)
         self.outputs = outputs
-        return None
         if rank == 0:
-            for output in outputs:
-                filename = output.event.event_id + '.pkl'
-                output.save(filename)
+            if not read_from_file:
+                for output in outputs:
+                    filename = output.event.event_id + '.pkl'
+                    output.save(filename)
 
         if rank == 0:
             misfit_dict = dict()
             for iev, output in enumerate(outputs):
+                print(dataset.events[iev], output.event)
+                start, end = dataset.get_bounds_from_event_index(iev) 
+                event = output.event
+                print(dataset.nrs[iev], len(output.stations))
+                print(start, end)
                 event_misfits = np.zeros(
                     (len(durations), len(self.amplitudes), 3),
                     dtype=np.float32)
@@ -95,10 +102,8 @@ class STFGridSearch():
                         self.freq, self.freq2,
                         type='bandpass', zerophase=False)
                         
-                    start, end = dataset.get_bounds_from_event_index(iev)
-                    event = output.event
-                    for i in range(start, end):
-                        station = dataset.stations[i]
+                    for i in range(end-start):
+                        station = dataset.stations[i+start]
                         windows_filt = [
                             window for window in windows
                             if (window.station == station
@@ -108,7 +113,6 @@ class STFGridSearch():
                             icomp = window.component.value
                             i_start = int(window_arr[0] * dataset.sampling)
                             i_end = int(window_arr[1] * dataset.sampling)
-
                             u_cut = output.us[icomp, i, i_start:i_end]
                             #TODO align obs and syn
                             buffer = 10 * dataset.sampling
@@ -193,8 +197,8 @@ class STFGridSearch():
 
         start, end = dataset.get_bounds_from_event_index(iev)
         event = output.event
-        for i in range(start, end):
-            station = dataset.stations[i]
+        for i in range(end-start):
+            station = dataset.stations[i+start]
             windows_filt = [
                 window for window in windows
                 if (window.station == station
@@ -251,7 +255,7 @@ class STFGridSearch():
 
 if __name__ == '__main__':
     sac_files = glob.glob(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/tmp2/20*/*T')
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/tmp/tmp/20*/*T')
     model = SeismicModel.prem()
     tlen = 3276.8
     nspc = 64

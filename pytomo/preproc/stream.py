@@ -16,11 +16,10 @@ def read_sac(sacpaths_regex):
                 glob.iglob(fullpath)]
     return traces
 
-def sac_files_iterator(sacpaths_regex, chunks=1, comm=None):
-    if comm is not None and comm.Get_rank() > 0:
-        for i in range(chunks):
-            yield []
-    else:
+def sac_files_iterator(sacpaths_regex, comm=None, log=None):
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    if rank == 0:
         fullpath = os.path.expanduser(sacpaths_regex)
         sac_files = list(glob.iglob(fullpath))
         traces = [read(sac_file, headonly=True)[0]
@@ -31,15 +30,26 @@ def sac_files_iterator(sacpaths_regex, chunks=1, comm=None):
             event_id = trace.stats.sac.kevnm
             event_trace_dict[event_id].append(sac_file)
         event_ids = list(event_trace_dict.keys())
-        event_ids.sort()
-        n = len(event_ids) // chunks
+        chunks = int(len(event_ids) / size)
+        if len(event_ids) % size != 0:
+            chunks += 1
+    else:
+        chunks = None
+    chunks = comm.bcast(chunks, root=0)
+    if log is not None:
+        log.write('{} chunks={}'.format(rank, chunks))
+
+    if rank > 0:
+        for i in range(chunks):
+            yield []
+    else:
         for i in range(chunks):
             files = list()
             if i < chunks-1:
-                for j in range(i*n, (i+1)*n):
+                for j in range(i*size, (i+1)*size):
                     files += event_trace_dict[event_ids[j]]
             else:
-                for j in range(i*n, len(event_ids)):
+                for j in range(i*size, len(event_ids)):
                     files += event_trace_dict[event_ids[j]]
             yield files
 

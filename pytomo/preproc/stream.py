@@ -40,7 +40,7 @@ def sac_files_iterator(sacpaths_regex, comm=None, log=None):
         chunks = None
     chunks = comm.bcast(chunks, root=0)
     if log is not None:
-        log.write('{} chunks={}'.format(rank, chunks))
+        log.write('{} chunks={}\n'.format(rank, chunks))
 
     if rank > 0:
         for i in range(chunks):

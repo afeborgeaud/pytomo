@@ -30,6 +30,9 @@ def sac_files_iterator(sacpaths_regex, comm=None, log=None):
             event_id = trace.stats.sac.kevnm
             event_trace_dict[event_id].append(sac_file)
         event_ids = list(event_trace_dict.keys())
+        log.write(
+            '{} n_events={} size={}\n'
+            .format(rank, len(event_ids), size))
         chunks = int(len(event_ids) / size)
         if len(event_ids) % size != 0:
             chunks += 1

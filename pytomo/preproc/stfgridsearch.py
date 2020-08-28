@@ -36,7 +36,9 @@ class STFGridSearch():
             self.dataset.filter(
                 freq, freq2, type='bandpass', zerophase=False)
 
-    def load_outputs(self, comm, dir=None, mode=0, verbose=0):
+    def load_outputs(
+            self, comm, dir=None, mode=0, verbose=0, log=None):
+        rank = comm.Get_rank()
         if rank == 0:
             filenames = [
                 os.path.join(dir, event.event_id+'.pkl')
@@ -44,23 +46,31 @@ class STFGridSearch():
             all_found = np.array([os.path.isfile(f) for f in filenames]).all()
  
             if all_found:
-                print('Loading pydsmoutputs from files')
+                if log is not None:
+                    log.write(
+                        '{} loading pydsmoutputs from files\n'
+                        .format(rank))
                 outputs = [
                     PyDSMOutput.load(filename) for filename in filenames]
         else:
             outputs = None
             all_found = None
-        comm.bcast(all_found, root=0)
+        all_found = comm.bcast(all_found, root=0)
+        log.write('{} all_found={}\n'.format(rank, all_found))
 
         if not all_found:
-            print('Computing outputs')
+            if log is not None:
+                log.write('{} computing outputs\n'.format(rank))
             outputs = compute_dataset_parallel(
                 self.dataset, self.seismic_model, self.tlen,
                 self.nspc, self.sampling_hz, comm, mode=mode,
-                verbose=verbose)
+                verbose=verbose, log=log)
+            if log is not None:
+                log.write('{} done!\n'.format(rank))
         return outputs, all_found
     
-    def compute_parallel(self, comm, mode=0, dir=None, verbose=0):
+    def compute_parallel(
+            self, comm, mode=0, dir=None, verbose=0, log=None):
         '''Compute using MPI.
         Args:
             comm (mpi4py.COMM_WORLD): MPI communicator
@@ -72,7 +82,9 @@ class STFGridSearch():
                 a[:,:,0] gives durations; a[:,:,1] gives amplitudes;
                 a[:,:,2] gives misfit values
         '''
-        outputs, read_from_file = self.load_outputs(comm, dir=dir, mode=mode, verbose=verbose)
+        rank = comm.Get_rank()
+        outputs, read_from_file = self.load_outputs(
+            comm, dir=dir, mode=mode, verbose=verbose, log=log)
         self.outputs = outputs
         if rank == 0:
             if not read_from_file:
@@ -81,13 +93,11 @@ class STFGridSearch():
                     output.save(filename)
 
         if rank == 0:
+            log.write('{} computing misfits\n'.format(rank))
             misfit_dict = dict()
             for iev, output in enumerate(outputs):
-                print(dataset.events[iev], output.event)
                 start, end = dataset.get_bounds_from_event_index(iev) 
                 event = output.event
-                print(dataset.nrs[iev], len(output.stations))
-                print(start, end)
                 event_misfits = np.zeros(
                     (len(durations), len(self.amplitudes), 3),
                     dtype=np.float32)
@@ -164,7 +174,7 @@ class STFGridSearch():
         return best_params_dict
 
     def save_catalog(self, filename, best_params_dict):
-        with open(filename, 'w') as f:
+        with open(filename, 'a') as f:
             for event_id in best_params_dict.keys():
                 duration, amp_corr = best_params_dict[event_id]
                 f.write(
@@ -255,16 +265,19 @@ class STFGridSearch():
 
 
 if __name__ == '__main__':
-    chunks = 5
+    comm = MPI.COMM_WORLD
+    n_cores = comm.Get_size()
+    rank = comm.Get_rank()
 
+    chunks = 1
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 64
+    nspc = 1024
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.167
     duration_min = 1.
-    duration_max = 15.
+    duration_max = 15.#15.
     duration_inc = 1.
     amp = 3.
     amp_inc = .2
@@ -272,18 +285,21 @@ if __name__ == '__main__':
     distance_max = 90.
     dir_syn = '.'
 
-    comm = MPI.COMM_WORLD
-    n_cores = comm.Get_size()
-    rank = comm.Get_rank()
+    logfile = open('log_{}'.format(rank), 'w', buffering=1)
 
     for sac_files in sac_files_iterator(
         '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T',
         chunks, comm):
-        # sac_files = glob.glob(
-        #     '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T')
+        #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T'
+        #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'
+
+        logfile.write('{} num sacs = {}\n'.format(rank, len(sac_files)))
+
         if rank == 0:
+            logfile.write('{} reading dataset\n'.format(rank))
             dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
 
+            logfile.write('{} computing time windows\n'.format(rank))
             windows_S = WindowMaker.windows_from_dataset(
                 dataset, 'prem', ['s', 'S', 'Sdiff'],
                 [Component.T], t_before=10., t_after=20.)
@@ -310,17 +326,23 @@ if __name__ == '__main__':
             dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
             durations, amplitudes)
 
+        logfile.write('{} computing synthetics\n'.format(rank))
         misfit_dict = stfgrid.compute_parallel(
-            comm, mode=2, dir=dir_syn, verbose=1)
+            comm, mode=2, dir=dir_syn, verbose=2, log=logfile)
         
         if rank == 0:
+            logfile.write('{} saving misfits\n'.format(rank))
             best_params_dict = stfgrid.get_best_parameters(misfit_dict)
-            print(best_params_dict)
 
             catalog_name = 'stf_catalog.txt'
             stfgrid.save_catalog(catalog_name, best_params_dict)
 
             for event_id in misfit_dict.keys():
                 filename = '{}.pdf'.format(event_id)
-            stfgrid.savefig(best_params_dict, event_id, filename)
+                logfile.write(
+                    '{} saving figure to {}\n'.format(rank, filename))
+                stfgrid.savefig(best_params_dict, event_id, filename)
+
+    logfile.write('{} Done!\n'.format(rank))
+    logfile.close()
     

@@ -138,6 +138,16 @@ class STFGridSearch():
                             data_cut = dataset.data[
                                 icomp, i, (i_start+shift):(i_end+shift)]
 
+                            # select data
+                            amp_ratio_ref = (
+                                (data_cut.max() - data_cut.min())
+                                / (u_cut.max() - u_cut.min()))
+                            corr_ref = np.corrcoef(data_cut, u_cut)[0, 1]
+                            if (amp_ratio_ref > 3.
+                                or amp_ratio_ref < 1/3.
+                                or corr_ref < 0.):
+                                continue 
+
                             for iamp, amp in enumerate(self.amplitudes):
                                 misfit = STFGridSearch._misfit(
                                     data_cut, u_cut * amp)

@@ -83,6 +83,7 @@ class STFGridSearch():
                 a[:,:,2] gives misfit values
         '''
         rank = comm.Get_rank()
+        size = comm.Get_size()
         outputs, read_from_file = self.load_outputs(
             comm, dir=dir, mode=mode, verbose=verbose, log=log)
         self.outputs = outputs
@@ -92,71 +93,113 @@ class STFGridSearch():
                     filename = output.event.event_id + '.pkl'
                     output.save(filename)
 
+        
         if rank == 0:
-            log.write('{} computing misfits\n'.format(rank))
-            misfit_dict = dict()
-            for iev, output in enumerate(outputs):
-                start, end = dataset.get_bounds_from_event_index(iev) 
-                event = output.event
-                event_misfits = np.zeros(
-                    (len(durations), len(self.amplitudes), 3),
-                    dtype=np.float32)
-                for i in range(len(durations)):
-                    event_misfits[i, :, 0] = durations[i]
-                for i in range(len(amplitudes)):
-                    event_misfits[:, i, 1] = amplitudes[i]
+            outputs_scat = []
+            data_scat = []
+            n = int(len(outputs) / size)
+            for i in range(size):
+                i0 = i*n
+                if i < size - 1:
+                    i1 = i0 + n
+                else:
+                    i1 = len(outputs)
+                outputs_scat.append(outputs[i0:i1])
+                
+                data_ = []
+                for j in range(i0, i1):
+                    start, end = self.dataset.get_bounds_from_event_index(j)
+                    event_data = self.dataset.data[:, start:end, :]
+                    data_.append(event_data)
+                data_scat.append(data_)
+        else:
+            outputs_scat = None
+            data_scat = None
+        outputs_local = comm.scatter(outputs_scat, root=0)
+        data_local = comm.scatter(data_scat, root=0)
+        windows_local = comm.bcast(windows, root=0)
 
-                for idur, duration in enumerate(durations):
-                    stf = SourceTimeFunction('triangle', duration/2.)
-                    output.to_time_domain(stf)
-                    output.filter(
-                        self.freq, self.freq2,
-                        type='bandpass', zerophase=False)
-                        
-                    for i in range(end-start):
-                        station = dataset.stations[i+start]
-                        windows_filt = [
-                            window for window in windows
-                            if (window.station == station
-                                and window.event == event)]
-                        for window in windows_filt:
-                            window_arr = window.to_array()
-                            icomp = window.component.value
-                            i_start = int(window_arr[0] * dataset.sampling)
-                            i_end = int(window_arr[1] * dataset.sampling)
-                            u_cut = output.us[icomp, i, i_start:i_end]
-                            #TODO align obs and syn
-                            buffer = 10 * dataset.sampling
-                            i_start_buff = i_start - buffer
-                            i_end_buff = i_end + buffer
-                            data_cut_tmp = dataset.data[
-                                icomp, i, i_start_buff:i_end_buff]
-                            shift, _ = IterStack.find_best_shift(
-                                data_cut_tmp, u_cut, shift_polarity=False)
-                            shift -= buffer
+        log.write('{} computing misfits\n'.format(rank))
+        log.write(
+            '{} len(outputs_local)={}\n'.format(rank, len(outputs_local)))
+        misfit_dict_local = dict()
 
-                            data_cut = dataset.data[
-                                icomp, i, (i_start+shift):(i_end+shift)]
+        for iev, output in enumerate(outputs_local):
+            event = output.event
+            event_misfits = np.zeros(
+                (len(durations), len(self.amplitudes), 3),
+                dtype=np.float32)
+            for i in range(len(durations)):
+                event_misfits[i, :, 0] = durations[i]
+            for i in range(len(amplitudes)):
+                event_misfits[:, i, 1] = amplitudes[i]
 
-                            # select data
-                            amp_ratio_ref = (
-                                (data_cut.max() - data_cut.min())
-                                / (u_cut.max() - u_cut.min()))
-                            corr_ref = np.corrcoef(data_cut, u_cut)[0, 1]
-                            if (amp_ratio_ref > 3.
-                                or amp_ratio_ref < 1/3.
-                                or corr_ref < 0.):
-                                continue 
+            for idur, duration in enumerate(durations):
+                log.write('{} {}\n'.format(rank, idur))
+                stf = SourceTimeFunction('triangle', duration/2.)
+                output.to_time_domain(stf)
+                output.filter(
+                    self.freq, self.freq2,
+                    type='bandpass', zerophase=False)
+                
+                count_used_windows = 0
+                for i in range(len(output.stations)):
+                    station = output.stations[i]
+                    windows_filt = [
+                        window for window in windows_local
+                        if (window.station == station
+                            and window.event == event)]
+                    for window in windows_filt:
+                        window_arr = window.to_array()
+                        icomp = window.component.value
+                        i_start = int(window_arr[0] * output.sampling_hz)
+                        i_end = int(window_arr[1] * output.sampling_hz)
+                        u_cut = output.us[icomp, i, i_start:i_end]
+                        #TODO align obs and syn
+                        buffer = 10 * output.sampling_hz
+                        i_start_buff = i_start - buffer
+                        i_end_buff = i_end + buffer
+                        data_cut_tmp = data_local[iev][
+                            icomp, i, i_start_buff:i_end_buff]
+                        shift, _ = IterStack.find_best_shift(
+                            data_cut_tmp, u_cut,
+                            shift_polarity=False,
+                            skip_freq=4)
+                        shift -= buffer
 
-                            for iamp, amp in enumerate(self.amplitudes):
-                                misfit = STFGridSearch._misfit(
-                                    data_cut, u_cut * amp)
-                                event_misfits[idur, iamp, 2] += misfit
+                        data_cut = data_local[iev][
+                            icomp, i, (i_start+shift):(i_end+shift)]
 
-                event_misfits[:, :, 2] /= (end - start + 1)
-                misfit_dict[output.event.event_id] = event_misfits
+                        # select data
+                        amp_ratio_ref = (
+                            (data_cut.max() - data_cut.min())
+                            / (u_cut.max() - u_cut.min()))
+                        corr_ref = np.corrcoef(data_cut, u_cut)[0, 1]
+                        if (amp_ratio_ref > 3.
+                            or amp_ratio_ref < 1/3.
+                            or corr_ref < 0.):
+                            continue 
 
-            return misfit_dict
+                        for iamp, amp in enumerate(self.amplitudes):
+                            misfit = STFGridSearch._misfit(
+                                data_cut, u_cut * amp)
+                            event_misfits[idur, iamp, 2] += misfit
+                        count_used_windows += 1
+
+            if count_used_windows > 0:
+                event_misfits[:, :, 2] /= count_used_windows
+            misfit_dict_local[output.event.event_id] = event_misfits
+
+        misfit_dict_list = comm.gather(misfit_dict_local, root=0)
+
+        if rank == 0:
+            misfit_dict = misfit_dict_list[0]
+            for d in misfit_dict_list[1:]:
+                misfit_dict.update(d)
+        else:
+            misfit_dict = None
+
+        return misfit_dict
 
                     # fig, ax = output.plot_component(
                     #     Component.T, windows=self.windows,

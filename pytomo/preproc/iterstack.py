@@ -322,12 +322,15 @@ class IterStack:
         return masks
 
     @staticmethod
-    def find_best_shift(y, y_template, shift_polarity=False):
+    def find_best_shift(
+            y, y_template, shift_polarity=False, skip_freq=1):
         n = len(y_template)
         n_shift = len(y) - n
+        assert n_shift % skip_freq == 0
+        n_shift = int(n_shift / skip_freq)
         corrs = np.zeros(n_shift)
         for i in range(n_shift):
-            y_shift = y[i:i+n]
+            y_shift = y[i*skip_freq:i*skip_freq+n]
             corrs[i] = np.corrcoef(y_shift, y_template)[0,1]
         if not shift_polarity:
             best_shift = np.argmax(corrs)

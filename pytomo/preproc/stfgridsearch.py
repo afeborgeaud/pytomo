@@ -366,7 +366,7 @@ if __name__ == '__main__':
     logfile = open('log_{}'.format(rank), 'w', buffering=1)
 
     for sac_files in sac_files_iterator(
-        '/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T',
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T',
         comm, log=logfile):
         #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T'
         #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'

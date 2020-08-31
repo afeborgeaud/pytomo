@@ -333,11 +333,11 @@ class IterStack:
             y_shift = y[i*skip_freq:i*skip_freq+n]
             corrs[i] = np.corrcoef(y_shift, y_template)[0,1]
         if not shift_polarity:
-            best_shift = np.argmax(corrs)
+            best_shift = np.argmax(corrs) * skip_freq
             polarity = 1.
         else:
             if corrs.max() < -corrs.min():
-                best_shift = np.argmin(corrs)
+                best_shift = np.argmin(corrs) * skip_freq
                 polarity = -1.
         return best_shift, polarity
 

@@ -36,6 +36,12 @@ class STFGridSearch():
             self.dataset.filter(
                 freq, freq2, type='bandpass', zerophase=False)
 
+            t_before = windows[0].t_before
+            t_after = windows[0].t_after
+            window_npts_max = int((t_before + t_after) * sampling_hz)
+            buffer = 10.
+            dataset.apply_windows(windows, 2, window_npts_max, buffer)
+
     def load_outputs(
             self, comm, dir=None, mode=0, verbose=0, log=None):
         rank = comm.Get_rank()
@@ -92,7 +98,6 @@ class STFGridSearch():
                 for output in outputs:
                     filename = output.event.event_id + '.pkl'
                     output.save(filename)
-
         
         if rank == 0:
             outputs_scat = []
@@ -106,10 +111,11 @@ class STFGridSearch():
                     i1 = len(outputs)
                 outputs_scat.append(outputs[i0:i1])
                 
+                #TODO cut the data to avoid overflow error
                 data_ = []
                 for j in range(i0, i1):
                     start, end = self.dataset.get_bounds_from_event_index(j)
-                    event_data = self.dataset.data[:, start:end, :]
+                    event_data = self.dataset.data[:, :, start:end, :]
                     data_.append(event_data)
                 data_scat.append(data_)
         else:
@@ -129,6 +135,7 @@ class STFGridSearch():
             event_misfits = np.zeros(
                 (len(durations), len(self.amplitudes), 3),
                 dtype=np.float32)
+            event_misfits[:, :, 2] = 0.
             for i in range(len(durations)):
                 event_misfits[i, :, 0] = durations[i]
             for i in range(len(amplitudes)):
@@ -149,26 +156,29 @@ class STFGridSearch():
                         window for window in windows_local
                         if (window.station == station
                             and window.event == event)]
-                    for window in windows_filt:
+                    for j, window in enumerate(windows_filt):
                         window_arr = window.to_array()
                         icomp = window.component.value
                         i_start = int(window_arr[0] * output.sampling_hz)
                         i_end = int(window_arr[1] * output.sampling_hz)
                         u_cut = output.us[icomp, i, i_start:i_end]
-                        #TODO align obs and syn
+                        
                         buffer = 10 * output.sampling_hz
-                        i_start_buff = i_start - buffer
-                        i_end_buff = i_end + buffer
+                        # i_start_buff = i_start - buffer
+                        # i_end_buff = i_end + buffer
                         data_cut_tmp = data_local[iev][
-                            icomp, i, i_start_buff:i_end_buff]
+                            j, icomp, i]
                         shift, _ = IterStack.find_best_shift(
                             data_cut_tmp, u_cut,
                             shift_polarity=False,
                             skip_freq=4)
-                        shift -= buffer
+                        # print(shift)
+                        # shift -= buffer
 
+                        # data_cut = data_local[iev][
+                        #     icomp, i, (i_start+shift):(i_end+shift)]
                         data_cut = data_local[iev][
-                            icomp, i, (i_start+shift):(i_end+shift)]
+                            j, icomp, i, shift:(i_end-i_start+shift)]
 
                         # select data
                         amp_ratio_ref = (
@@ -184,10 +194,18 @@ class STFGridSearch():
                             misfit = STFGridSearch._misfit(
                                 data_cut, u_cut * amp)
                             event_misfits[idur, iamp, 2] += misfit
+
+                            # plt.clf()
+                            # plt.plot(data_cut, color='black')
+                            # plt.plot(u_cut*amp, color='red')
+                            # plt.show()
+
                         count_used_windows += 1
 
             if count_used_windows > 0:
                 event_misfits[:, :, 2] /= count_used_windows
+            else:
+                event_misfits[:, :, 2] = 1e10
             misfit_dict_local[output.event.event_id] = event_misfits
 
         misfit_dict_list = comm.gather(misfit_dict_local, root=0)
@@ -200,14 +218,6 @@ class STFGridSearch():
             misfit_dict = None
 
         return misfit_dict
-
-                    # fig, ax = output.plot_component(
-                    #     Component.T, windows=self.windows,
-                    #     align_zero=True, color='red')
-                    # _, ax = dataset.plot_event(
-                    #     0, windows=self.windows, align_zero=True,
-                    #     component=Component.T, ax=ax, color='black')
-                    # plt.show()
 
     def get_best_parameters(self, misfit_dict):
         '''Get best duration and amplitude correction from misfit_dict.
@@ -267,13 +277,13 @@ class STFGridSearch():
                 window for window in windows
                 if (window.station == station
                     and window.event == event)]
-            for window in windows_filt:
+            for j, window in enumerate(windows_filt):
                 window_arr = window.to_array()
                 icomp = window.component.value
                 i_start = int(window_arr[0] * dataset.sampling)
                 i_end = int(window_arr[1] * dataset.sampling)
 
-                u_cut = us[icomp, i, i_start:i_end] * amp
+                u_cut = us[icomp, i, i_start:i_end]
                 u_gcmt_cut = us_gcmt[icomp, i, i_start:i_end]
 
                 #TODO align obs and syn
@@ -281,13 +291,27 @@ class STFGridSearch():
                 i_start_buff = i_start - buffer
                 i_end_buff = i_end + buffer
                 data_cut_tmp = dataset.data[
-                    icomp, i, i_start_buff:i_end_buff]
+                    j, icomp, i]
                 shift, _ = IterStack.find_best_shift(
                     data_cut_tmp, u_cut, shift_polarity=False)
-                shift -= buffer
+                # shift -= buffer
 
+                # data_cut = dataset.data[
+                #     icomp, i, (i_start+shift):(i_end+shift)]
                 data_cut = dataset.data[
-                    icomp, i, (i_start+shift):(i_end+shift)]
+                    j, icomp, i, shift:(i_end-i_start+shift)]
+
+                # select data
+                amp_ratio_ref = (
+                    (data_cut.max() - data_cut.min())
+                    / (u_cut.max() - u_cut.min()))
+                corr_ref = np.corrcoef(data_cut, u_cut)[0, 1]
+                if (amp_ratio_ref > 3.
+                    or amp_ratio_ref < 1/3.
+                    or corr_ref < 0.):
+                    continue
+                
+                u_cut *= amp
 
                 distance = window.get_epicentral_distance()
                 max_obs = np.abs(data_cut).max() * 2
@@ -329,18 +353,20 @@ if __name__ == '__main__':
     freq = 0.005
     freq2 = 0.167
     duration_min = 1.
-    duration_max = 15.
+    duration_max = 12.
     duration_inc = 1.
-    amp = 3.
-    amp_inc = .2
+    amp = 2.
+    amp_inc = .05
     distance_min = 10.
     distance_max = 90.
     dir_syn = '.'
+    t_before = 10.
+    t_after = 20.
 
     logfile = open('log_{}'.format(rank), 'w', buffering=1)
 
     for sac_files in sac_files_iterator(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T',
+        '/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T',
         comm, log=logfile):
         #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T'
         #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'
@@ -354,10 +380,10 @@ if __name__ == '__main__':
             logfile.write('{} computing time windows\n'.format(rank))
             windows_S = WindowMaker.windows_from_dataset(
                 dataset, 'prem', ['s', 'S', 'Sdiff'],
-                [Component.T], t_before=10., t_after=20.)
+                [Component.T], t_before=t_before, t_after=t_after)
             windows_P = WindowMaker.windows_from_dataset(
                 dataset, 'prem', ['p', 'P', 'Pdiff'],
-                [Component.Z], t_before=10., t_after=20.)
+                [Component.Z], t_before=t_before, t_after=t_after)
             windows = windows_S #+ windows_P
             windows = [
                 window for window in windows

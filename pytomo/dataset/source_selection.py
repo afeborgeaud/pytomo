@@ -1,4 +1,5 @@
 from pydsm.utils import cmtcatalog
+from pydsm.dataset import Dataset
 import numpy as np
 from functools import partial
 import matplotlib.pyplot as plt
@@ -9,6 +10,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import seaborn as sns
+import glob
 
 def select(
         event, lat_min=-90, lat_max=90, lon_min=-180, lon_max=180,
@@ -170,12 +172,17 @@ if __name__ == '__main__':
     Mw_max = 7.
     start_date = datetime(2000,1,1)
 
+    sac_files = glob.glob(
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T')
+    dataset = Dataset.dataset_from_sac(sac_files, headonly=True)
+    events = dataset.events
+
     selector = partial(
         select, target_lats=target_lats, target_lons=target_lons,
         dep_min=dep_min, dep_max=dep_max,
         dist_min=dist_min, dist_max=dist_max, Mw_min=Mw_min, Mw_max=Mw_max,
         start_date=start_date)
-    catalog_filt = np.array([event for event in catalog if selector(event)])
+    catalog_filt = np.array([event for event in events if selector(event)])
     
     # exclude Philippines and Aleutians eqs
     catalog_filt = [e for e in catalog_filt

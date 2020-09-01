@@ -129,6 +129,7 @@ class STFGridSearch():
         log.write(
             '{} len(outputs_local)={}\n'.format(rank, len(outputs_local)))
         misfit_dict_local = dict()
+        count_dict_local = dict()
 
         for iev, output in enumerate(outputs_local):
             event = output.event
@@ -212,17 +213,24 @@ class STFGridSearch():
             else:
                 event_misfits[:, :, 2] = 1e10
             misfit_dict_local[output.event.event_id] = event_misfits
+            count_dict_local[output.event.event_id] = count_used_windows
 
         misfit_dict_list = comm.gather(misfit_dict_local, root=0)
+        count_dict_list = comm.gather(count_dict_local, root=0)
 
         if rank == 0:
             misfit_dict = misfit_dict_list[0]
             for d in misfit_dict_list[1:]:
                 misfit_dict.update(d)
+
+            count_dict = count_dict_list[0]
+            for d in count_dict_list[1:]:
+                count_dict.update(d)
         else:
             misfit_dict = None
+            count_dict = None
 
-        return misfit_dict
+        return misfit_dict, count_dict
 
     def get_best_parameters(self, misfit_dict):
         '''Get best duration and amplitude correction from misfit_dict.
@@ -243,12 +251,15 @@ class STFGridSearch():
             best_params_dict[event_id] = (dur, amp)
         return best_params_dict
 
-    def save_catalog(self, filename, best_params_dict):
+    def save_catalog(
+            self, filename, best_params_dict, count_dict):
         with open(filename, 'a') as f:
             for event_id in best_params_dict.keys():
                 duration, amp_corr = best_params_dict[event_id]
+                n_window = count_dict[event_id]
                 f.write(
-                    '{} {} {}\n'.format(event_id, duration, amp_corr))
+                    '{} {} {} {}\n'
+                    .format(event_id, duration, amp_corr, n_window))
 
     def savefig(self, best_params_dict, event_id, filename):
         output = [
@@ -412,7 +423,7 @@ if __name__ == '__main__':
             durations, amplitudes)
 
         logfile.write('{} computing synthetics\n'.format(rank))
-        misfit_dict = stfgrid.compute_parallel(
+        misfit_dict, count_dict = stfgrid.compute_parallel(
             comm, mode=2, dir=dir_syn, verbose=2, log=logfile)
         
         if rank == 0:
@@ -420,7 +431,8 @@ if __name__ == '__main__':
             best_params_dict = stfgrid.get_best_parameters(misfit_dict)
 
             catalog_name = 'stf_catalog.txt'
-            stfgrid.save_catalog(catalog_name, best_params_dict)
+            stfgrid.save_catalog(
+                catalog_name, best_params_dict, count_dict)
 
             for event_id in misfit_dict.keys():
                 filename = '{}.pdf'.format(event_id)

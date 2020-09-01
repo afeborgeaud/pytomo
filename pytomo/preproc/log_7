@@ -1,0 +1,28 @@
+7 chunks=2
+7 num sacs = 0
+7 computing synthetics
+7 all_found=True
+7 computing misfits
+7 len(outputs_local)=1
+7 0
+7 1
+7 2
+7 3
+7 4
+7 5
+7 6
+7 7
+7 8
+7 9
+7 10
+7 11
+7 num sacs = 0
+7 computing synthetics
+7 all_found=False
+7 computing outputs
+rank 7: nr=[72]
+rank 7: 72 paths finished in 426.81518149375916 s
+7 done!
+7 computing misfits
+7 len(outputs_local)=0
+7 Done!

@@ -193,6 +193,11 @@ class STFGridSearch():
                         for iamp, amp in enumerate(self.amplitudes):
                             misfit = STFGridSearch._misfit(
                                 data_cut, u_cut * amp)
+                            if np.isnan(misfit):
+                                log.write(
+                                    '{} NaN misfit {} {}'
+                                    .format(rank, station, event))
+                                misfit=1e10
                             event_misfits[idur, iamp, 2] += misfit
 
                             # plt.clf()
@@ -228,9 +233,11 @@ class STFGridSearch():
                 tuples (duration, amplitude).
         '''
         best_params_dict = dict()
+        print(misfit_dict)
         for event_id in misfit_dict.keys():
             misfits = misfit_dict[event_id]
             min_misfit = misfits[:, :, 2].min()
+            print(min_misfit)
             dur, amp, _ = misfits[misfits[:,:,2]==min_misfit][0]
 
             best_params_dict[event_id] = (dur, amp)
@@ -366,7 +373,7 @@ if __name__ == '__main__':
     logfile = open('log_{}'.format(rank), 'w', buffering=1)
 
     for sac_files in sac_files_iterator(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T',
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T',
         comm, log=logfile):
         #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T'
         #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'

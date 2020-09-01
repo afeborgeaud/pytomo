@@ -1,0 +1,28 @@
+29 chunks=2
+29 num sacs = 0
+29 computing synthetics
+29 all_found=True
+29 computing misfits
+29 len(outputs_local)=1
+29 0
+29 1
+29 2
+29 3
+29 4
+29 5
+29 6
+29 7
+29 8
+29 9
+29 10
+29 11
+29 num sacs = 0
+29 computing synthetics
+29 all_found=False
+29 computing outputs
+rank 29: nr=[73]
+rank 29: 73 paths finished in 408.2086663246155 s
+29 done!
+29 computing misfits
+29 len(outputs_local)=0
+29 Done!

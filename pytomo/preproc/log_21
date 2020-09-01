@@ -1,0 +1,28 @@
+21 chunks=2
+21 num sacs = 0
+21 computing synthetics
+21 all_found=True
+21 computing misfits
+21 len(outputs_local)=1
+21 0
+21 1
+21 2
+21 3
+21 4
+21 5
+21 6
+21 7
+21 8
+21 9
+21 10
+21 11
+21 num sacs = 0
+21 computing synthetics
+21 all_found=False
+21 computing outputs
+rank 21: nr=[73]
+rank 21: 73 paths finished in 442.44375824928284 s
+21 done!
+21 computing misfits
+21 len(outputs_local)=0
+21 Done!

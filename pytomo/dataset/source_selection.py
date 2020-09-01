@@ -103,6 +103,9 @@ def cluster(catalog, max_clusters=50, max_dist=400):
     X_scaled[:,2] *= 2
     dists_max = []
     found = False
+    print(X_scaled.shape)
+    if max_clusters > X_scaled.shape[0]:
+        max_clusters = X_scaled.shape[0]
     for i in range(1, max_clusters):
         kmeans = KMeans(n_clusters=i, random_state=0)
         kmeans.fit(X_scaled)
@@ -136,18 +139,22 @@ def get_dataframe(catalog, cluster_centers, cluster_labels):
     clat = [c[1] for c in centers_expanded]
     cdep = [1 if c[2] > 0.5 else 0 for c in centers_expanded]
     ev_ids = [e.event_id for e in catalog]
+    mws = [e.mt.Mw for e in catalog]
     data = dict(
-        id=ev_ids, lat=lats, lon=lons, dep=deps,
+        id=ev_ids, lat=lats, lon=lons, dep=deps, mw=mws,
         label=cluster_labels, clon=clon, clat=clat, cdep=cdep)
     df = pd.DataFrame(data)
     df.sort_values(by='label', inplace=True)
     return df
 
-def plot_cartesian(df, palette=sns.color_palette('bright', 10)):
+def plot_cartesian(df, palette=None):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8,5))
     n_labels = len(df.label.unique())
-    styles = np.mod(df.label.values, 8)
-    hues = np.mod(df.label.values, 10)
+    nh = 5
+    ns = 3
+    palette = sns.color_palette('bright', nh)
+    styles = np.mod(df.label.values, ns)
+    hues = np.mod(df.label.values, nh)
     sns.scatterplot(
         x='lon', y='lat', hue=hues, style=styles, data=df, ax=ax1,
         palette=palette, legend=None, s=10, edgecolor=None)
@@ -164,11 +171,11 @@ if __name__ == '__main__':
     
     target_lats = [32.5, 36.0, 43.2]
     target_lons = [131.0, 138.5, 142.5]
-    dep_min = 100
+    dep_min = 150
     dep_max = 800
     dist_min = 15
     dist_max = 25
-    Mw_min = 5.5
+    Mw_min = 5.3
     Mw_max = 7.
     start_date = datetime(2000,1,1)
 
@@ -184,6 +191,8 @@ if __name__ == '__main__':
         start_date=start_date)
     catalog_filt = np.array([event for event in events if selector(event)])
     
+    print('len(catalog)={}'.format(catalog_filt.shape))
+
     # exclude Philippines and Aleutians eqs
     catalog_filt = [e for e in catalog_filt
                     if not (e.longitude < 140 and e.latitude < 18)
@@ -210,6 +219,6 @@ if __name__ == '__main__':
         lon_min=120, lon_max=160, lat_min=10, lat_max=60,
         cluster_labels=cluster_labels_keep)
 
-    plot_cartesian(df)
     df.index = list(range(len(df)))
     df.to_csv('clusters.txt', sep=' ')
+    plot_cartesian(df)

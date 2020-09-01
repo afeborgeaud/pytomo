@@ -5,7 +5,7 @@ import glob
 
 if __name__ == '__main__':
     sac_files = glob.glob(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/200501132353A/*Z')
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/2*/*Z')
     dataset = Dataset.dataset_from_sac(sac_files)
 
     for event in dataset.events:

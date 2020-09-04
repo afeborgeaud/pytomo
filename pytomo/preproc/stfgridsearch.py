@@ -188,7 +188,7 @@ class STFGridSearch():
                         corr_ref = np.corrcoef(data_cut, u_cut)[0, 1]
                         if (amp_ratio_ref > 3.
                             or amp_ratio_ref < 1/3.
-                            or corr_ref < 0.):
+                            or corr_ref < 0.5):
                             continue 
 
                         for iamp, amp in enumerate(self.amplitudes):
@@ -326,7 +326,7 @@ class STFGridSearch():
                 corr_ref = np.corrcoef(data_cut, u_cut)[0, 1]
                 if (amp_ratio_ref > 3.
                     or amp_ratio_ref < 1/3.
-                    or corr_ref < 0.):
+                    or corr_ref < 0.5):
                     continue
                 
                 u_cut *= amp
@@ -371,9 +371,9 @@ if __name__ == '__main__':
     freq = 0.005
     freq2 = 0.1
     duration_min = 1.
-    duration_max = 12.
+    duration_max = 15.
     duration_inc = 1.
-    amp = 2.
+    amp = 2.5
     amp_inc = .05
     distance_min = 10.
     distance_max = 90.

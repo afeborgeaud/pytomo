@@ -369,7 +369,7 @@ if __name__ == '__main__':
     nspc = 1024
     sampling_hz = 20
     freq = 0.005
-    freq2 = 0.167
+    freq2 = 0.1
     duration_min = 1.
     duration_max = 12.
     duration_inc = 1.
@@ -399,9 +399,9 @@ if __name__ == '__main__':
             windows_S = WindowMaker.windows_from_dataset(
                 dataset, 'prem', ['s', 'S', 'Sdiff'],
                 [Component.T], t_before=t_before, t_after=t_after)
-            windows_P = WindowMaker.windows_from_dataset(
-                dataset, 'prem', ['p', 'P', 'Pdiff'],
-                [Component.Z], t_before=t_before, t_after=t_after)
+            # windows_P = WindowMaker.windows_from_dataset(
+            #     dataset, 'prem', ['p', 'P', 'Pdiff'],
+            #     [Component.Z], t_before=t_before, t_after=t_after)
             windows = windows_S #+ windows_P
             windows = [
                 window for window in windows

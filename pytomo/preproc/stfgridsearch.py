@@ -12,6 +12,7 @@ import os
 from mpi4py import MPI
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 class STFGridSearch():
     '''Compute triangular source time functions by grid search.
@@ -151,62 +152,29 @@ class STFGridSearch():
                     type='bandpass', zerophase=False)
                 
                 count_used_windows = 0
-                for i in range(len(output.stations)):
-                    station = output.stations[i]
+                for ista in range(len(output.stations)):
+                    station = output.stations[ista]
                     windows_filt = [
                         window for window in windows_local
                         if (window.station == station
                             and window.event == event)]
-                    for j, window in enumerate(windows_filt):
-                        window_arr = window.to_array()
-                        icomp = window.component.value
-                        i_start = int(window_arr[0] * output.sampling_hz)
-                        i_end = int(window_arr[1] * output.sampling_hz)
-                        u_cut = output.us[icomp, i, i_start:i_end]
+                    for iwin, window in enumerate(windows_filt):
+                        u_cut, data_cut = self.cut_data(
+                            output.sampling_hz, output.us,
+                            data_local[iev], window, iwin, ista)
                         
-                        buffer = 10 * output.sampling_hz
-                        # i_start_buff = i_start - buffer
-                        # i_end_buff = i_end + buffer
-                        data_cut_tmp = data_local[iev][
-                            j, icomp, i]
-                        shift, _ = IterStack.find_best_shift(
-                            data_cut_tmp, u_cut,
-                            shift_polarity=False,
-                            skip_freq=4)
-                        # print(shift)
-                        # shift -= buffer
-
-                        # data_cut = data_local[iev][
-                        #     icomp, i, (i_start+shift):(i_end+shift)]
-                        data_cut = data_local[iev][
-                            j, icomp, i, shift:(i_end-i_start+shift)]
-
-                        # select data
-                        amp_ratio_ref = (
-                            (data_cut.max() - data_cut.min())
-                            / (u_cut.max() - u_cut.min()))
-                        corr_ref = np.corrcoef(data_cut, u_cut)[0, 1]
-                        if (amp_ratio_ref > 3.
-                            or amp_ratio_ref < 1/3.
-                            or corr_ref < 0.5):
-                            continue 
-
-                        for iamp, amp in enumerate(self.amplitudes):
-                            misfit = STFGridSearch._misfit(
-                                data_cut, u_cut * amp)
-                            if np.isnan(misfit):
-                                log.write(
-                                    '{} NaN misfit {} {}'
-                                    .format(rank, station, event))
-                                misfit=1e10
-                            event_misfits[idur, iamp, 2] += misfit
-
-                            # plt.clf()
-                            # plt.plot(data_cut, color='black')
-                            # plt.plot(u_cut*amp, color='red')
-                            # plt.show()
-
-                        count_used_windows += 1
+                        keep_data = self.select_data(data_cut, u_cut)
+                        if keep_data:
+                            for iamp, amp in enumerate(self.amplitudes):
+                                misfit = STFGridSearch._misfit(
+                                    data_cut, u_cut * amp)
+                                if np.isnan(misfit):
+                                    log.write(
+                                        '{} NaN misfit {} {}'
+                                        .format(rank, station, event))
+                                    misfit=1e10
+                                event_misfits[idur, iamp, 2] += misfit
+                            count_used_windows += 1
 
             if count_used_windows > 0:
                 event_misfits[:, :, 2] /= count_used_windows
@@ -231,6 +199,39 @@ class STFGridSearch():
             count_dict = None
 
         return misfit_dict, count_dict
+
+    def cut_data(
+            self, sampling_hz, syn, data_local,
+            window, iwin, ista, start_ista=0):
+        window_arr = window.to_array()
+        icomp = window.component.value
+        i_start = int(window_arr[0] * sampling_hz)
+        i_end = int(window_arr[1] * sampling_hz)
+        u_cut = syn[icomp, ista, i_start:i_end]
+        
+        data_cut_tmp = data_local[
+            iwin, icomp, ista+start_ista]
+        shift, _ = IterStack.find_best_shift(
+            data_cut_tmp, u_cut,
+            shift_polarity=False,
+            skip_freq=4)
+
+        data_cut = data_local[
+            iwin, icomp, ista, shift:(i_end-i_start+shift)]
+
+        return u_cut, data_cut
+
+    def select_data(self, obs, syn):
+        amp_ratio_ref = (
+            (obs.max() - obs.min())
+            / (syn.max() - syn.min()))
+        corr_ref = np.corrcoef(obs, syn)[0, 1]
+        if (amp_ratio_ref > 3.
+                or amp_ratio_ref < 1/3.
+                or corr_ref < 0.5):
+            return False
+        else:
+            return True
 
     def get_best_parameters(self, misfit_dict):
         '''Get best duration and amplitude correction from misfit_dict.
@@ -289,58 +290,30 @@ class STFGridSearch():
 
         start, end = dataset.get_bounds_from_event_index(iev)
         event = output.event
-        for i in range(end-start):
-            station = dataset.stations[i+start]
+        for ista in range(len(output.stations)):
+            station = output.stations[ista]
             windows_filt = [
                 window for window in windows
                 if (window.station == station
                     and window.event == event)]
-            for j, window in enumerate(windows_filt):
-                window_arr = window.to_array()
-                icomp = window.component.value
-                i_start = int(window_arr[0] * dataset.sampling)
-                i_end = int(window_arr[1] * dataset.sampling)
+            for iwin, window in enumerate(windows_filt):
+                u_cut, data_cut = self.cut_data(
+                            output.sampling_hz, us, dataset.data,
+                            window, iwin, ista, start_ista=start)
+                u_gcmt_cut, _ = self.cut_data(
+                            output.sampling_hz, us_gcmt, dataset.data,
+                            window, iwin, ista, start_ista=start)
 
-                u_cut = us[icomp, i, i_start:i_end]
-                u_gcmt_cut = us_gcmt[icomp, i, i_start:i_end]
-
-                #TODO align obs and syn
-                buffer = 10 * dataset.sampling
-                i_start_buff = i_start - buffer
-                i_end_buff = i_end + buffer
-                data_cut_tmp = dataset.data[
-                    j, icomp, i]
-                shift, _ = IterStack.find_best_shift(
-                    data_cut_tmp, u_cut, shift_polarity=False)
-                # shift -= buffer
-
-                # data_cut = dataset.data[
-                #     icomp, i, (i_start+shift):(i_end+shift)]
-                data_cut = dataset.data[
-                    j, icomp, i, shift:(i_end-i_start+shift)]
-
-                # select data
-                amp_ratio_ref = (
-                    (data_cut.max() - data_cut.min())
-                    / (u_cut.max() - u_cut.min()))
-                corr_ref = np.corrcoef(data_cut, u_cut)[0, 1]
-                if (amp_ratio_ref > 3.
-                    or amp_ratio_ref < 1/3.
-                    or corr_ref < 0.5):
-                    continue
-                
-                u_cut *= amp
-
-                distance = window.get_epicentral_distance()
-                max_obs = np.abs(data_cut).max() * 2
-                ts = np.linspace(
-                    0, len(data_cut)/output.sampling_hz, len(data_cut))
-                ax1.plot(ts, data_cut/max_obs+distance, color='black')
-                ax1.plot(ts, u_cut/max_obs+distance, color='red')
-                ax2.plot(ts, data_cut/max_obs+distance, color='black')
-                ax2.plot(ts, u_gcmt_cut/max_obs+distance, color='green')
-
-                # plt.show()
+                keep_data = self.select_data(data_cut, u_cut)
+                if keep_data:
+                    distance = window.get_epicentral_distance()
+                    max_obs = np.abs(data_cut).max() * 2
+                    ts = np.linspace(
+                        0, len(data_cut)/output.sampling_hz, len(data_cut))
+                    ax1.plot(ts, data_cut/max_obs+distance, color='black')
+                    ax1.plot(ts, amp*u_cut/max_obs+distance, color='red')
+                    ax2.plot(ts, data_cut/max_obs+distance, color='black')
+                    ax2.plot(ts, u_gcmt_cut/max_obs+distance, color='green')
 
         ax1.title.set_text('Ours')
         ax2.title.set_text('GCMT')
@@ -366,7 +339,7 @@ if __name__ == '__main__':
 
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 1024
+    nspc = 64
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.1
@@ -384,9 +357,9 @@ if __name__ == '__main__':
     logfile = open('log_{}'.format(rank), 'w', buffering=1)
 
     for sac_files in sac_files_iterator(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T',
+        '/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T',
         comm, log=logfile):
-        #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T'
+        #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T'
         #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'
 
         logfile.write('{} num sacs = {}\n'.format(rank, len(sac_files)))

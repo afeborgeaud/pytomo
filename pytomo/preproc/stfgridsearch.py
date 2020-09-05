@@ -225,10 +225,18 @@ class STFGridSearch():
         return u_cut, data_cut
 
     def select_data(self, obs, syn):
-        amp_ratio_ref = (
+        try:
+            amp_ratio_ref = (
             (obs.max() - obs.min())
             / (syn.max() - syn.min()))
-        corr_ref = np.corrcoef(obs, syn)[0, 1]
+        except:
+            print(syn[:200:20])
+        try:
+            corr_ref = np.corrcoef(obs, syn)[0, 1]
+        except:
+            print(obs[:200:20])
+            print(syn[:200:20])
+            corr_ref = -1.
         if (amp_ratio_ref > 3.
                 or amp_ratio_ref < 1/3.
                 or corr_ref < 0.5):
@@ -279,7 +287,6 @@ class STFGridSearch():
         duration, amp = best_params_dict[event_id]
         stf = SourceTimeFunction('triangle', duration/2.)
 
-        plt.clf()
         fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
 
         output.to_time_domain(stf)
@@ -312,6 +319,7 @@ class STFGridSearch():
                             window, iwin, ista, start_ista=start)
 
                 keep_data = self.select_data(data_cut, u_cut)
+                print(event, keep_data)
                 if keep_data:
                     distance = window.get_epicentral_distance()
                     max_obs = np.abs(data_cut).max() * 2
@@ -331,6 +339,8 @@ class STFGridSearch():
         plt.suptitle(event_id)
 
         plt.savefig(filename, bbox_inches='tight')
+        plt.cla()
+        plt.close(fig)
 
     @staticmethod
     def _misfit(obs, syn):
@@ -349,7 +359,7 @@ if __name__ == '__main__':
 
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 512
+    nspc = 1024
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.1

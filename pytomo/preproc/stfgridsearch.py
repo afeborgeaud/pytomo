@@ -214,10 +214,13 @@ class STFGridSearch():
         
         data_cut_tmp = data_local[
             iwin, icomp, ista+start_ista]
-        shift, _ = IterStack.find_best_shift(
-            data_cut_tmp, u_cut,
-            shift_polarity=False,
-            skip_freq=4)
+        try:
+            shift, _ = IterStack.find_best_shift(
+                data_cut_tmp, u_cut,
+                shift_polarity=False,
+                skip_freq=4)
+        except:
+            print('Problem with finding best shift')
 
         data_cut = data_local[
             iwin, icomp, ista, shift:(i_end-i_start+shift)]
@@ -339,7 +342,6 @@ class STFGridSearch():
         plt.suptitle(event_id)
 
         plt.savefig(filename, bbox_inches='tight')
-        plt.cla()
         plt.close(fig)
 
     @staticmethod
@@ -397,6 +399,7 @@ if __name__ == '__main__':
             #     dataset, 'prem', ['p', 'P', 'Pdiff'],
             #     [Component.Z], t_before=t_before, t_after=t_after)
             windows = windows_S #+ windows_P
+            WindowMaker.save('windows.pkl', windows)
             windows = [
                 window for window in windows
                 if (

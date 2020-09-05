@@ -339,7 +339,7 @@ if __name__ == '__main__':
 
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 64
+    nspc = 1024
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.1
@@ -357,7 +357,7 @@ if __name__ == '__main__':
     logfile = open('log_{}'.format(rank), 'w', buffering=1)
 
     for sac_files in sac_files_iterator(
-        '/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T',
+        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T',
         comm, log=logfile):
         #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T'
         #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'

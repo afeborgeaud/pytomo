@@ -137,9 +137,13 @@ class STFGridSearch():
             event_misfits = np.zeros(
                 (len(durations), len(self.amplitudes), 3),
                 dtype=np.float32)
+            count_used_windows = np.zeros(
+                (len(durations), 2),
+                dtype=np.int32)
             event_misfits[:, :, 2] = 0.
             for i in range(len(durations)):
                 event_misfits[i, :, 0] = durations[i]
+                count_used_windows[i, 0] = durations[i]
             for i in range(len(amplitudes)):
                 event_misfits[:, i, 1] = amplitudes[i]
 
@@ -151,7 +155,6 @@ class STFGridSearch():
                     self.freq, self.freq2,
                     type='bandpass', zerophase=False)
                 
-                count_used_windows = 0
                 for ista in range(len(output.stations)):
                     station = output.stations[ista]
                     windows_filt = [
@@ -174,12 +177,12 @@ class STFGridSearch():
                                         .format(rank, station, event))
                                     misfit=1e10
                                 event_misfits[idur, iamp, 2] += misfit
-                            count_used_windows += 1
+                            count_used_windows[idur, 1] += 1
 
-            if count_used_windows > 0:
-                event_misfits[:, :, 2] /= count_used_windows
-            else:
-                event_misfits[:, :, 2] = 1e10
+                if count_used_windows[idur, 1] > 0:
+                    event_misfits[idur, :, 2] /= count_used_windows[idur, 1]
+                else:
+                    event_misfits[idur, :, 2] = 1e10
             misfit_dict_local[output.event.event_id] = event_misfits
             count_dict_local[output.event.event_id] = count_used_windows
 
@@ -233,20 +236,23 @@ class STFGridSearch():
         else:
             return True
 
-    def get_best_parameters(self, misfit_dict):
+    def get_best_parameters(self, misfit_dict, count_dict):
         '''Get best duration and amplitude correction from misfit_dict.
         Args:
             misfit_dict (dict): dict returned by compute_parallel()
+            count_dict (dict): dict returbed by compute_parallel()
         Returns:
             best_params_dict (dict): keys are event_id; values are
                 tuples (duration, amplitude).
         '''
         best_params_dict = dict()
-        print(misfit_dict)
         for event_id in misfit_dict.keys():
             misfits = misfit_dict[event_id]
+            counts = count_dict[event_id]
+            threshold = counts[:,1].max() / np.sqrt(2)
+            mask = counts[:,1] < threshold
+            misfits[mask, :, :] = 1e10
             min_misfit = misfits[:, :, 2].min()
-            print(min_misfit)
             dur, amp, _ = misfits[misfits[:,:,2]==min_misfit][0]
 
             best_params_dict[event_id] = (dur, amp)
@@ -257,7 +263,8 @@ class STFGridSearch():
         with open(filename, 'a') as f:
             for event_id in best_params_dict.keys():
                 duration, amp_corr = best_params_dict[event_id]
-                n_window = count_dict[event_id]
+                n_windows = count_dict[event_id]
+                n_window = n_windows[n_windows[:,0]==duration][0, 1]
                 f.write(
                     '{} {} {} {}\n'
                     .format(event_id, duration, amp_corr, n_window))
@@ -329,7 +336,10 @@ class STFGridSearch():
     def _misfit(obs, syn):
         corr = np.corrcoef(obs, syn)[0, 1]
         amp_ratio = (obs.max() - obs.min()) / (syn.max() - syn.min())
-        return 0.5*(1 - corr) + np.abs(np.log(0.333)*np.log(amp_ratio))
+        var = np.dot((obs-syn), (obs-syn)) / np.dot(obs, obs)
+        return (0.5*(1 - corr)
+                + np.abs(np.log(0.333)*np.log(amp_ratio))
+                + var / 2.5)
 
 
 if __name__ == '__main__':
@@ -339,7 +349,7 @@ if __name__ == '__main__':
 
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 1024
+    nspc = 512
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.1
@@ -361,6 +371,7 @@ if __name__ == '__main__':
         comm, log=logfile):
         #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T'
         #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'
+        #'/home/anselme/Dropbox/Kenji/MTZ_JAPAN/DATA'
 
         logfile.write('{} num sacs = {}\n'.format(rank, len(sac_files)))
 
@@ -401,7 +412,8 @@ if __name__ == '__main__':
         
         if rank == 0:
             logfile.write('{} saving misfits\n'.format(rank))
-            best_params_dict = stfgrid.get_best_parameters(misfit_dict)
+            best_params_dict = stfgrid.get_best_parameters(
+                misfit_dict, count_dict)
 
             catalog_name = 'stf_catalog.txt'
             stfgrid.save_catalog(

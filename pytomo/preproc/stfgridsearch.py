@@ -13,6 +13,8 @@ from mpi4py import MPI
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+import warnings
+warnings.filterwarnings('error')
 
 class STFGridSearch():
     '''Compute triangular source time functions by grid search.
@@ -32,7 +34,7 @@ class STFGridSearch():
         self.windows = windows
         self.durations = durations
         self.amplitudes = amplitudes
-
+        
         if dataset is not None:
             self.dataset.filter(
                 freq, freq2, type='bandpass', zerophase=False)
@@ -41,7 +43,7 @@ class STFGridSearch():
             t_after = windows[0].t_after
             window_npts_max = int((t_before + t_after) * sampling_hz)
             buffer = 10.
-            dataset.apply_windows(windows, 2, window_npts_max, buffer)
+            self.dataset.apply_windows(windows, 2, window_npts_max, buffer)
 
     def load_outputs(
             self, comm, dir=None, mode=0, verbose=0, log=None):
@@ -116,7 +118,7 @@ class STFGridSearch():
                 data_ = []
                 for j in range(i0, i1):
                     start, end = self.dataset.get_bounds_from_event_index(j)
-                    event_data = self.dataset.data[:, :, start:end, :]
+                    event_data = np.array(self.dataset.data[:, :, start:end, :])
                     data_.append(event_data)
                 data_scat.append(data_)
         else:
@@ -161,6 +163,7 @@ class STFGridSearch():
                         window for window in windows_local
                         if (window.station == station
                             and window.event == event)]
+                    print(windows_filt)
                     for iwin, window in enumerate(windows_filt):
                         u_cut, data_cut = self.cut_data(
                             output.sampling_hz, output.us,
@@ -214,6 +217,7 @@ class STFGridSearch():
         
         data_cut_tmp = data_local[
             iwin, icomp, ista+start_ista]
+        shift = 0
         try:
             shift, _ = IterStack.find_best_shift(
                 data_cut_tmp, u_cut,
@@ -221,6 +225,9 @@ class STFGridSearch():
                 skip_freq=4)
         except:
             print('Problem with finding best shift')
+            print(ista, start_ista, iwin)
+            print(data_local)            
+            print(data_cut_tmp[:200:20], len(data_cut_tmp))
 
         data_cut = data_local[
             iwin, icomp, ista, shift:(i_end-i_start+shift)]
@@ -305,7 +312,7 @@ class STFGridSearch():
             type='bandpass', zerophase=False)
         us_gcmt = np.array(output.us)
 
-        start, end = dataset.get_bounds_from_event_index(iev)
+        start, end = self.dataset.get_bounds_from_event_index(iev)
         event = output.event
         for ista in range(len(output.stations)):
             station = output.stations[ista]
@@ -315,10 +322,10 @@ class STFGridSearch():
                     and window.event == event)]
             for iwin, window in enumerate(windows_filt):
                 u_cut, data_cut = self.cut_data(
-                            output.sampling_hz, us, dataset.data,
+                            output.sampling_hz, us, self.dataset.data,
                             window, iwin, ista, start_ista=start)
                 u_gcmt_cut, _ = self.cut_data(
-                            output.sampling_hz, us_gcmt, dataset.data,
+                            output.sampling_hz, us_gcmt, self.dataset.data,
                             window, iwin, ista, start_ista=start)
 
                 keep_data = self.select_data(data_cut, u_cut)
@@ -392,14 +399,15 @@ if __name__ == '__main__':
             dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
 
             logfile.write('{} computing time windows\n'.format(rank))
-            windows_S = WindowMaker.windows_from_dataset(
-                dataset, 'prem', ['s', 'S', 'Sdiff'],
-                [Component.T], t_before=t_before, t_after=t_after)
+            # windows_S = WindowMaker.windows_from_dataset(
+            #    dataset, 'prem', ['s', 'S', 'Sdiff'],
+            #    [Component.T], t_before=t_before, t_after=t_after)
             # windows_P = WindowMaker.windows_from_dataset(
             #     dataset, 'prem', ['p', 'P', 'Pdiff'],
             #     [Component.Z], t_before=t_before, t_after=t_after)
-            windows = windows_S #+ windows_P
-            WindowMaker.save('windows.pkl', windows)
+            #windows = windows_S #+ windows_P
+            #WindowMaker.save('windows.pkl', windows)
+            windows = WindowMaker.load('windows.pkl')
             windows = [
                 window for window in windows
                 if (
@@ -414,7 +422,8 @@ if __name__ == '__main__':
                 int((duration_max - duration_min)/duration_inc)+1)
         amplitudes = np.linspace(1., amp, int((amp-1)/amp_inc)+1)
         amplitudes = np.concatenate((1./amplitudes[:0:-1], amplitudes))
-
+        
+        logfile.write('Init stfgrid; filter dataset')
         stfgrid = STFGridSearch(
             dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
             durations, amplitudes)

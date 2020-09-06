@@ -342,13 +342,16 @@ class STFGridSearch():
 
                 if keep_data:
                     distance = window.get_epicentral_distance()
-                    max_obs = np.abs(data_cut).max() * 2
+                    if -data_cut.min() > data_cut.max():
+                        norm = data_cut.min() * 2. # reverse polarity
+                    else:
+                        norm = data_cut.max() * 2.
                     ts = np.linspace(
                         0, len(data_cut)/output.sampling_hz, len(data_cut))
-                    ax1.plot(ts, data_cut/max_obs+distance, color='black')
-                    ax1.plot(ts, amp*u_cut/max_obs+distance, color='red')
-                    ax2.plot(ts, data_cut/max_obs+distance, color='black')
-                    ax2.plot(ts, u_gcmt_cut/max_obs+distance, color='green')
+                    ax1.plot(ts, data_cut/norm+distance, color='black')
+                    ax1.plot(ts, amp*u_cut/norm+distance, color='red')
+                    ax2.plot(ts, data_cut/norm+distance, color='black')
+                    ax2.plot(ts, u_gcmt_cut/norm+distance, color='green')
 
         ax1.title.set_text('Ours')
         ax2.title.set_text('GCMT')
@@ -392,6 +395,10 @@ if __name__ == '__main__':
     dir_syn = '.'
     t_before = 10.
     t_after = 20.
+    catalog_path = 'stf_catalog.txt'
+
+    with open(catalog_path, 'w') as f:
+        f.write('event_id duration amp_corr num_win')
 
     logfile = open('log_{}'.format(rank), 'w', buffering=1)
 
@@ -447,9 +454,8 @@ if __name__ == '__main__':
             best_params_dict = stfgrid.get_best_parameters(
                 misfit_dict, count_dict)
 
-            catalog_name = 'stf_catalog.txt'
             stfgrid.save_catalog(
-                catalog_name, best_params_dict, count_dict)
+                catalog_path, best_params_dict, count_dict)
 
             for event_id in misfit_dict.keys():
                 filename = '{}.pdf'.format(event_id)

@@ -291,9 +291,15 @@ class STFGridSearch():
                 duration, amp_corr = best_params_dict[event_id]
                 n_windows = count_dict[event_id]
                 n_window = n_windows[n_windows[:,0]==duration][0, 1]
+                duration_gcmt = [
+                    event.source_time_function.half_duration * 2. 
+                    for event in self.dataset.events
+                    if event.event_id==event_id][0]
                 f.write(
-                    '{} {} {} {}\n'
-                    .format(event_id, duration, amp_corr, n_window))
+                    '{} {} {} {} {}\n'
+                    .format(
+                        event_id, duration, duration_gcmt,
+                        amp_corr, n_window))
 
     def savefig(self, best_params_dict, event_id, filename):
         output = [
@@ -398,7 +404,7 @@ if __name__ == '__main__':
     catalog_path = 'stf_catalog.txt'
 
     with open(catalog_path, 'w') as f:
-        f.write('event_id duration amp_corr num_win')
+        f.write('event_id duration duration_gcmt amp_corr num_win\n')
 
     logfile = open('log_{}'.format(rank), 'w', buffering=1)
 

@@ -43,7 +43,7 @@ class STFGridSearch():
             t_after = windows[0].t_after
             window_npts_max = int((t_before + t_after) * sampling_hz)
             buffer = 10.
-            self.dataset.apply_windows(windows, 2, window_npts_max, buffer)
+            self.dataset.apply_windows(windows, 1, window_npts_max, buffer)
 
     def load_outputs(
             self, comm, dir=None, mode=0, verbose=0, log=None):
@@ -105,6 +105,7 @@ class STFGridSearch():
         if rank == 0:
             outputs_scat = []
             data_scat = []
+            station_scat = []
             n = int(len(outputs) / size)
             for i in range(size):
                 i0 = i*n
@@ -114,18 +115,25 @@ class STFGridSearch():
                     i1 = len(outputs)
                 outputs_scat.append(outputs[i0:i1])
                 
-                #TODO cut the data to avoid overflow error
                 data_ = []
+                stations_ = []
                 for j in range(i0, i1):
+                    # TODO understand why the order of stations in dataset
+                    # change when using more than one cpu
                     start, end = self.dataset.get_bounds_from_event_index(j)
                     event_data = np.array(self.dataset.data[:, :, start:end, :])
+                    event_stations = np.array(self.dataset.stations[start:end])
                     data_.append(event_data)
+                    stations_.append(event_stations)
                 data_scat.append(data_)
+                station_scat.append(stations_)
         else:
             outputs_scat = None
             data_scat = None
+            station_scat = None
         outputs_local = comm.scatter(outputs_scat, root=0)
         data_local = comm.scatter(data_scat, root=0)
+        station_local = comm.scatter(station_scat, root=0)
         windows_local = comm.bcast(windows, root=0)
 
         log.write('{} computing misfits\n'.format(rank))
@@ -163,11 +171,15 @@ class STFGridSearch():
                         window for window in windows_local
                         if (window.station == station
                             and window.event == event)]
-                    print(windows_filt)
+
+                    jsta = np.argwhere(station_local[iev]==station)[0][0]
+                    # print(rank, ista, jsta)
+                    # print(rank, windows_filt)
+                    
                     for iwin, window in enumerate(windows_filt):
                         u_cut, data_cut = self.cut_data(
                             output.sampling_hz, output.us,
-                            data_local[iev], window, iwin, ista)
+                            data_local[iev], window, iwin, ista, jsta)
                         
                         keep_data = self.select_data(data_cut, u_cut)
                         if keep_data:
@@ -208,7 +220,7 @@ class STFGridSearch():
 
     def cut_data(
             self, sampling_hz, syn, data_local,
-            window, iwin, ista, start_ista=0):
+            window, iwin, ista, jsta):
         window_arr = window.to_array()
         icomp = window.component.value
         i_start = int(window_arr[0] * sampling_hz)
@@ -216,7 +228,7 @@ class STFGridSearch():
         u_cut = syn[icomp, ista, i_start:i_end]
         
         data_cut_tmp = data_local[
-            iwin, icomp, ista+start_ista]
+            iwin, icomp, jsta]
         shift = 0
         try:
             shift, _ = IterStack.find_best_shift(
@@ -225,12 +237,9 @@ class STFGridSearch():
                 skip_freq=4)
         except:
             print('Problem with finding best shift')
-            print(ista, start_ista, iwin)
-            print(data_local)            
-            print(data_cut_tmp[:200:20], len(data_cut_tmp))
 
         data_cut = data_local[
-            iwin, icomp, ista, shift:(i_end-i_start+shift)]
+            iwin, icomp, jsta, shift:(i_end-i_start+shift)]
 
         return u_cut, data_cut
 
@@ -240,12 +249,11 @@ class STFGridSearch():
             (obs.max() - obs.min())
             / (syn.max() - syn.min()))
         except:
-            print(syn[:200:20])
+            pass
         try:
             corr_ref = np.corrcoef(obs, syn)[0, 1]
         except:
-            print(obs[:200:20])
-            print(syn[:200:20])
+            pass
             corr_ref = -1.
         if (amp_ratio_ref > 3.
                 or amp_ratio_ref < 1/3.
@@ -320,16 +328,18 @@ class STFGridSearch():
                 window for window in windows
                 if (window.station == station
                     and window.event == event)]
+            jsta = np.where(
+                self.dataset.stations[start:end]==station)[0][0] + start
             for iwin, window in enumerate(windows_filt):
                 u_cut, data_cut = self.cut_data(
                             output.sampling_hz, us, self.dataset.data,
-                            window, iwin, ista, start_ista=start)
+                            window, iwin, ista, jsta)
                 u_gcmt_cut, _ = self.cut_data(
                             output.sampling_hz, us_gcmt, self.dataset.data,
-                            window, iwin, ista, start_ista=start)
+                            window, iwin, ista, jsta)
 
                 keep_data = self.select_data(data_cut, u_cut)
-                print(event, keep_data)
+
                 if keep_data:
                     distance = window.get_epicentral_distance()
                     max_obs = np.abs(data_cut).max() * 2
@@ -368,7 +378,7 @@ if __name__ == '__main__':
 
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 1024
+    nspc = 512
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.1
@@ -390,7 +400,7 @@ if __name__ == '__main__':
         comm, log=logfile):
         #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T'
         #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'
-        #'/home/anselme/Dropbox/Kenji/MTZ_JAPAN/DATA'
+        #'/home/anselme/Dropbox/Kenji/MTZ_JAPAN/DATA/20*/*T'
 
         logfile.write('{} num sacs = {}\n'.format(rank, len(sac_files)))
 
@@ -399,15 +409,15 @@ if __name__ == '__main__':
             dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
 
             logfile.write('{} computing time windows\n'.format(rank))
-            # windows_S = WindowMaker.windows_from_dataset(
-            #    dataset, 'prem', ['s', 'S', 'Sdiff'],
-            #    [Component.T], t_before=t_before, t_after=t_after)
+            windows_S = WindowMaker.windows_from_dataset(
+               dataset, 'prem', ['S'],
+               [Component.T], t_before=t_before, t_after=t_after)
             # windows_P = WindowMaker.windows_from_dataset(
             #     dataset, 'prem', ['p', 'P', 'Pdiff'],
             #     [Component.Z], t_before=t_before, t_after=t_after)
-            #windows = windows_S #+ windows_P
-            #WindowMaker.save('windows.pkl', windows)
-            windows = WindowMaker.load('windows.pkl')
+            windows = windows_S #+ windows_P
+            WindowMaker.save('windows.pkl', windows)
+            #windows = WindowMaker.load('windows.pkl')
             windows = [
                 window for window in windows
                 if (

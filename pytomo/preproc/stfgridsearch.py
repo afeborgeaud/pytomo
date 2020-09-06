@@ -145,19 +145,19 @@ class STFGridSearch():
         for iev, output in enumerate(outputs_local):
             event = output.event
             event_misfits = np.zeros(
-                (len(durations), len(self.amplitudes), 3),
+                (len(self.durations), len(self.amplitudes), 3),
                 dtype=np.float32)
             count_used_windows = np.zeros(
-                (len(durations), 2),
-                dtype=np.int32)
+                (len(self.durations), 2),
+                dtype=np.float32)
             event_misfits[:, :, 2] = 0.
-            for i in range(len(durations)):
-                event_misfits[i, :, 0] = durations[i]
-                count_used_windows[i, 0] = durations[i]
-            for i in range(len(amplitudes)):
+            for i in range(len(self.durations)):
+                event_misfits[i, :, 0] = self.durations[i]
+                count_used_windows[i, 0] = self.durations[i]
+            for i in range(len(self.amplitudes)):
                 event_misfits[:, i, 1] = amplitudes[i]
 
-            for idur, duration in enumerate(durations):
+            for idur, duration in enumerate(self.durations):
                 log.write('{} {}\n'.format(rank, idur))
                 stf = SourceTimeFunction('triangle', duration/2.)
                 output.to_time_domain(stf)
@@ -188,9 +188,9 @@ class STFGridSearch():
                                     data_cut, u_cut * amp)
                                 if np.isnan(misfit):
                                     log.write(
-                                        '{} NaN misfit {} {}'
+                                        '{} NaN misfit {} {}\n'
                                         .format(rank, station, event))
-                                    misfit=1e10
+                                    continue
                                 event_misfits[idur, iamp, 2] += misfit
                             count_used_windows[idur, 1] += 1
 
@@ -244,25 +244,21 @@ class STFGridSearch():
         return u_cut, data_cut
 
     def select_data(self, obs, syn):
-        try:
-            amp_ratio_ref = (
+        if np.isnan(obs).any():
+            return False
+        amp_ratio_ref = (
             (obs.max() - obs.min())
             / (syn.max() - syn.min()))
-        except:
-            pass
-        try:
-            corr_ref = np.corrcoef(obs, syn)[0, 1]
-        except:
-            pass
-            corr_ref = -1.
-        if (amp_ratio_ref > 3.
-                or amp_ratio_ref < 1/3.
+        corr_ref = np.corrcoef(obs, syn)[0, 1]
+        if (amp_ratio_ref > 2.5
+                or amp_ratio_ref < 1/2.5
                 or corr_ref < 0.5):
             return False
         else:
             return True
 
-    def get_best_parameters(self, misfit_dict, count_dict):
+    def get_best_parameters(
+            self, misfit_dict, count_dict, duration_cap=1.3):
         '''Get best duration and amplitude correction from misfit_dict.
         Args:
             misfit_dict (dict): dict returned by compute_parallel()
@@ -274,10 +270,22 @@ class STFGridSearch():
         best_params_dict = dict()
         for event_id in misfit_dict.keys():
             misfits = misfit_dict[event_id]
+
+            # use only measurements with large num. of windows
             counts = count_dict[event_id]
             threshold = counts[:,1].max() / np.sqrt(2)
             mask = counts[:,1] < threshold
-            misfits[mask, :, :] = 1e10
+            misfits[mask, :, 2] = 1e10
+
+            # remove measurements with duration larger
+            # than the GCMT duration * duration_cap
+            duration_gcmt = [
+                    event.source_time_function.half_duration * 2. 
+                    for event in self.dataset.events
+                    if event.event_id==event_id][0]
+            mask = self.durations > duration_gcmt*duration_cap
+            misfits[mask, :, 2] = 1e10
+
             min_misfit = misfits[:, :, 2].min()
             dur, amp, _ = misfits[misfits[:,:,2]==min_misfit][0]
 
@@ -290,7 +298,8 @@ class STFGridSearch():
             for event_id in best_params_dict.keys():
                 duration, amp_corr = best_params_dict[event_id]
                 n_windows = count_dict[event_id]
-                n_window = n_windows[n_windows[:,0]==duration][0, 1]
+                n_window = n_windows[
+                    np.abs(n_windows[:,0]-duration) < 1e-5][0, 1]
                 duration_gcmt = [
                     event.source_time_function.half_duration * 2. 
                     for event in self.dataset.events
@@ -376,7 +385,7 @@ class STFGridSearch():
         amp_ratio = (obs.max() - obs.min()) / (syn.max() - syn.min())
         var = np.dot((obs-syn), (obs-syn)) / np.dot(obs, obs)
         return (0.5*(1 - corr)
-                + np.abs(np.log(0.333)*np.log(amp_ratio))
+                + 1.5*np.abs(np.log(2.5)*np.log(amp_ratio))
                 + var / 2.5)
 
 
@@ -390,12 +399,12 @@ if __name__ == '__main__':
     nspc = 1024
     sampling_hz = 20
     freq = 0.005
-    freq2 = 0.1
+    freq2 = 0.167
     duration_min = 1.
     duration_max = 15.
-    duration_inc = 1.
-    amp = 2.5
-    amp_inc = .05
+    duration_inc = .25
+    amp = 1.6
+    amp_inc = .02
     distance_min = 10.
     distance_max = 90.
     dir_syn = '.'
@@ -442,10 +451,11 @@ if __name__ == '__main__':
 
         durations = np.linspace(
                 duration_min, duration_max,
-                int((duration_max - duration_min)/duration_inc)+1)
+                int((duration_max - duration_min)/duration_inc)+1,
+                dtype=np.float32)
         amplitudes = np.linspace(1., amp, int((amp-1)/amp_inc)+1)
         amplitudes = np.concatenate((1./amplitudes[:0:-1], amplitudes))
-        
+
         logfile.write('Init stfgrid; filter dataset')
         stfgrid = STFGridSearch(
             dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,

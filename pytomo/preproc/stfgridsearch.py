@@ -381,7 +381,7 @@ if __name__ == '__main__':
 
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 512
+    nspc = 1024
     sampling_hz = 20
     freq = 0.005
     freq2 = 0.1

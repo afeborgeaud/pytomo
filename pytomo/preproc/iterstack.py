@@ -1,13 +1,14 @@
 from pydsm.window import Window
 from pydsm.windowmaker import WindowMaker
 from pydsm.dataset import Dataset
+from stream import read_sac
 import numpy as np
 import os
 import glob
 import sys
 import time
 import matplotlib.pyplot as plt
-from stream import read_sac
+import warnings
 
 class InputFile:
     """Input file for IterStack.
@@ -162,7 +163,7 @@ class IterStack:
 
     def compute_windows(self):
         """
-        Return: windows (list): list of pydsm.Windows
+        Return: windows (list): list of pydsm.window.Window
         """
         # TODO speed up by grouping events
         windows = []
@@ -324,6 +325,9 @@ class IterStack:
     @staticmethod
     def find_best_shift(
             y, y_template, shift_polarity=False, skip_freq=1):
+        if not np.any(y) or not np.any(y_template):
+            warnings.warn('y or y_template is 0. Returning 0 shift')
+            return 0, 1.
         n = len(y_template)
         n_shift = len(y) - n
         assert n_shift % skip_freq == 0

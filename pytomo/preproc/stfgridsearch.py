@@ -3,8 +3,9 @@ from pydsm.dataset import Dataset
 from pydsm.seismicmodel import SeismicModel
 from pydsm.windowmaker import WindowMaker
 from pydsm.component import Component
-from pydsm.spc.spctime import SourceTimeFunction
+from pydsm.spc.stf import SourceTimeFunction
 from pydsm.dsm import PyDSMOutput
+from pydsm.spc.stfcatalog import STFCatalog
 from pytomo.preproc.iterstack import IterStack
 from pytomo.preproc.stream import sac_files_iterator
 import glob
@@ -14,7 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import warnings
-warnings.filterwarnings('error')
+# warnings.filterwarnings('error')
 
 class STFGridSearch():
     '''Compute triangular source time functions by grid search.
@@ -23,7 +24,8 @@ class STFGridSearch():
     '''
     def __init__(
             self, dataset, seismic_model, tlen, nspc, sampling_hz,
-            freq, freq2, windows, durations, amplitudes):
+            freq, freq2, windows, durations, amplitudes,
+            n_distinct_comp_phase, buffer=10.):
         self.dataset = dataset
         self.seismic_model = seismic_model
         self.tlen = tlen
@@ -34,6 +36,8 @@ class STFGridSearch():
         self.windows = windows
         self.durations = durations
         self.amplitudes = amplitudes
+        self.buffer = buffer
+        self.n_distinct_comp_phase = n_distinct_comp_phase
         
         if dataset is not None:
             self.dataset.filter(
@@ -42,8 +46,8 @@ class STFGridSearch():
             t_before = windows[0].t_before
             t_after = windows[0].t_after
             window_npts_max = int((t_before + t_after) * sampling_hz)
-            buffer = 10.
-            self.dataset.apply_windows(windows, 1, window_npts_max, buffer)
+            self.dataset.apply_windows(
+                windows, n_distinct_comp_phase, window_npts_max, buffer)
 
     def load_outputs(
             self, comm, dir=None, mode=0, verbose=0, log=None):
@@ -244,7 +248,8 @@ class STFGridSearch():
         return u_cut, data_cut
 
     def select_data(self, obs, syn):
-        if np.isnan(obs).any():
+        if (np.isnan(obs).any()
+            or syn.max() == 0.):
             return False
         amp_ratio_ref = (
             (obs.max() - obs.min())
@@ -292,7 +297,7 @@ class STFGridSearch():
             best_params_dict[event_id] = (dur, amp)
         return best_params_dict
 
-    def save_catalog(
+    def write_catalog(
             self, filename, best_params_dict, count_dict):
         with open(filename, 'a') as f:
             for event_id in best_params_dict.keys():
@@ -304,12 +309,10 @@ class STFGridSearch():
                     event.source_time_function.half_duration * 2. 
                     for event in self.dataset.events
                     if event.event_id==event_id][0]
-                f.write(
-                    '{} {} {} {} {}\n'
-                    .format(
-                        event_id, duration, duration_gcmt,
-                        amp_corr, n_window))
-
+                line = STFCatalog._format_line(
+                    event_id, duration, amp_corr, n_window, duration_gcmt)
+                f.write(line + '\n')
+    
     def savefig(self, best_params_dict, event_id, filename):
         output = [
             out for out in self.outputs if out.event.event_id==event_id][0]
@@ -396,10 +399,10 @@ if __name__ == '__main__':
 
     model = SeismicModel.prem()
     tlen = 3276.8
-    nspc = 1024
+    nspc = 512
     sampling_hz = 20
     freq = 0.005
-    freq2 = 0.167
+    freq2 = 0.1
     duration_min = 1.
     duration_max = 15.
     duration_inc = .25
@@ -410,7 +413,9 @@ if __name__ == '__main__':
     dir_syn = '.'
     t_before = 10.
     t_after = 20.
+    buffer = 10.
     catalog_path = 'stf_catalog.txt'
+    n_distinct_comp_phase = 1
 
     with open(catalog_path, 'w') as f:
         f.write('event_id duration duration_gcmt amp_corr num_win\n')
@@ -418,7 +423,7 @@ if __name__ == '__main__':
     logfile = open('log_{}'.format(rank), 'w', buffering=1)
 
     for sac_files in sac_files_iterator(
-        '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T',
+        '/home/anselme/Dropbox/Kenji/MTZ_JAPAN/DATA/20*/*T',
         comm, log=logfile):
         #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T'
         #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'
@@ -459,7 +464,7 @@ if __name__ == '__main__':
         logfile.write('Init stfgrid; filter dataset')
         stfgrid = STFGridSearch(
             dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
-            durations, amplitudes)
+            durations, amplitudes, n_distinct_comp_phase, buffer)
 
         logfile.write('{} computing synthetics\n'.format(rank))
         misfit_dict, count_dict = stfgrid.compute_parallel(
@@ -470,7 +475,7 @@ if __name__ == '__main__':
             best_params_dict = stfgrid.get_best_parameters(
                 misfit_dict, count_dict)
 
-            stfgrid.save_catalog(
+            stfgrid.write_catalog(
                 catalog_path, best_params_dict, count_dict)
 
             for event_id in misfit_dict.keys():

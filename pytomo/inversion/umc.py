@@ -53,7 +53,7 @@ class UniformMonteCarlo:
             dataset (pydsm.Dataset): dataset with observed data. Same as the
                 one used for input to compute_models_parallel()
             models (list(pydsm.SeismicModel)): seismic models
-            windows (list(pydsm.Windows)): time windows. See
+            windows (list(pydsm.window.Windows)): time windows. See
                 pydsm.windows_from_dataset()
         Returns:
             misfit_dict (dict): values are ndarray((n_models, n_windows))
@@ -78,8 +78,8 @@ class UniformMonteCarlo:
                 for i in range(end-start):
                     window = windows[win_count].to_array()
                     icomp = window.component.value
-                    i_start = int(window[0] * dataset.sampling)
-                    i_end = int(window[1] * dataset.sampling)
+                    i_start = int(window[0] * dataset.sampling_hz)
+                    i_end = int(window[1] * dataset.sampling_hz)
                     u_cut = output.us[icomp, i, i_start:i_end]
                     data_cut = data[icomp, i, i_start:i_end]
 

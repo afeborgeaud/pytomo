@@ -110,7 +110,7 @@ class ConstrainedMonteCarlo:
             dataset (pydsm.Dataset): dataset with observed data. Same as the
                 one used for input to compute_models_parallel()
             models (list(pydsm.SeismicModel)): seismic models
-            windows (list(pydsm.Windows)): time windows. See
+            windows (list(pydsm.window.Window)): time windows. See
                 pydsm.windows_from_dataset()
         Returns:
             misfit_dict (dict): values are ndarray((n_models, n_windows))
@@ -129,13 +129,13 @@ class ConstrainedMonteCarlo:
                 event = dataset.events[iev]
                 output = outputs[imod][iev]
                 start, end = dataset.get_bounds_from_event_index(iev)
-                # data = dataset.data[:, start:end, :]
                 data = dataset.data
                 
                 output.to_time_domain()
 
-                for i in range(start, end):
-                    station = dataset.stations[i]
+                for ista in range(start, end):
+                    station = dataset.stations[ista]
+                    jsta = np.argwhere(output.stations==station)[0][0]
                     windows_filt = [
                         window for window in windows
                         if (window.station == station
@@ -143,10 +143,10 @@ class ConstrainedMonteCarlo:
                     for window in windows_filt:
                         window_arr = window.to_array()
                         icomp = window.component.value
-                        i_start = int(window_arr[0] * dataset.sampling)
-                        i_end = int(window_arr[1] * dataset.sampling)
-                        u_cut = output.us[icomp, i, i_start:i_end]
-                        data_cut = data[icomp, i, i_start:i_end]
+                        i_start = int(window_arr[0] * dataset.sampling_hz)
+                        i_end = int(window_arr[1] * dataset.sampling_hz)
+                        u_cut = output.us[icomp, jsta, i_start:i_end]
+                        data_cut = dataset.data[icomp, ista, i_start:i_end]
 
                         corr = np.corrcoef(u_cut, data_cut)[0, 1]
                         variance = (np.dot(u_cut-data_cut, u_cut-data_cut)

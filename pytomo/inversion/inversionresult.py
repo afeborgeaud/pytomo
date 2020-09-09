@@ -18,11 +18,11 @@ class InversionResult:
             containing misfit values (corr, variance)
     '''
 
-    def __init__(self, dataset, models, windows, misfit_dict):
+    def __init__(self, dataset, windows):
         self.dataset = dataset
-        self.models = models
         self.windows = windows
-        self.misfit_dict = misfit_dict
+        self.misfit_dict = dict()
+        self.models = []
     
     def add_result(self, models, misfit_dict):
         '''Add misfit_dict for new models to current inversion result.
@@ -35,11 +35,17 @@ class InversionResult:
                 ndarray((n_models, n_windows)) containing misfit
                 values (corr, variance)
         '''
+        for key in misfit_dict.keys():
+            assert len(models) == misfit_dict[key].shape[0]
+            
         self.models += models
-        for misfit_name in self.misfit_dict.keys():
-            self.misfit_dict[misfit_name] = np.vstack(
-                (self.misfit_dict[misfit_name],
-                misfit_dict[misfit_name]))
+        for misfit_name in misfit_dict.keys():
+            if misfit_name not in self.misfit_dict:
+                self.misfit_dict[misfit_name] = misfit_dict[misfit_name]
+            else:
+                self.misfit_dict[misfit_name] = np.vstack(
+                    (self.misfit_dict[misfit_name],
+                    misfit_dict[misfit_name]))
     
     def save(self, path):
         '''Save self using pickle.dump().
@@ -59,7 +65,7 @@ class InversionResult:
             output = pickle.load(f)
         return output
     
-    def plot_models(self, types, **kwargs):
+    def plot_models(self, types, n_best=-1, **kwargs):
         '''Plot models colored by misfit value.
 
         Args:
@@ -67,18 +73,31 @@ class InversionResult:
                 types e.g., RHO
         '''
         avg_corrs = self.misfit_dict['corr'].mean(axis=1)
+        print(self.misfit_dict['corr'].shape)
+        print(avg_corrs.shape)
+        indices_best = np.arange(len(avg_corrs), dtype=int)
+        if type(n_best)==int and n_best > 0:
+            n_best = min(n_best, len(avg_corrs))
+            indices_best = avg_corrs.argsort()[:n_best]
+            print(avg_corrs[indices_best])
+            print(avg_corrs.max())
+            print(indices_best)
+        elif type(n_best)==float:
+            if n_best <= 1:
+                # TODO make it a percentage of the number of models
+                indices_best = np.where(avg_corrs <= (1+n_best)*avg_corrs.min())
 
         cm = plt.get_cmap('Greys_r')
         c_norm  = colors.Normalize(vmin=avg_corrs.min(),
-                                   vmax=avg_corrs.max()*1.3)
+                                   vmax=avg_corrs.max()*1.1)
         scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
 
-        color_val = scalar_map.to_rgba(avg_corrs[0])
-        fig, ax = self.models[0].plot(
+        color_val = scalar_map.to_rgba(avg_corrs[indices_best[0]])
+        fig, ax = self.models[indices_best[0]].plot(
             types=types, color=color_val, **kwargs)
-        for i, sample in enumerate(self.models[1:]):
+        for i in indices_best[1:]:
             color_val = scalar_map.to_rgba(avg_corrs[i])
-            sample.plot(ax=ax, types=types, color=color_val, **kwargs)
+            self.models[i].plot(ax=ax, types=types, color=color_val, **kwargs)
         # model_ref.plot(ax=ax, types=[ParameterType.VPV], color='red')
         ax.get_legend().remove()
         

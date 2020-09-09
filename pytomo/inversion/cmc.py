@@ -57,6 +57,17 @@ class InputFile:
             value_parsed = float(value)
         elif key == 'filter_type':
             value_parsed = value.strip().lower()
+        elif key == 'distance_min':
+            value_parsed = float(value)
+        elif key == 'distance_max':
+            value_parsed = float(value)
+        elif key == 't_before':
+            value_parsed = float(value)
+        elif key == 't_after':
+            value_parsed = float(value)
+        elif key == 'stf_catalog':
+            full_path = os.path.expanduser(value.strip())
+            value_parsed = full_path
         else:
             print('Warning: key {} undefined. Ignoring.'.format(key))
             return None, None
@@ -88,7 +99,7 @@ class ConstrainedMonteCarlo:
 
     def sample_one_model(self, model_id):
         value_dict = dict()
-        mean = np.zeros(self.model_params._n_nodes)
+        mean = np.zeros(self.model_params._n_grd_params)
         for param_type in self.model_params._types:
             values = self.rng.multivariate_normal(
                 mean, self.cov)
@@ -129,9 +140,9 @@ class ConstrainedMonteCarlo:
                 event = dataset.events[iev]
                 output = outputs[imod][iev]
                 start, end = dataset.get_bounds_from_event_index(iev)
-                data = dataset.data
                 
-                output.to_time_domain()
+                # TODO using to_time_domain() erase the effect of filtering
+                # output.to_time_domain()
 
                 for ista in range(start, end):
                     station = dataset.stations[ista]
@@ -140,15 +151,16 @@ class ConstrainedMonteCarlo:
                         window for window in windows
                         if (window.station == station
                             and window.event == event)]
-                    for window in windows_filt:
+                    for iwin, window in enumerate(windows_filt):
                         window_arr = window.to_array()
                         icomp = window.component.value
                         i_start = int(window_arr[0] * dataset.sampling_hz)
                         i_end = int(window_arr[1] * dataset.sampling_hz)
                         u_cut = output.us[icomp, jsta, i_start:i_end]
-                        data_cut = dataset.data[icomp, ista, i_start:i_end]
+                        data_cut = dataset.data[
+                            iwin, icomp, ista, :]
 
-                        corr = np.corrcoef(u_cut, data_cut)[0, 1]
+                        corr = 0.5 * (1. - np.corrcoef(u_cut, data_cut)[0, 1])
                         variance = (np.dot(u_cut-data_cut, u_cut-data_cut)
                             / np.dot(data_cut, data_cut))
                         corrs[imod, win_count] = corr
@@ -200,7 +212,7 @@ if __name__ == '__main__':
     types = [ParameterType.VSH]
     model, model_params = get_model(types=types)
 
-    n = model_params._n_nodes
+    n = model_params._n_grd_params
     l = 1.
     g = 1.
     cov = ConstrainedMonteCarlo.smooth_damp_cov(n, g, l)

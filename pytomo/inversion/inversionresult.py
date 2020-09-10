@@ -73,6 +73,7 @@ class InversionResult:
                 types e.g., RHO
         '''
         avg_corrs = self.misfit_dict['corr'].mean(axis=1)
+        avg_vars = self.misfit_dict['variance'].mean(axis=1)
         print(self.misfit_dict['corr'].shape)
         print(avg_corrs.shape)
         indices_best = np.arange(len(avg_corrs), dtype=int)
@@ -81,6 +82,8 @@ class InversionResult:
             indices_best = avg_corrs.argsort()[:n_best]
             print(avg_corrs[indices_best])
             print(avg_corrs.max())
+            print(avg_vars[indices_best])
+            print(avg_vars.max())
             print(indices_best)
         elif type(n_best)==float:
             if n_best <= 1:

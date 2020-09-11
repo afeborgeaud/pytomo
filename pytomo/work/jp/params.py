@@ -81,6 +81,20 @@ def get_model_syntest1():
 
     return model_mul
 
+def get_model_syntest2():
+    types = [ParameterType.VSH]
+    model_ref, model_params = get_model(
+        20, 10, 12, types=types)
+    model, mesh = model_ref.boxcar_mesh(model_params)
+    values = np.array(
+        [.2 * (-1)**i for i in range(model_params._n_grd_params)])
+    values_dict = {param_type: values for param_type in types}
+    values_mat = model_params.get_values_matrix(values_dict)
+    mesh_mul = mesh.multiply(model_params.get_nodes(), values_mat)
+    model_mul = model + mesh_mul
+
+    return model_mul
+
 def get_dataset_syntest1(tlen=1638.4, nspc=64, sampling_hz=20, mode=0):
     #TODO fix outputs.us=NaN when event.latitude==station.latitude
     event = get_ref_event()

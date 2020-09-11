@@ -50,9 +50,9 @@ if __name__ == '__main__':
         print('n_pass={}'.format(n_pass))
     
     if rank == 0:
-        n_upper_mantle = 0 #20
-        n_mtz = 3 #10
-        n_lower_mantle = 0 #12
+        n_upper_mantle = 20 #20
+        n_mtz = 10 #10
+        n_lower_mantle = 12 #12
         types = [ParameterType.VSH]
         g = 0.
         l = 1.
@@ -147,15 +147,19 @@ if __name__ == '__main__':
         for imod, sty in enumerate(cycler[:n_block]):
             _, ax = outputs[imod][0].plot_component(
                 Component.T, windows, ax=ax, align_zero=True, **sty)
-        plt.show()
+        plt.savefig('profiles_syntest2.pdf')
+        plt.close(fig)
+        # plt.show()
 
         fig, ax = result.plot_models(types=[ParameterType.VSH], n_best=3)
-        fig, ax = work_parameters.get_model_syntest1().plot(
+        # fig, ax = work_parameters.get_model_syntest1().plot(
+        #     types=[ParameterType.VSH], ax=ax, color='red')
+        fig, ax = work_parameters.get_model_syntest2().plot(
             types=[ParameterType.VSH], ax=ax, color='red')
         fig, ax = SeismicModel.ak135().plot(
             types=[ParameterType.VSH], ax=ax, color='blue')
         ax.set(ylim=[model_params._radii[0]-100, 6371])
         ax.get_legend().remove()
-        plt.show()
-        plt.savefig('recovered_models_syntest1.pdf')
+        plt.savefig('recovered_models_syntest2.pdf')
+        # plt.show()
         plt.close(fig)

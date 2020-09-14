@@ -74,8 +74,6 @@ class InversionResult:
         '''
         avg_corrs = self.misfit_dict['corr'].mean(axis=1)
         avg_vars = self.misfit_dict['variance'].mean(axis=1)
-        print(self.misfit_dict['corr'].shape)
-        print(avg_corrs.shape)
         indices_best = np.arange(len(avg_corrs), dtype=int)
         if type(n_best)==int and n_best > 0:
             n_best = min(n_best, len(avg_corrs))
@@ -95,12 +93,19 @@ class InversionResult:
                                    vmax=avg_corrs.max()*1.1)
         scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
 
-        color_val = scalar_map.to_rgba(avg_corrs[indices_best[0]])
+        if 'color' not in kwargs:
+            color = scalar_map.to_rgba(avg_corrs[indices_best[0]])
+        else:
+            color = kwargs['color']
+            kwargs.pop('color', None)
+            
         fig, ax = self.models[indices_best[0]].plot(
-            types=types, color=color_val, **kwargs)
+            types=types, color='red', **kwargs)
+
         for i in indices_best[1:]:
-            color_val = scalar_map.to_rgba(avg_corrs[i])
-            self.models[i].plot(ax=ax, types=types, color=color_val, **kwargs)
+            color = scalar_map.to_rgba(avg_corrs[i])
+            self.models[i].plot(ax=ax, types=types, color='red', **kwargs)
+
         # model_ref.plot(ax=ax, types=[ParameterType.VPV], color='red')
         ax.get_legend().remove()
         

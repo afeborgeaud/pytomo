@@ -276,10 +276,10 @@ class NeighbouhoodAlgorithm:
         self.types = [ParameterType.VSH]
 
         if rank == 0:
-            n_upper_mantle = 0 #20
-            n_mtz = 0 #10
-            n_lower_mantle = 0 #12
-            n_dpp = 9
+            n_upper_mantle = 0 # 20
+            n_mtz = 0 # 10
+            n_lower_mantle = 0 # 12
+            n_dpp = 9 # 9
 
             model_ref, model_params = work_parameters.get_model(
                 n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, self.types,

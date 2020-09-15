@@ -23,7 +23,7 @@ filter_type bandpass
 # filter (minimum) frequency
 freq 0.005
 # filter maximum frequency (for bandpass only)
-freq2 0.167
+freq2 0.1
 # mininum epicentral distance
 distance_min 60.
 # maximum epicentral distance in degree

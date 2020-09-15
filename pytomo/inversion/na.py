@@ -500,8 +500,17 @@ if __name__ == '__main__':
 
     na = NeighbouhoodAlgorithm.from_file(sys.argv[1], comm)
 
+    if rank == 0:
+        start_time = time.time_ns()
+
     log.write('Start running NA...\n')
     result = na.compute(comm, log)
+
+    if rank == 0:
+        end_time = time.time_ns()
+        print(
+            'NA finished in {} s'
+            .format((end_time-start_time)*1e-9))
 
     log.close()
 
@@ -519,5 +528,5 @@ if __name__ == '__main__':
             ylim=[3479.5, 4000],
             xlim=[6.5, 8.])
         ax.legend()
-        plt.savefig('recovered_models_syntest1_nparam8.pdf')
+        plt.savefig('recovered_models_syntest1_nparam8_nspc256_640.pdf')
         plt.close(fig)

@@ -260,6 +260,7 @@ if __name__ == '__main__':
     iregs_neigh = find_neighbour_regions(vor, ip)
     ips_neigh = [find_point_of_region(vor, i) for i in iregs_neigh]
 
+
     up, lo = find_bound_for_dim(vor, ip, idim, -0.5, 2.5)
     print(up, lo)
     end_time = time.time_ns()
@@ -276,6 +277,7 @@ if __name__ == '__main__':
     print(
         'Implicit method: Bounds found in {} s'
         .format((end_time-start_time)*1e-9))
+
 
     # print('anchor point', vor.points[ip])
     # print('neighbour points', [vor.points[i] for i in ips_neigh])

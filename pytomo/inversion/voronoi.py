@@ -195,9 +195,15 @@ if __name__ == '__main__':
     # print(point_bounds)
 
     rng = np.random.default_rng(0)
-    points = rng.uniform(0, 1, size=(40,8))
+    points = rng.uniform(0, 0.0001, size=(400,8))
 
-    vor = Voronoi(points)
+    start_time = time.time_ns()
+    vor = Voronoi(
+        points, qhull_options='Qbb Qc Qz Qx')
+    end_time = time.time_ns()
+    print(
+        'Voronoi diag build in {} s'.format((end_time-start_time)*1e-9))
+
 
     # voronoi_plot_2d(vor)
     # plt.savefig('vor_example.pdf')
@@ -208,7 +214,7 @@ if __name__ == '__main__':
     iregs_neigh = find_neighbour_regions(vor, ip)
     ips_neigh = [find_point_of_region(vor, i) for i in iregs_neigh]
 
-    up, lo = find_bound_for_dim(vor, ip, idim, -0.5, 2.5)
+    # up, lo = find_bound_for_dim(vor, ip, idim, -0.5, 2.5)
 
     # print('anchor point', vor.points[ip])
     # print('neighbour points', [vor.points[i] for i in ips_neigh])

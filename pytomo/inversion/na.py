@@ -20,6 +20,7 @@ from mpi4py import MPI
 import sys
 import os
 import glob
+import warnings
 
 class InputFile:
     """Input file for NeighbourAlgorithm (NA) inversion.
@@ -347,17 +348,17 @@ class NeighbouhoodAlgorithm:
             if rank == 0:
                 # indexing of points corrsespond to that of 
                 # perturbations and of that of models
-                if log:
-                    log.write('Building voronoi diag...\n')
                 points = self.get_points_for_voronoi(perturbations)
-                start_time = time.time_ns()
-                vor = Voronoi(points)
-                end_time = time.time_ns()
-
-                if log:
-                    log.write(
-                        'Voronoi diag build in {} s\n'
-                        .format((end_time - start_time)*1e-9))
+                if points.shape[1] == 2:
+                    if log:
+                        log.write('Building voronoi diag...\n')
+                    start_time = time.time_ns()
+                    vor = Voronoi(points)
+                    end_time = time.time_ns()
+                    if log:
+                        log.write(
+                            'Voronoi diag build in {} s\n'
+                            .format((end_time - start_time)*1e-9))
 
                 if points.shape[1] == 2:
                     figpath = 'voronoi_syntets2_{}.pdf'.format(ipass)
@@ -385,9 +386,28 @@ class NeighbouhoodAlgorithm:
                         dtype='float')
                     for idim in range(bounds.shape[0]):
                         start_time = time.time_ns()
-                        bounds[idim] = voronoi.find_bound_for_dim(
-                            vor, ip, idim, min_bounds[idim], max_bounds[idim],
-                            step_size=0.001, n_step_max=1000, log=log)
+                        if points.shape[1] == 2:
+                            bounds[idim] = voronoi.find_bound_for_dim(
+                                vor, ip, idim, min_bounds[idim],
+                                max_bounds[idim], step_size=0.001,
+                                n_step_max=1000, log=log)
+                        else:
+                            tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
+                                points, ip, idim, n_nearest=30,
+                                min_bound=min_bounds[idim],
+                                max_bound=max_bounds[idim], step_size=0.001,
+                                n_step_max=1000, log=log)
+                            tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
+                                points, ip, idim, n_nearest=60,
+                                min_bound=min_bounds[idim],
+                                max_bound=max_bounds[idim], step_size=0.001,
+                                n_step_max=1000, log=log)
+                            if tmp_bounds1 != tmp_bounds2:
+                                warnings.warn(
+                                    '''Problems with finding bounds 
+                                    of Voronoi cell. 
+                                    Please increase n_nearest''')
+                            bounds[idim] = tmp_bounds2
                         end_time = time.time_ns()
                         if log:
                             log.write(

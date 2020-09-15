@@ -93,7 +93,7 @@ def find_point_of_region(vor, ireg):
             return ip
     return None
 
-def compute_distances_to_points(vor, p_arr, ips):
+def compute_distances_to_points(points, p_arr, ips=slice(None)):
     '''
     Args:
         vor (Voronoi):
@@ -103,9 +103,14 @@ def compute_distances_to_points(vor, p_arr, ips):
         square of distances
     '''
     p_arr_ = p_arr.reshape(1,-1)
-    px_arr = np.zeros((len(ips), p_arr_.shape[1]))
-    for i, ipx in enumerate(ips):
-        px_arr[i] = vor.points[ipx]
+
+    if type(points) != np.ndarray:
+        px_arr = np.zeros((len(ips), p_arr_.shape[1]))
+        for i, ipx in enumerate(ips):
+            px_arr[i] = points[ipx]
+    else:
+        px_arr = points[ips]
+
     res = px_arr - p_arr_
     dist2 = (res**2).sum(axis=1)
 
@@ -141,11 +146,8 @@ def find_bound_for_dim(
 
     # find distance to upper boundary
     p_arr = np.array(vor.points[ip])
-    # if (corrs_dim_neigh <= p_arr[idim]).all():
-    #     dist_up_bound = max_bound - p_arr[idim]
-    # else:
     i = 0
-    dist2 = compute_distances_to_points(vor, p_arr, ips_neigh)
+    dist2 = compute_distances_to_points(vor.points, p_arr, ips_neigh)
     dist_to_ip = 0.
     start_time = time.time_ns()
     while (
@@ -154,7 +156,7 @@ def find_bound_for_dim(
             and p_arr[idim] < max_bound):
         i += 1
         p_arr[idim] += step_size
-        dist2 = compute_distances_to_points(vor, p_arr, ips_neigh)
+        dist2 = compute_distances_to_points(vor.points, p_arr, ips_neigh)
         dist_to_ip = (i*step_size)**2
     dist_up_bound = np.sqrt(dist_to_ip)
     end_time = time.time_ns()
@@ -165,11 +167,8 @@ def find_bound_for_dim(
 
     # find distance to lower boundary
     p_arr = np.array(vor.points[ip])
-    # if (corrs_dim_neigh >= p_arr[idim]).all():
-    #     dist_lo_bound = min_bound - p_arr[idim]
-    # else:
     i = 0
-    dist2 = compute_distances_to_points(vor, p_arr, ips_neigh)
+    dist2 = compute_distances_to_points(vor.points, p_arr, ips_neigh)
     dist_to_ip = 0.
     while (
             dist2.min() > dist_to_ip
@@ -177,12 +176,58 @@ def find_bound_for_dim(
             and p_arr[idim] > min_bound):
         i += 1
         p_arr[idim] -= step_size
-        dist2 = compute_distances_to_points(vor, p_arr, ips_neigh)
+        dist2 = compute_distances_to_points(vor.points, p_arr, ips_neigh)
         dist_to_ip = (i*step_size)**2
     dist_lo_bound = -np.sqrt(dist_to_ip)
 
     return np.array([dist_lo_bound, dist_up_bound])
 
+def implicit_find_bound_for_dim(
+        points, ip, idim, n_nearest=10, min_bound=None, max_bound=None,
+        step_size=0.01, n_step_max=1000, log=None):
+    '''Without explicitely computing the voronoi diagram'''
+    mask = np.ones(points.shape[0], bool)
+    mask[ip] = False
+    points_ = points[mask]
+
+    dist2_0 = compute_distances_to_points(points_, points[ip])
+    ips_neigh = np.argsort(dist2_0)[1:n_nearest+1]
+
+    # find distance to upper boundary
+    dist_to_ip = 0.
+    i = 0
+    dist2 = np.array(dist2_0)
+    p_arr = np.array(points[ip])
+    while (
+            dist2.min() > dist_to_ip
+            and i < n_step_max
+            and p_arr[idim] < max_bound):
+        i += 1
+        p_arr[idim] += step_size
+        dist2 = compute_distances_to_points(points_, p_arr, ips_neigh)
+        dist_to_ip = (i*step_size)**2
+    dist_up_bound = np.sqrt(dist_to_ip)
+    if log:
+        log.write(
+            'upper bound found in {} s\n'
+            .format((end_time-start_time)*1e-9))
+
+    # find distance to lower boundary
+    i = 0
+    dist2 = np.array(dist2_0)
+    dist_to_ip = 0.
+    p_arr = np.array(points[ip])
+    while (
+            dist2.min() > dist_to_ip
+            and i < n_step_max
+            and p_arr[idim] > min_bound):
+        i += 1
+        p_arr[idim] -= step_size
+        dist2 = compute_distances_to_points(points_, p_arr, ips_neigh)
+        dist_to_ip = (i*step_size)**2
+    dist_lo_bound = -np.sqrt(dist_to_ip)
+
+    return np.array([dist_lo_bound, dist_up_bound])
 
 if __name__ == '__main__':
     points = np.array(
@@ -195,20 +240,42 @@ if __name__ == '__main__':
     # print(point_bounds)
 
     rng = np.random.default_rng(0)
-    points = rng.uniform(0, 1, size=(40,8))
+    points = rng.uniform(-0.5, 0.5, size=(40,12))
 
+    start_time = time.time_ns()
     vor = Voronoi(points)
+    end_time = time.time_ns()
+    print(
+        'Voronoi diag build in {} s'.format((end_time-start_time)*1e-9))
 
     # voronoi_plot_2d(vor)
     # plt.savefig('vor_example.pdf')
 
     ip = 20
-    idim = 1
+    idim = 3
+
+    # find bounds using the computed Voronoi diagram
+    start_time = time.time_ns()
     ireg = vor.point_region[ip]
     iregs_neigh = find_neighbour_regions(vor, ip)
     ips_neigh = [find_point_of_region(vor, i) for i in iregs_neigh]
 
     up, lo = find_bound_for_dim(vor, ip, idim, -0.5, 2.5)
+    print(up, lo)
+    end_time = time.time_ns()
+    print(
+        'Explicit method: Bounds found in {} s'
+        .format((end_time-start_time)*1e-9))
+
+    # find bounds without explicitely computing the Voronoi diagram
+    start_time = time.time_ns()
+    up_imp, lo_imp = implicit_find_bound_for_dim(
+        points, ip, idim, n_nearest=15, min_bound=-0.5, max_bound=2.5)
+    print(up_imp, lo_imp)
+    end_time = time.time_ns()
+    print(
+        'Implicit method: Bounds found in {} s'
+        .format((end_time-start_time)*1e-9))
 
     # print('anchor point', vor.points[ip])
     # print('neighbour points', [vor.points[i] for i in ips_neigh])

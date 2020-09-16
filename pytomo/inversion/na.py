@@ -279,7 +279,7 @@ class NeighbouhoodAlgorithm:
             n_upper_mantle = 0 # 20
             n_mtz = 0 # 10
             n_lower_mantle = 0 # 12
-            n_dpp = 9 # 9
+            n_dpp = 5 # 9
 
             model_ref, model_params = work_parameters.get_model(
                 n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, self.types,
@@ -393,16 +393,18 @@ class NeighbouhoodAlgorithm:
                                 n_step_max=1000, log=log)
                         else:
                             tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
-                                points, ip, idim, n_nearest=30,
+                                points, ip, idim, n_nearest=150,
                                 min_bound=min_bounds[idim],
                                 max_bound=max_bounds[idim], step_size=0.001,
                                 n_step_max=1000, log=log)
                             tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
-                                points, ip, idim, n_nearest=60,
+                                points, ip, idim, n_nearest=200,
                                 min_bound=min_bounds[idim],
                                 max_bound=max_bounds[idim], step_size=0.001,
                                 n_step_max=1000, log=log)
-                            if tmp_bounds1 != tmp_bounds2:
+                            if not np.allclose(tmp_bounds1, tmp_bounds2):
+                                print(tmp_bounds1)
+                                print(tmp_bounds2)
                                 warnings.warn(
                                     '''Problems with finding bounds 
                                     of Voronoi cell. 
@@ -528,5 +530,5 @@ if __name__ == '__main__':
             ylim=[3479.5, 4000],
             xlim=[6.5, 8.])
         ax.legend()
-        plt.savefig('recovered_models_syntest1_nparam8_nspc256_640.pdf')
+        plt.savefig('recovered_models_syntest1_nparam4_nspc256_nmod2560.pdf')
         plt.close(fig)

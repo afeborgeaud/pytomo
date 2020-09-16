@@ -7,15 +7,23 @@ sampling_hz 20
 # computation mode. 0: p-sv+sh, 1: p-sv, 2: sh
 mode 2
 # number of randomly sampled models
+<<<<<<< HEAD
 n_mod 40
 # number of models in one block of the parallel computation
 n_block 48
 # number of model sampled at each step
 n_s 20
+=======
+n_mod 2560
+# number of models in one block of the parallel computation
+n_block 48
+# number of model sampled at each step
+n_s 320
+>>>>>>> 6a67ca79e746e76cbcd013134af059f03ba09f9d
 # number of best-fitting models kept at each step
 n_r 4
 # name of the output file containing the inversion result
-result_path inv_result_syntest1_512.pkl
+result_path inv_result_syntest1_nparam4_nspc256_nmod2560.pkl
 # level of verbosity. 0: quiet, 1: minimal (e.g., timings), 2: debug
 verbose 1
 # filter type. 'bandpass' or 'lowpass'

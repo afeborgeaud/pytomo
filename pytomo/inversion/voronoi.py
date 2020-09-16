@@ -198,6 +198,7 @@ def implicit_find_bound_for_dim(
     i = 0
     dist2 = np.array(dist2_0)
     p_arr = np.array(points[ip])
+    start_time = time.time_ns()
     while (
             dist2.min() > dist_to_ip
             and i < n_step_max
@@ -208,6 +209,7 @@ def implicit_find_bound_for_dim(
         dist_to_ip = (i*step_size)**2
     dist_up_bound = np.sqrt(dist_to_ip)
     if log:
+        end_time = time.time_ns()
         log.write(
             'upper bound found in {} s\n'
             .format((end_time-start_time)*1e-9))

@@ -281,7 +281,11 @@ class NeighbouhoodAlgorithm:
             n_upper_mantle = 0 # 20
             n_mtz = 0 # 10
             n_lower_mantle = 0 # 12
+<<<<<<< HEAD
             n_dpp = 3 # 9
+=======
+            n_dpp = 5 # 9
+>>>>>>> 6a67ca79e746e76cbcd013134af059f03ba09f9d
 
             model_ref, model_params = work_parameters.get_model(
                 n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, self.types,
@@ -576,5 +580,9 @@ if __name__ == '__main__':
             ylim=[3479.5, 4000],
             xlim=[6.5, 8.])
         ax.legend()
+<<<<<<< HEAD
         plt.savefig('recovered_models_syntest1_nparam2_nspc256_80.pdf')
+=======
+        plt.savefig('recovered_models_syntest1_nparam4_nspc256_nmod2560.pdf')
+>>>>>>> 6a67ca79e746e76cbcd013134af059f03ba09f9d
         plt.close(fig)

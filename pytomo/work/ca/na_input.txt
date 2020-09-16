@@ -1,17 +1,17 @@
 # length of the synthetics (in seconds)
 tlen 1638.4
 # number of frequency points for the synthetics
-nspc 256
+nspc 64
 # sampling frequency for the synthetics
 sampling_hz 20
 # computation mode. 0: p-sv+sh, 1: p-sv, 2: sh
 mode 2
 # number of randomly sampled models
-n_mod 640
+n_mod 40
 # number of models in one block of the parallel computation
 n_block 48
 # number of model sampled at each step
-n_s 160
+n_s 20
 # number of best-fitting models kept at each step
 n_r 4
 # name of the output file containing the inversion result
@@ -23,7 +23,7 @@ filter_type bandpass
 # filter (minimum) frequency
 freq 0.005
 # filter maximum frequency (for bandpass only)
-freq2 0.1
+freq2 0.025
 # mininum epicentral distance
 distance_min 60.
 # maximum epicentral distance in degree

@@ -9,6 +9,8 @@ from pydsm.modelparameters import ModelParameters, ParameterType
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
 from pydsm.event import Event
 from pydsm.station import Station
 from pydsm.utils.cmtcatalog import read_catalog
@@ -279,7 +281,7 @@ class NeighbouhoodAlgorithm:
             n_upper_mantle = 0 # 20
             n_mtz = 0 # 10
             n_lower_mantle = 0 # 12
-            n_dpp = 9 # 9
+            n_dpp = 3 # 9
 
             model_ref, model_params = work_parameters.get_model(
                 n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, self.types,
@@ -349,21 +351,24 @@ class NeighbouhoodAlgorithm:
                 # indexing of points corrsespond to that of 
                 # perturbations and of that of models
                 points = self.get_points_for_voronoi(perturbations)
-                if points.shape[1] == 2:
-                    if log:
-                        log.write('Building voronoi diag...\n')
-                    start_time = time.time_ns()
-                    vor = Voronoi(points)
-                    end_time = time.time_ns()
-                    if log:
-                        log.write(
-                            'Voronoi diag build in {} s\n'
-                            .format((end_time - start_time)*1e-9))
+
+                # if points.shape[1] == 2:
+                #     if log:
+                #         log.write('Building voronoi diag...\n')
+                #     start_time = time.time_ns()
+                #     vor = Voronoi(points)
+                #     end_time = time.time_ns()
+                #     if log:
+                #         log.write(
+                #             'Voronoi diag build in {} s\n'
+                #             .format((end_time - start_time)*1e-9))
 
                 if points.shape[1] == 2:
-                    figpath = 'voronoi_syntets2_{}.pdf'.format(ipass)
+                    misfits = result.misfit_dict['variance'].mean(axis=1)
+                    figpath = 'voronoi_syntets1_{}.pdf'.format(ipass)
                     self.save_voronoi_2d(
-                        figpath, vor, title='iteration {}'.format(ipass))
+                        figpath, points, misfits,
+                        title='iteration {}'.format(ipass))
 
                 min_bounds, max_bounds = self.get_bounds_for_voronoi()
                 indices_best = umcutils.get_best_models(
@@ -386,28 +391,30 @@ class NeighbouhoodAlgorithm:
                         dtype='float')
                     for idim in range(bounds.shape[0]):
                         start_time = time.time_ns()
-                        if points.shape[1] == 2:
-                            bounds[idim] = voronoi.find_bound_for_dim(
-                                vor, ip, idim, min_bounds[idim],
-                                max_bounds[idim], step_size=0.001,
-                                n_step_max=1000, log=log)
-                        else:
-                            tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
-                                points, ip, idim, n_nearest=30,
-                                min_bound=min_bounds[idim],
-                                max_bound=max_bounds[idim], step_size=0.001,
-                                n_step_max=1000, log=log)
-                            tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
-                                points, ip, idim, n_nearest=60,
-                                min_bound=min_bounds[idim],
-                                max_bound=max_bounds[idim], step_size=0.001,
-                                n_step_max=1000, log=log)
-                            if tmp_bounds1 != tmp_bounds2:
-                                warnings.warn(
-                                    '''Problems with finding bounds 
-                                    of Voronoi cell. 
-                                    Please increase n_nearest''')
-                            bounds[idim] = tmp_bounds2
+
+                        # if points.shape[1] == 2:
+                        #     bounds[idim] = voronoi.find_bound_for_dim(
+                        #         vor, ip, idim, min_bounds[idim],
+                        #         max_bounds[idim], step_size=0.001,
+                        #         n_step_max=1000, log=log)
+                        # else:
+                        tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
+                            points, ip, idim, n_nearest=30,
+                            min_bound=min_bounds[idim],
+                            max_bound=max_bounds[idim], step_size=0.001,
+                            n_step_max=1000, log=log)
+                        tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
+                            points, ip, idim, n_nearest=60,
+                            min_bound=min_bounds[idim],
+                            max_bound=max_bounds[idim], step_size=0.001,
+                            n_step_max=1000, log=log)
+                        if tmp_bounds1 != tmp_bounds2:
+                            warnings.warn(
+                                '''Problems with finding bounds 
+                                of Voronoi cell. 
+                                Please increase n_nearest''')
+                        bounds[idim] = tmp_bounds2
+
                         end_time = time.time_ns()
                         if log:
                             log.write(
@@ -467,20 +474,61 @@ class NeighbouhoodAlgorithm:
 
             points = self.get_points_for_voronoi(perturbations)
             if points.shape[1] == 2:
-                vor = Voronoi(points)
+                misfits = result.misfit_dict['variance'].mean(axis=1)
                 figpath = 'voronoi_syntest1_{}.pdf'.format(n_pass)
                 self.save_voronoi_2d(
-                    figpath, vor, title='iteration {}'.format(n_pass))
+                    figpath, points, misfits,
+                    title='iteration {}'.format(n_pass))
 
         return result
 
-    def save_voronoi_2d(self, path, vor, **kwargs):
+    def save_voronoi_2d(self, path, points, misfits, **kwargs):
         '''Save the voronoi diagram to fig path
         Args:
             path (str): path of the output figure
-            vor (Voronoi): Voronoi object
+            points (ndarray(npoint,2)): points to build the Voronoi
+                diagram
+            misfits (ndarray(npoint)): value of misfit for each point
         '''
-        fig = voronoi_plot_2d(vor)
+
+        # add dummy points
+        # stackoverflow.com/questions/20515554/
+        # colorize-voronoi-diagram?lq=1
+        points_ = np.append(
+            points,
+            [[999,999], [-999,999], [999,-999], [-999,-999]],
+            axis = 0)
+        vor = Voronoi(points_)
+
+        # color map
+        log_misfits = np.log(misfits)
+        cm = plt.get_cmap('Greys_r')
+        c_norm  = colors.Normalize(
+            vmin=log_misfits.min(), vmax=log_misfits.max())
+        scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
+
+        fig = voronoi_plot_2d(
+            vor,
+            show_vertices=False,
+            line_colors='green',
+            line_width=.5,
+            point_size=4)
+
+        # colorize
+        for ireg, reg in enumerate(vor.regions):
+            if not -1 in reg:
+                ip_ = voronoi.find_point_of_region(vor, ireg)
+                if ip_ == None:
+                    continue
+                point = vor.points[ip_]
+                ips = np.where(points==point)
+                if ips[0].shape[0] > 0:
+                    ip = ips[0][0]
+                    color = scalar_map.to_rgba(log_misfits[ip])
+
+                    poly = [vor.vertices[i] for i in reg]
+                    plt.fill(*zip(*poly), color=color)
+
         ax = plt.gca()
         ax.plot(0.2, -0.2, 'xr', markersize=10)
         ax.set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
@@ -517,10 +565,10 @@ if __name__ == '__main__':
     if rank == 0:
         fig, ax = result.plot_models(
             types=[ParameterType.VSH], n_best=1,
-            color='red', label='best model')
+            color='black', label='best model')
         _, ax = work_parameters.get_model_syntest1().plot(
             types=[ParameterType.VSH], ax=ax,
-            color='black', label='input')
+            color='red', label='input')
         _, ax = SeismicModel.ak135().plot(
             types=[ParameterType.VSH], ax=ax,
             color='gray', label='ak135')
@@ -528,5 +576,5 @@ if __name__ == '__main__':
             ylim=[3479.5, 4000],
             xlim=[6.5, 8.])
         ax.legend()
-        plt.savefig('recovered_models_syntest1_nparam8_nspc256_640.pdf')
+        plt.savefig('recovered_models_syntest1_nparam2_nspc256_80.pdf')
         plt.close(fig)

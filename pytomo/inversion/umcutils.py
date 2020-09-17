@@ -115,6 +115,9 @@ class UniformMonteCarlo:
                         data_cut = dataset.data[
                             iwin, icomp, ista, :]
 
+                        if np.all(u_cut==0):
+                            print('{} {} is zero'.format(imod, window))
+
                         corr = 0.5 * (1. - np.corrcoef(u_cut, data_cut)[0, 1])
                         variance = (np.dot(u_cut-data_cut, u_cut-data_cut)
                             / np.dot(data_cut, data_cut))

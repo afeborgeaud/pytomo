@@ -246,6 +246,7 @@ class NeighbouhoodAlgorithm:
         return min_bounds, max_bounds
 
     def compute_one_step(self, umcutils, dataset, models, result, windows, comm):
+        #TODO URGENT fix zero output when n_model % n_core != 0
         rank = comm.Get_rank()
 
         outputs = compute_models_parallel(
@@ -281,11 +282,7 @@ class NeighbouhoodAlgorithm:
             n_upper_mantle = 0 # 20
             n_mtz = 0 # 10
             n_lower_mantle = 0 # 12
-<<<<<<< HEAD
             n_dpp = 3 # 9
-=======
-            n_dpp = 5 # 9
->>>>>>> 6a67ca79e746e76cbcd013134af059f03ba09f9d
 
             model_ref, model_params = work_parameters.get_model(
                 n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, self.types,
@@ -390,50 +387,52 @@ class NeighbouhoodAlgorithm:
                     perturbations_arr[0] = np.array(current_perturbations)
                     
                     ip = indices_best[imod]
-                    bounds = np.zeros(
-                        (self.n_grd_param*len(self.types), 2),
-                        dtype='float')
-                    for idim in range(bounds.shape[0]):
-                        start_time = time.time_ns()
+                    # bounds = np.zeros(
+                    #     (self.n_grd_param*len(self.types), 2),
+                    #     dtype='float')
 
-                        # if points.shape[1] == 2:
-                        #     bounds[idim] = voronoi.find_bound_for_dim(
-                        #         vor, ip, idim, min_bounds[idim],
-                        #         max_bounds[idim], step_size=0.001,
-                        #         n_step_max=1000, log=log)
-                        # else:
+                    # for idim in range(bounds.shape[0]):
+
+                    current_point = np.array(points[ip])
+                    for istep in range(n_step):
+                        idim = istep % (self.n_grd_param*len(self.types))
+                        itype = int(idim // self.n_grd_param)
+                        igrd = idim % self.n_grd_param
+
+                        # calculate bounds
+                        start_time = time.time_ns()
                         tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
-                            points, ip, idim, n_nearest=30,
+                            points, points[ip],
+                            current_point, idim, n_nearest=120,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
                         tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
-                            points, ip, idim, n_nearest=60,
+                            points, points[ip],
+                            current_point, idim, n_nearest=150,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
-                        if tmp_bounds1 != tmp_bounds2:
+                        if not np.allclose(tmp_bounds1, tmp_bounds2):
+                            print(tmp_bounds1)
+                            print(tmp_bounds2)
                             warnings.warn(
                                 '''Problems with finding bounds 
                                 of Voronoi cell. 
                                 Please increase n_nearest''')
-                        bounds[idim] = tmp_bounds2
-
+                        bounds = tmp_bounds2
                         end_time = time.time_ns()
                         if log:
                             log.write(
                                 ('bounds for model {} '
                                 + 'for dim {} found in {} s\n')
                                 .format(
-                                    imod, idim, (end_time-start_time)*1e-9))
+                                    imod, idim,
+                                    (end_time-start_time)*1e-9))
 
-                    for istep in range(n_step):
-                        idim = istep % (self.n_grd_param*len(self.types))
-                        itype = int(idim // self.n_grd_param)
-                        igrd = idim % self.n_grd_param
-
-                        low, up = bounds[idim]
-                        per = self.rng_gibbs.uniform(low, up, 1)
+                        lo, up = bounds
+                        per = self.rng_gibbs.uniform(lo, up, 1)
+                        print(lo, up, per)
 
                         value_dict = dict()
                         for param_type in self.types:
@@ -451,7 +450,12 @@ class NeighbouhoodAlgorithm:
                                 perturbations_arr[istep-1])
                         perturbations_arr[istep, idim] += per
 
-                        bounds[idim] -= per
+                        # print(
+                        #     '{} {} {} {} {} {}'
+                        #     .format(rank, istep, idim, current_point, lo, up))
+                        current_point[idim] += per
+
+                        # bounds[idim] -= per
 
                     for param_type in self.types:
                         perturbations_tmp = self.unravel_voronoi_point_bounds(
@@ -494,7 +498,6 @@ class NeighbouhoodAlgorithm:
                 diagram
             misfits (ndarray(npoint)): value of misfit for each point
         '''
-
         # add dummy points
         # stackoverflow.com/questions/20515554/
         # colorize-voronoi-diagram?lq=1
@@ -540,7 +543,7 @@ class NeighbouhoodAlgorithm:
         ax.set(xlabel='dVs1 (km/s)', ylabel='dVs2 (km/s)')
         if 'title' in kwargs:
             ax.set_title(kwargs['title'])
-        plt.savefig(path)
+        plt.savefig(path, bbox_inches='tight')
         plt.close(fig)
 
 if __name__ == '__main__':
@@ -580,9 +583,7 @@ if __name__ == '__main__':
             ylim=[3479.5, 4000],
             xlim=[6.5, 8.])
         ax.legend()
-<<<<<<< HEAD
-        plt.savefig('recovered_models_syntest1_nparam2_nspc256_80.pdf')
-=======
-        plt.savefig('recovered_models_syntest1_nparam4_nspc256_nmod2560.pdf')
->>>>>>> 6a67ca79e746e76cbcd013134af059f03ba09f9d
+        plt.savefig(
+            'recovered_models_syntest1_nparam2_nspc256_80.pdf',
+            bbox_inches='tight')
         plt.close(fig)

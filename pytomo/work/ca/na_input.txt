@@ -33,7 +33,7 @@ t_before 30.
 # time after arrival for window
 t_after 70.
 # random seed
-seed 42
+seed 0
 # phases
 phases S
 # components

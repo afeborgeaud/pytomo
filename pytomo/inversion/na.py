@@ -519,7 +519,7 @@ class NeighbouhoodAlgorithm:
             show_vertices=False,
             line_colors='green',
             line_width=.5,
-            point_size=4)
+            point_size=2)
 
         # colorize
         for ireg, reg in enumerate(vor.regions):
@@ -537,7 +537,7 @@ class NeighbouhoodAlgorithm:
                     plt.fill(*zip(*poly), color=color)
 
         ax = plt.gca()
-        ax.plot(0.2, -0.2, 'xr', markersize=10)
+        ax.plot(0.2, -0.2, 'xr', markersize=6)
         ax.set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
         ax.set_aspect('equal')
         ax.set(xlabel='dVs1 (km/s)', ylabel='dVs2 (km/s)')

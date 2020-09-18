@@ -100,11 +100,11 @@ class InversionResult:
             kwargs.pop('color', None)
             
         fig, ax = self.models[indices_best[0]].plot(
-            types=types, color='red', **kwargs)
+            types=types, color=color, **kwargs)
 
         for i in indices_best[1:]:
             color = scalar_map.to_rgba(avg_corrs[i])
-            self.models[i].plot(ax=ax, types=types, color='red', **kwargs)
+            self.models[i].plot(ax=ax, types=types, color=color, **kwargs)
 
         # model_ref.plot(ax=ax, types=[ParameterType.VPV], color='red')
         ax.get_legend().remove()

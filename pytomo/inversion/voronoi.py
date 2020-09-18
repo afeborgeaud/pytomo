@@ -210,6 +210,8 @@ def implicit_find_bound_for_dim(
         dist_to_anch = np.dot(
             p_arr-anchor_point, p_arr-anchor_point)
 
+    if i > 0:
+        p_arr[idim] -= step_size
     dist_to_current = np.dot(p_arr-current_point, p_arr-current_point)
     dist_up_bound = np.sqrt(dist_to_current)
     if log:
@@ -234,6 +236,8 @@ def implicit_find_bound_for_dim(
         dist_to_anch = np.dot(
             p_arr-anchor_point, p_arr-anchor_point)
 
+    if i > 0:
+        p_arr[idim] += step_size
     dist_to_current = np.dot(p_arr-current_point, p_arr-current_point)
     dist_lo_bound = -np.sqrt(dist_to_current)
 

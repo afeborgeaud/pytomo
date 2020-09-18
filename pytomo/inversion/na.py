@@ -1,4 +1,3 @@
-
 from pytomo.inversion.umcutils import UniformMonteCarlo
 from pytomo.work.ca import params as work_parameters
 from pytomo.inversion.inversionresult import InversionResult
@@ -432,7 +431,7 @@ class NeighbouhoodAlgorithm:
 
                         lo, up = bounds
                         per = self.rng_gibbs.uniform(lo, up, 1)
-                        print(lo, up, per)
+                        print(rank, ipass, imod, istep, lo, up, per)
 
                         value_dict = dict()
                         for param_type in self.types:
@@ -584,6 +583,6 @@ if __name__ == '__main__':
             xlim=[6.5, 8.])
         ax.legend()
         plt.savefig(
-            'recovered_models_syntest1_nparam2_nspc256_80.pdf',
+            'recovered_models_syntest1_nparam2_nspc256_80_test.pdf',
             bbox_inches='tight')
         plt.close(fig)

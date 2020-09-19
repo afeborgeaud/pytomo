@@ -210,7 +210,20 @@ class NeighbouhoodAlgorithm:
                     outputs[imod][iev].filter(
                         self.freq, self.freq2, self.filter_type)
 
-    def get_points_for_voronoi(self, perturbations):
+    # def get_points_for_voronoi(self, perturbations):
+    #     '''
+    #     Args:
+    #         perturbations (dict): dict of model perturbations
+    #     Return:
+    #         points: points in a n_grd_params*len(types) dimensional
+    #             space to define the voronoi cells
+    #     '''
+    #     points = np.hstack(
+    #         tuple([perturbations[param_type] for param_type in self.types]))
+
+    #     return points
+
+    def get_points_for_voronoi(self, models, model_ref):
         '''
         Args:
             perturbations (dict): dict of model perturbations
@@ -218,8 +231,12 @@ class NeighbouhoodAlgorithm:
             points: points in a n_grd_params*len(types) dimensional
                 space to define the voronoi cells
         '''
-        points = np.hstack(
-            tuple([perturbations[param_type] for param_type in self.types]))
+        points = np.zeros(
+            (len(models), self.n_grd_param*len(self.types)),
+            dtype='float')
+        for imod, model in enumerate(models):
+            points[imod] = model.get_perturbations_to(
+                model_ref, self.types, in_percent=False)
 
         return points
 
@@ -316,7 +333,8 @@ class NeighbouhoodAlgorithm:
             # dataset, output_ref = work_parameters.get_dataset_syntest1(
             #     self.tlen, self.nspc, self.sampling_hz, mode=self.mode)
             dataset, output_ref = work_parameters.get_dataset_syntest1(
-                self.tlen, self.nspc, self.sampling_hz, mode=self.mode)
+                self.tlen, self.nspc, self.sampling_hz, mode=self.mode,
+                add_noise=False, noise_normalized_std=1.)
             # dataset = work_parameters.get_dataset(
             #   tlen, nspc, sampling_hz, mode=mode)
             # dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
@@ -350,7 +368,8 @@ class NeighbouhoodAlgorithm:
             if rank == 0:
                 # indexing of points corrsespond to that of 
                 # perturbations and of that of models
-                points = self.get_points_for_voronoi(perturbations)
+                points = self.get_points_for_voronoi(
+                    result.models, model_ref)
 
                 # if points.shape[1] == 2:
                 #     if log:
@@ -365,7 +384,7 @@ class NeighbouhoodAlgorithm:
 
                 if points.shape[1] == 2:
                     misfits = result.misfit_dict['variance'].mean(axis=1)
-                    figpath = 'voronoi_syntets1_{}.pdf'.format(ipass)
+                    figpath = 'voronoi_syntest1_{}.pdf'.format(ipass)
                     self.save_voronoi_2d(
                         figpath, points, misfits,
                         title='iteration {}'.format(ipass))
@@ -430,8 +449,9 @@ class NeighbouhoodAlgorithm:
                                     (end_time-start_time)*1e-9))
 
                         lo, up = bounds
-                        per = self.rng_gibbs.uniform(lo, up, 1)
-                        print(rank, ipass, imod, istep, lo, up, per)
+                        # per = self.rng_gibbs.uniform(lo, up, 1)[0]
+                        per = self.bi_triangle(lo, up)
+                        # print(rank, ipass, imod, istep, lo, up, per)
 
                         value_dict = dict()
                         for param_type in self.types:
@@ -449,9 +469,10 @@ class NeighbouhoodAlgorithm:
                                 perturbations_arr[istep-1])
                         perturbations_arr[istep, idim] += per
 
-                        # print(
-                        #     '{} {} {} {} {} {}'
-                        #     .format(rank, istep, idim, current_point, lo, up))
+                        print(
+                            '{} {} {} {} {} {} {:.3f} {:.3f} {:.3f}'
+                            .format(rank, ipass, imod, istep, idim,
+                                    current_point, lo, up, per))
                         current_point[idim] += per
 
                         # bounds[idim] -= per
@@ -479,7 +500,8 @@ class NeighbouhoodAlgorithm:
                     .format((end_time-start_time) * 1e-9))
                 print('Results saved to \'{}\''.format(self.result_path))
 
-            points = self.get_points_for_voronoi(perturbations)
+            points = self.get_points_for_voronoi(
+                result.models, model_ref)
             if points.shape[1] == 2:
                 misfits = result.misfit_dict['variance'].mean(axis=1)
                 figpath = 'voronoi_syntest1_{}.pdf'.format(n_pass)
@@ -488,6 +510,25 @@ class NeighbouhoodAlgorithm:
                     title='iteration {}'.format(n_pass))
 
         return result
+
+    def bi_triangle_cfd_inv(self, x, a, b):
+        aa = np.abs(a)
+        h = 2. / (aa + b)
+        if x < h*aa/4.:
+            y = np.sqrt(x*aa/h) - aa
+        elif x < h*aa/2.:
+            y = -np.sqrt(aa*aa/2. - x*aa/h)
+        elif x < (h*aa/2. + h*b/4.):
+            y = np.sqrt(x*b/h - aa*b/2.)
+        else:
+            y = -np.sqrt(b/h * (1-x)) + b
+        return y
+
+    def bi_triangle(self, a, b):
+        assert (a==b==0) or ((a < b) and (a <= 0) and (b >= 0))
+        x_unif = self.rng_gibbs.uniform(0, 1, 1)[0]
+        x = self.bi_triangle_cfd_inv(x_unif, a, b)
+        return x
 
     def save_voronoi_2d(self, path, points, misfits, **kwargs):
         '''Save the voronoi diagram to fig path
@@ -508,17 +549,37 @@ class NeighbouhoodAlgorithm:
 
         # color map
         log_misfits = np.log(misfits)
-        cm = plt.get_cmap('Greys_r')
+        cm = plt.get_cmap('hot')
         c_norm  = colors.Normalize(
             vmin=log_misfits.min(), vmax=log_misfits.max())
         scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
 
-        fig = voronoi_plot_2d(
+        mask = (
+            (points[:,0]>=0.1)
+            & (points[:,0]<=0.3)
+            & (points[:,1]<=-0.1)
+            & (points[:,1]>=-0.3))
+        log_misfits_masked = log_misfits[mask]
+        c_norm_masked = colors.Normalize(
+            vmin=log_misfits_masked.min(), vmax=log_misfits_masked.max())
+        scalar_map_masked = cmx.ScalarMappable(norm=c_norm_masked, cmap=cm)
+
+        fig, axes = plt.subplots(1, 2, figsize=(9.5,4))
+
+        voronoi_plot_2d(
             vor,
             show_vertices=False,
             line_colors='green',
             line_width=.5,
-            point_size=2)
+            point_size=2,
+            ax=axes[0])
+        voronoi_plot_2d(
+            vor,
+            show_vertices=False,
+            line_colors='green',
+            line_width=.5,
+            point_size=2,
+            ax=axes[1])
 
         # colorize
         for ireg, reg in enumerate(vor.regions):
@@ -527,21 +588,28 @@ class NeighbouhoodAlgorithm:
                 if ip_ == None:
                     continue
                 point = vor.points[ip_]
-                ips = np.where(points==point)
+                ips = np.where(
+                    (points[:,0]==point[0])
+                    & (points[:,1]==point[1]))
                 if ips[0].shape[0] > 0:
                     ip = ips[0][0]
                     color = scalar_map.to_rgba(log_misfits[ip])
+                    color_masked = scalar_map_masked.to_rgba(log_misfits[ip])
 
                     poly = [vor.vertices[i] for i in reg]
-                    plt.fill(*zip(*poly), color=color)
+                    axes[0].fill(*zip(*poly), color=color)
+                    axes[1].fill(*zip(*poly), color=color_masked)
 
-        ax = plt.gca()
-        ax.plot(0.2, -0.2, 'xr', markersize=6)
-        ax.set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
-        ax.set_aspect('equal')
-        ax.set(xlabel='dVs1 (km/s)', ylabel='dVs2 (km/s)')
+        for ax in axes:
+            ax.plot(0.2, -0.2, 'xr', markersize=6)
+            ax.set_aspect('equal')
+            ax.set(xlabel='dVs1 (km/s)', ylabel='dVs2 (km/s)')
+
+        axes[0].set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
+        axes[1].set(xlim=[0.1, 0.3], ylim=[-0.3,-0.1])
+
         if 'title' in kwargs:
-            ax.set_title(kwargs['title'])
+            fig.suptitle(kwargs['title'])
         plt.savefig(path, bbox_inches='tight')
         plt.close(fig)
 

@@ -73,8 +73,6 @@ def find_neighbour_regions(vor, ip):
     iverts_target = [i for i in iverts_target if i != -1]
     iregs_neighbour = []
 
-    start_time = time.time_ns()
-
     for (ip1, ip2) in vor.ridge_points:
         if ip1 == ip:
             ireg = vor.point_region[ip2]
@@ -82,7 +80,6 @@ def find_neighbour_regions(vor, ip):
         elif ip2 == ip:
             ireg = vor.point_region[ip1]
             iregs_neighbour.append(ireg)
-    end_time = time.time_ns()
     
     return iregs_neighbour
 

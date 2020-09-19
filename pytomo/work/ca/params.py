@@ -5,6 +5,7 @@ from pydsm.event import Event
 from pydsm.utils.cmtcatalog import read_catalog
 from pydsm.dataset import Dataset
 from pydsm.dsm import PyDSMInput, compute
+from pytomo.utilities import white_noise
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -50,7 +51,9 @@ def get_ref_event():
     event.source_time_function.half_duration = 2.
     return event
 
-def get_dataset(model, tlen=1638.4, nspc=64, sampling_hz=20, mode=0):
+def get_dataset(
+        model, tlen=1638.4, nspc=64, sampling_hz=20, mode=0,
+        add_noise=False, noise_normalized_std=1.):
     #TODO fix outputs.us=NaN when event.latitude==station.latitude
     event = get_ref_event()
     events = [event]
@@ -69,17 +72,32 @@ def get_dataset(model, tlen=1638.4, nspc=64, sampling_hz=20, mode=0):
     dataset.data = np.zeros((1,)+pydsm_output.us.shape, dtype=np.float64)
     dataset.data[0] = pydsm_output.us
 
+    if add_noise:
+        noise_arr = white_noise(
+            noise_normalized_std, dataset.data.shape)
+        norm = dataset.data.max(axis=3, keepdims=True)
+        noise_arr *= norm
+        dataset.data += noise_arr
+
     return dataset, pydsm_output
 
 def get_dataset_ref(tlen=1638.4, nspc=256, sampling_hz=20, mode=0):
     return get_dataset(
         SeismicModel.ak135(), tlen, nspc, sampling_hz, mode)[0]
 
-def get_dataset_syntest1(tlen=1638.4, nspc=256, sampling_hz=20, mode=0):
-    return get_dataset(get_model_syntest1(), tlen, nspc, sampling_hz, mode)
+def get_dataset_syntest1(
+        tlen=1638.4, nspc=256, sampling_hz=20, mode=0,
+        add_noise=False, noise_normalized_std=1.):
+    return get_dataset(
+        get_model_syntest1(), tlen, nspc, sampling_hz, mode,
+        add_noise, noise_normalized_std)
 
-def get_dataset_syntest2(tlen=1638.4, nspc=256, sampling_hz=20, mode=0):
-    return get_dataset(get_model_syntest2(), tlen, nspc, sampling_hz, mode)
+def get_dataset_syntest2(
+        tlen=1638.4, nspc=256, sampling_hz=20, mode=0,
+        add_noise=False, noise_normalized_std=1.):
+    return get_dataset(
+        get_model_syntest2(), tlen, nspc, sampling_hz, mode,
+        add_noise, noise_normalized_std)
 
 def get_model_syntest1():
     model_ref = SeismicModel.ak135()
@@ -113,7 +131,13 @@ def get_model_syntest2():
     return model_mul
 
 if __name__ == '__main__':
-    model_syntest1 = get_model_syntest1()
-    fig, ax = model_syntest1.plot()
-    plt.savefig('model_syntest1.pdf')
-    plt.close(fig)
+    # model_syntest1 = get_model_syntest1()
+    # fig, ax = model_syntest1.plot()
+    # plt.savefig('model_syntest1.pdf')
+    # plt.close(fig)
+
+    dataset, output = get_dataset_syntest1(
+        mode=2, add_noise=True, noise_normalized_std=1.)
+    dataset.filter(0.005, 0.1, type='bandpass')
+    dataset.plot_event(0, color='black')
+    plt.show()

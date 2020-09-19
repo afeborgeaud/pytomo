@@ -421,13 +421,13 @@ class NeighbouhoodAlgorithm:
                         start_time = time.time_ns()
                         tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
                             points, points[ip],
-                            current_point, idim, n_nearest=120,
+                            current_point, idim, n_nearest=200,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
                         tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
                             points, points[ip],
-                            current_point, idim, n_nearest=150,
+                            current_point, idim, n_nearest=300,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)

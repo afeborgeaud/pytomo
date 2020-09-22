@@ -47,6 +47,62 @@ class InversionResult:
                     (self.misfit_dict[misfit_name],
                     misfit_dict[misfit_name]))
     
+    def get_model_perturbations(
+            self, model_ref, types, smooth=True, n_s=None,
+            in_percent=False):
+        '''Get the model perturbations w.r.t. model_ref to use as
+        a convergence criteria
+        Args:
+            model_ref (pydsm.SeismicModel): reference model
+            types (list(pydsm.ParameterType)): parameter types
+                (e.g., ParameterType.VSH)
+            smooth (bool): smooth over n_s (True)
+            n_s (int): number of models computed at each iteration
+            in_percent (bool): returns perturbations as percent (False)
+        Returns:
+            perturbations (ndarray): array of perturbations.
+                If smooth, shape=(n_iteration,), else shape=(n_models,)
+        '''
+        pert_list = []
+        for i in range(len(self.models)):
+            per_arr = self.models[i].get_perturbations_to(
+                model_ref, types, in_percent)
+            pert_list.append(per_arr)
+        
+        perturbations = np.array(pert_list)
+
+        if smooth:
+            n_it = int(len(self.models)//n_s)
+            if len(self.models) % n_s != 0:
+                n_it += 1
+            perturbations_ = np.zeros((n_it, perturbations.shape[1]))
+            for i in range(n_it):
+                s = i * n_s
+                e = s + n_s
+                perturbations_[i] = perturbations[s:e].mean(axis=0)
+            perturbations = perturbations_
+
+            # if len(self.models) % n_s != 0:
+            #     n = int(len(self.models)//n_s * n_s + n_s)
+            #     perturbations = np.pad(
+            #         perturbations, (0,n), 'constant',
+            #         constant_values=(0,0))
+            # perturbations = perturbations.reshape(
+            #     (n_s, -1, perturbations.shape[1])).mean(axis=0)
+
+        return perturbations
+
+    def get_variances(self, smooth=True, n_s=None):
+        variances = self.misfit_dict['variance'].mean(axis=1)
+        if smooth:
+            if len(variances) % n_s != 0:
+                n = int(len(variances)//n_s * n_s + n_s)
+                perturbations = np.pad(
+                    perturbations, (0,n), 'constant',
+                    constant_values=(0,0))
+            variances = variances.reshape((-1, n_s)).mean(axis=1)
+        return variances
+    
     def save(self, path):
         '''Save self using pickle.dump().
         Args:

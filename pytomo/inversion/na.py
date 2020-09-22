@@ -104,6 +104,8 @@ class InputFile:
             value_parsed = [Component.parse_component(s) for s in ss]
         elif key == 'seed':
             value_parsed = int(value)
+        elif key == 'convergence_threshold':
+            value_parsed = float(value)
         else:
             print('Warning: key {} undefined. Ignoring.'.format(key))
             return None, None
@@ -122,6 +124,7 @@ class NeighbouhoodAlgorithm:
             self, tlen, nspc, sampling_hz, mode, n_mod, n_block, n_s, n_r,
             phases, components, t_before, t_after, filter_type,
             freq, freq2, sac_files, distance_min, distance_max,
+            convergence_threshold,
             stf_catalog, result_path, seed, verbose, comm):
         self.tlen = tlen
         self.nspc = nspc
@@ -141,6 +144,7 @@ class NeighbouhoodAlgorithm:
         self.sac_files = sac_files
         self.distance_min = distance_min
         self.distance_max = distance_max
+        self.convergence_threshold = convergence_threshold
         self.stf_catalog = stf_catalog
         self.result_path = result_path
         self.seed = seed
@@ -182,11 +186,13 @@ class NeighbouhoodAlgorithm:
         result_path = params['result_path']
         seed = params['seed']
         verbose = params['verbose']
+        convergence_threshold = params['convergence_threshold']
 
         return cls(
             tlen, nspc, sampling_hz, mode, n_mod, n_block, n_s, n_r,
             phases, components, t_before, t_after, filter_type,
             freq, freq2, sac_files, distance_min, distance_max,
+            convergence_threshold,
             stf_catalog, result_path, seed, verbose, comm)
 
     def get_windows(self, dataset):
@@ -261,7 +267,8 @@ class NeighbouhoodAlgorithm:
                 max_bounds[i] = self.range_dict[self.types[itype]][igrd, 1]
         return min_bounds, max_bounds
 
-    def compute_one_step(self, umcutils, dataset, models, result, windows, comm):
+    def compute_one_step(
+        self, umcutils, dataset, models, result, windows, comm):
         #TODO URGENT fix zero output when n_model % n_core != 0
         rank = comm.Get_rank()
 
@@ -298,12 +305,13 @@ class NeighbouhoodAlgorithm:
             n_upper_mantle = 0 # 20
             n_mtz = 0 # 10
             n_lower_mantle = 0 # 12
-            n_dpp = 3 # 9
+            n_dpp = 17 # 9
 
             model_ref, model_params = work_parameters.get_model(
                 n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, self.types,
                 verbose=self.verbose)
 
+            self.model_ref = model_ref
             self.n_grd_param = model_params._n_grd_params
             
             range_dict = dict()
@@ -364,7 +372,9 @@ class NeighbouhoodAlgorithm:
 
         # steps 1,...,n_pass-1
         ipass = 1
-        while ipass < n_pass:
+        converged = False
+        while (ipass < n_pass) and not converged:
+            print(rank, ipass)
             if rank == 0:
                 # indexing of points corrsespond to that of 
                 # perturbations and of that of models
@@ -396,20 +406,9 @@ class NeighbouhoodAlgorithm:
                 models = []
                 for imod in range(self.n_r):
                     current_model = result.models[indices_best[imod]]
-                    current_perturbations = points[indices_best[imod]]
                     n_step = int(self.n_s//self.n_r)
 
-                    perturbations_arr = np.zeros(
-                        (n_step, self.n_grd_param*len(self.types)),
-                        dtype='float')
-                    perturbations_arr[0] = np.array(current_perturbations)
-                    
                     ip = indices_best[imod]
-                    # bounds = np.zeros(
-                    #     (self.n_grd_param*len(self.types), 2),
-                    #     dtype='float')
-
-                    # for idim in range(bounds.shape[0]):
 
                     current_point = np.array(points[ip])
                     for istep in range(n_step):
@@ -421,13 +420,13 @@ class NeighbouhoodAlgorithm:
                         start_time = time.time_ns()
                         tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
                             points, points[ip],
-                            current_point, idim, n_nearest=200,
+                            current_point, idim, n_nearest=300,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
                         tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
                             points, points[ip],
-                            current_point, idim, n_nearest=300,
+                            current_point, idim, n_nearest=500,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
@@ -463,31 +462,42 @@ class NeighbouhoodAlgorithm:
                         current_model = current_model.build_model(
                             umcutils.mesh, model_params, value_dict)
                         models.append(current_model)
-                        
-                        if istep > 0:
-                            perturbations_arr[istep] = np.array(
-                                perturbations_arr[istep-1])
-                        perturbations_arr[istep, idim] += per
 
-                        print(
-                            '{} {} {} {} {} {} {:.3f} {:.3f} {:.3f}'
-                            .format(rank, ipass, imod, istep, idim,
-                                    current_point, lo, up, per))
+                        if log:
+                            log.write(
+                                '{} {} {} {} {} {} {:.3f} {:.3f} {:.3f}\n'
+                                .format(rank, ipass, imod, istep, idim,
+                                        current_point, lo, up, per))
+
                         current_point[idim] += per
-
-                        # bounds[idim] -= per
-
-                    for param_type in self.types:
-                        perturbations_tmp = self.unravel_voronoi_point_bounds(
-                            perturbations_arr)
-                        perturbations[param_type] = np.vstack((
-                            perturbations[param_type],
-                            perturbations_tmp[param_type]))
             else:
                 models = None
 
             self.compute_one_step(
                 umcutils, dataset, models, result, windows, comm)
+
+            # check convergence
+            if rank == 0:
+                if ipass > 2:
+                    print
+                    perturbations = result.get_model_perturbations(
+                        model_ref, types=self.types,
+                        smooth=True, n_s=self.n_s, in_percent=False)
+                    print(ipass, perturbations.shape)
+                    if (perturbations[-1] == 0).all():
+                        pass
+                    else:
+                        per_inc_1 = np.abs((perturbations[-1]-perturbations[-2])
+                            / perturbations[-2])
+                        per_inc_2 = np.abs((perturbations[-2]-perturbations[-3])
+                            / perturbations[-3])
+                        print(ipass, 'per_inc ', per_inc_1, per_inc_2)
+                        converged = (
+                            (per_inc_1 <= self.convergence_threshold).all()
+                            and (per_inc_2 <= self.convergence_threshold).all()
+                            )
+
+            converged = comm.bcast(converged, root=0)
 
             ipass += 1
             comm.Barrier()
@@ -509,6 +519,12 @@ class NeighbouhoodAlgorithm:
                     figpath, points, misfits,
                     title='iteration {}'.format(n_pass))
 
+            conv_curve_path = 'convergence_curve_nparam16.pdf'
+            self.save_convergence_curve(conv_curve_path, result, smooth=True)
+
+            var_curve_path = 'variance_curve_nparam16.pdf'
+            self.save_variance_curve(var_curve_path, result, smooth=True)
+
         return result
 
     def bi_triangle_cfd_inv(self, x, a, b):
@@ -525,7 +541,9 @@ class NeighbouhoodAlgorithm:
         return y
 
     def bi_triangle(self, a, b):
-        assert (a==b==0) or ((a < b) and (a <= 0) and (b >= 0))
+        if a==b==0:
+            return 0.
+        assert (a < b) and (a <= 0) and (b >= 0)
         x_unif = self.rng_gibbs.uniform(0, 1, 1)[0]
         x = self.bi_triangle_cfd_inv(x_unif, a, b)
         return x
@@ -613,6 +631,43 @@ class NeighbouhoodAlgorithm:
         plt.savefig(path, bbox_inches='tight')
         plt.close(fig)
 
+    def save_convergence_curve(self, path, result, smooth=True):
+        perturbations = result.get_model_perturbations(
+                self.model_ref, types=self.types,
+                smooth=smooth, n_s=self.n_s, in_percent=False)
+
+        pert_diff = np.diff(perturbations, axis=0).max(axis=1)
+
+        fig, ax = plt.subplots(1)
+        ax.plot(pert_diff, '-xk')
+        if smooth:
+            ax.set(
+                xlabel='Iteration #',
+                ylabel='Mean model perturbation (km/s)')
+        else:
+            ax.set(
+                xlabel='Model #',
+                ylabel='Model perturbation (km/s)')
+        plt.savefig(path, bbox_inches='tight')
+        plt.close(fig)
+    
+    def save_variance_curve(self, path, result, smooth=True):
+        variances = result.get_variances(smooth=smooth, n_s=self.n_s)
+
+        fig, ax = plt.subplots(1)
+        ax.plot(variances, '-xk')
+        if smooth:
+            ax.set(
+                xlabel='Iteration #',
+                ylabel='Mean variance')
+        else:
+            ax.set(
+                xlabel='Model #',
+                ylabel='Variance')
+        plt.savefig(path, bbox_inches='tight')
+        plt.close(fig)
+
+
 if __name__ == '__main__':
     comm = MPI.COMM_WORLD
     n_cores = comm.Get_size()
@@ -651,6 +706,6 @@ if __name__ == '__main__':
             xlim=[6.5, 8.])
         ax.legend()
         plt.savefig(
-            'recovered_models_syntest1_nparam2_nspc256_80_test.pdf',
+            'recovered_models_syntest1_nparam16_nspc256_nmod6000_ns120_nr3.pdf',
             bbox_inches='tight')
         plt.close(fig)

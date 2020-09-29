@@ -25,8 +25,11 @@ class UniformMonteCarlo:
             self.model, self.mesh = model.triangle_mesh(self.model_params)
         elif mesh_type == 'boxcar':
             self.model, self.mesh = model.boxcar_mesh(self.model_params)
+        elif mesh_type == 'lininterp':
+            self.model = model.lininterp_mesh(self.model_params)
+            self.mesh = self.model.__copy__()
         else:
-            raise ValueError("Expect 'triangle' or 'boxcar'")
+            raise ValueError("Expect 'triangle' or 'boxcar' or 'lininterp'")
         self.rng = np.random.default_rng(seed)
 
     def sample_models(self, ns):
@@ -35,13 +38,8 @@ class UniformMonteCarlo:
             models (list): list of ns sampled models
             perturbations (dict): ndarray(ns, n_grid_params)
         '''
-
-        perturbations = dict()
+        perturbations = []
         models = []
-
-        for param_type in self.model_params._types:
-            perturbations[param_type] = np.zeros(
-                (ns, self.model_params._n_grd_params), dtype='float')
 
         for imod in range(ns):
             model_id = 'model_{}'.format(imod)
@@ -54,8 +52,19 @@ class UniformMonteCarlo:
                         self.range_dict[param_type][igrd, 0],
                         self.range_dict[param_type][igrd, 1],
                         1)
+
+                # account for constraints
+                mask = self.model_params.mask_dict[param_type]
+                values[~mask] = 0.
+                equal_indices = self.model_params.equal_dict[param_type]
+                for i, index in enumerate(equal_indices):
+                    values[i] = values[index]
+
                 value_dict[param_type] = values
-                perturbations[param_type][imod] = values
+
+            perturbations.append(
+                np.hstack([v for v in value_dict.values()]))
+
             model_sample = self.model.build_model(
                 self.mesh, self.model_params, value_dict)
             model_sample._model_id = model_id

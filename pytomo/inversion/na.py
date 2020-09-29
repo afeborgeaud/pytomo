@@ -5,6 +5,7 @@ import pytomo.inversion.voronoi as voronoi
 from scipy.spatial import voronoi_plot_2d, Voronoi
 from pydsm.seismicmodel import SeismicModel
 from pydsm.modelparameters import ModelParameters, ParameterType
+from pytomo import utilities
 import numpy as np
 import time
 import matplotlib.pyplot as plt
@@ -146,12 +147,20 @@ class NeighbouhoodAlgorithm:
         self.distance_max = distance_max
         self.convergence_threshold = convergence_threshold
         self.stf_catalog = stf_catalog
-        self.result_path = result_path
         self.seed = seed
         self.verbose = verbose
         self.comm = comm
 
         self.rng_gibbs = np.random.default_rng(seed)
+
+        if comm.Get_rank() == 0:
+            out_dir = 'output_' + utilities.get_temporary_str()
+            os.mkdir(out_dir)
+        else:
+            out_dir = None
+
+        self.out_dir = comm.bcast(out_dir, root=0)
+        self.result_path = os.path.join(self.out_dir, result_path)
 
     @classmethod
     def from_file(cls, input_file_path, comm):
@@ -216,7 +225,25 @@ class NeighbouhoodAlgorithm:
                     outputs[imod][iev].filter(
                         self.freq, self.freq2, self.filter_type)
 
-    # def get_points_for_voronoi(self, perturbations):
+    def get_points_for_voronoi(self, perturbations):
+        '''
+        Args:
+            perturbations (list(ndarray)): list of model perturbations
+        Return:
+            points: points in a n_grd_params*len(types) dimensional
+                space to define the voronoi cells
+        '''
+        scale_arr = np.hstack(
+            [self.range_dict[p][:,1] - self.range_dict[p][:,0]
+            for p in self.types])
+        print(scale_arr)
+
+        points = np.array(perturbations)
+        points /= scale_arr
+
+        return points
+
+    # def get_points_for_voronoi(self, models, model_ref):
     #     '''
     #     Args:
     #         perturbations (dict): dict of model perturbations
@@ -224,27 +251,16 @@ class NeighbouhoodAlgorithm:
     #         points: points in a n_grd_params*len(types) dimensional
     #             space to define the voronoi cells
     #     '''
-    #     points = np.hstack(
-    #         tuple([perturbations[param_type] for param_type in self.types]))
+    #     points = np.zeros(
+    #         (len(models), self.n_grd_param*len(self.types)),
+    #         dtype='float')
+    #     for imod, model in enumerate(models):
+    #         points[imod] = model.get_perturbations_to(
+    #             model_ref, self.types, in_percent=False,
+    #             range_dict=self.range_dict)
+    #         print(points[imod])
 
     #     return points
-
-    def get_points_for_voronoi(self, models, model_ref):
-        '''
-        Args:
-            perturbations (dict): dict of model perturbations
-        Return:
-            points: points in a n_grd_params*len(types) dimensional
-                space to define the voronoi cells
-        '''
-        points = np.zeros(
-            (len(models), self.n_grd_param*len(self.types)),
-            dtype='float')
-        for imod, model in enumerate(models):
-            points[imod] = model.get_perturbations_to(
-                model_ref, self.types, in_percent=False)
-
-        return points
 
     def unravel_voronoi_point_bounds(self, point_bounds, imods=None):
         range_dict = dict()
@@ -265,10 +281,14 @@ class NeighbouhoodAlgorithm:
                 i = igrd + itype * self.n_grd_param
                 min_bounds[i] = self.range_dict[self.types[itype]][igrd, 0]
                 max_bounds[i] = self.range_dict[self.types[itype]][igrd, 1]
+                # scale
+                min_bounds[i] /= (max_bounds[i] - min_bounds[i])
+                max_bounds[i] /= (max_bounds[i] - min_bounds[i])
         return min_bounds, max_bounds
 
     def compute_one_step(
-        self, umcutils, dataset, models, result, windows, comm):
+            self, umcutils, dataset, models, perturbations,
+            result, windows, comm):
         #TODO URGENT fix zero output when n_model % n_core != 0
         rank = comm.Get_rank()
 
@@ -281,7 +301,7 @@ class NeighbouhoodAlgorithm:
             self.filter_outputs(outputs)
             misfit_dict = umcutils.process_outputs(
                 outputs, dataset, models, windows)
-            result.add_result(models, misfit_dict)
+            result.add_result(models, misfit_dict, perturbations)
 
     def compute(self, comm, log=None):
         '''Run the inversion.
@@ -299,32 +319,53 @@ class NeighbouhoodAlgorithm:
         if self.verbose > 1:
             print('n_pass={}'.format(n_pass))
         
-        self.types = [ParameterType.VSH]
+        self.types = [ParameterType.VSH, ParameterType.RADIUS]
 
         if rank == 0:
             n_upper_mantle = 0 # 20
             n_mtz = 0 # 10
             n_lower_mantle = 0 # 12
-            n_dpp = 17 # 9
+            n_dpp = 2 # 9
 
-            model_ref, model_params = work_parameters.get_model(
+            model_ref, model_params = work_parameters.get_model_lininterp(
                 n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, self.types,
                 verbose=self.verbose)
 
+            # add constraints
+            mask_dict = dict()
+            mask_dict[ParameterType.RADIUS] = np.ones(
+                model_params._n_grd_params, dtype='bool')
+            mask_dict[ParameterType.RADIUS][0] = False
+
+            equal_dict = dict()
+            equal_dict[ParameterType.VSH] = np.arange(
+                model_params._n_grd_params, dtype='int')
+            equal_dict[ParameterType.VSH][1] = 0
+
+            model_params.set_constraints(mask_dict, equal_dict)
+
+            free_indices = model_params.get_free_indices()
+            print('free indices', free_indices)
+
             self.model_ref = model_ref
             self.n_grd_param = model_params._n_grd_params
+            self.n_params = model_params.get_n_params()
             
             range_dict = dict()
             for param_type in self.types:
                 range_arr = np.empty((self.n_grd_param, 2), dtype='float')
-                range_arr[:, 0] = -0.5
-                range_arr[:, 1] = 0.5
+                if param_type == ParameterType.RADIUS:
+                    range_arr[:, 0] = -190.
+                    range_arr[:, 1] = 190.
+                else:
+                    range_arr[:, 0] = -0.5
+                    range_arr[:, 1] = 0.5
 
                 range_dict[param_type] = range_arr
 
             umcutils = UniformMonteCarlo(
                 model_ref, model_params, range_dict,
-                mesh_type='boxcar', seed=self.seed)
+                mesh_type='lininterp', seed=self.seed)
             models, perturbations = umcutils.sample_models(self.n_s)
         else:
             model_params = None
@@ -340,7 +381,7 @@ class NeighbouhoodAlgorithm:
         if rank == 0:
             # dataset, output_ref = work_parameters.get_dataset_syntest1(
             #     self.tlen, self.nspc, self.sampling_hz, mode=self.mode)
-            dataset, output_ref = work_parameters.get_dataset_syntest1(
+            dataset, output_ref = work_parameters.get_dataset_syntest2(
                 self.tlen, self.nspc, self.sampling_hz, mode=self.mode,
                 add_noise=False, noise_normalized_std=1.)
             # dataset = work_parameters.get_dataset(
@@ -367,7 +408,8 @@ class NeighbouhoodAlgorithm:
 
         # step 0
         self.compute_one_step(
-            umcutils, dataset, models, result, windows, comm)
+            umcutils, dataset, models, perturbations, result,
+            windows, comm)
         comm.Barrier()
 
         # steps 1,...,n_pass-1
@@ -379,7 +421,7 @@ class NeighbouhoodAlgorithm:
                 # indexing of points corrsespond to that of 
                 # perturbations and of that of models
                 points = self.get_points_for_voronoi(
-                    result.models, model_ref)
+                    result.perturbations)
 
                 # if points.shape[1] == 2:
                 #     if log:
@@ -393,40 +435,61 @@ class NeighbouhoodAlgorithm:
                 #             .format((end_time - start_time)*1e-9))
 
                 if points.shape[1] == 2:
-                    misfits = result.misfit_dict['variance'].mean(axis=1)
-                    figpath = 'voronoi_syntest1_{}.pdf'.format(ipass)
-                    self.save_voronoi_2d(
-                        figpath, points, misfits,
-                        title='iteration {}'.format(ipass))
+                    points_cs = points
+                else:
+                    points_cs = points[:, [0, 3]]
+                misfits = result.misfit_dict['variance'].mean(axis=1)
+                figpath = os.path.join(
+                    self.out_dir, 'voronoi_syntest1_{}.pdf'.format(ipass))
+                self.save_voronoi_2d(
+                    figpath, points_cs, misfits,
+                    title='iteration {}'.format(ipass))
 
                 min_bounds, max_bounds = self.get_bounds_for_voronoi()
                 indices_best = umcutils.get_best_models(
                     result.misfit_dict, self.n_r)
 
                 models = []
+                perturbations = []
                 for imod in range(self.n_r):
-                    current_model = result.models[indices_best[imod]]
+                    ip = indices_best[imod]
+                    # current_model = result.models[ip]
+                    current_perturbations = np.array(result.perturbations[ip])
+
+                    value_dict = dict()
+                    for i, param_type in enumerate(self.types):
+                        value_dict[param_type] = current_perturbations[
+                            (i*self.n_grd_param):((i+1)*self.n_grd_param)]
+
                     n_step = int(self.n_s//self.n_r)
 
-                    ip = indices_best[imod]
-
                     current_point = np.array(points[ip])
+                    model_params.it = 0 # just to be sure
                     for istep in range(n_step):
-                        idim = istep % (self.n_grd_param*len(self.types))
-                        itype = int(idim // self.n_grd_param)
-                        igrd = idim % self.n_grd_param
+                        # idim = istep % (self.n_grd_param*len(self.types))
+                        # itype = int(idim // self.n_grd_param)
+                        # igrd = idim % self.n_grd_param
+
+                        idim, itype, igrd = model_params.get_it_indices()
+                        model_params.it += 1
+                        print(istep, idim, itype, igrd)
 
                         # calculate bounds
+                        print(points.shape)
+                        points_free = points[:, free_indices]
+                        current_point_free = current_point[free_indices]
+                        idim_free = np.where(free_indices==idim)[0][0]
+
                         start_time = time.time_ns()
                         tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
-                            points, points[ip],
-                            current_point, idim, n_nearest=300,
+                            points_free, points_free[ip],
+                            current_point_free, idim_free, n_nearest=300,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
                         tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
-                            points, points[ip],
-                            current_point, idim, n_nearest=500,
+                            points_free, points_free[ip],
+                            current_point_free, idim_free, n_nearest=500,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
@@ -448,42 +511,90 @@ class NeighbouhoodAlgorithm:
                                     (end_time-start_time)*1e-9))
 
                         lo, up = bounds
+
                         # per = self.rng_gibbs.uniform(lo, up, 1)[0]
                         per = self.bi_triangle(lo, up)
                         # print(rank, ipass, imod, istep, lo, up, per)
 
-                        value_dict = dict()
+                        # value_dict = dict()
+                        # for param_type in self.types:
+                        #     value_dict[param_type] = np.zeros(
+                        #         self.n_grd_param, dtype='float')
+                        #     if param_type == self.types[itype]:
+                        #         scale = (
+                        #             self.range_dict[param_type][igrd, 1]
+                        #             - self.range_dict[param_type][igrd, 0])
+                        #         value_dict[param_type][igrd] = per * scale
+                        
+                        scale = (self.range_dict[self.types[itype]][igrd, 1]
+                                - self.range_dict[self.types[itype]][igrd, 0])
+                        value_dict[self.types[itype]][igrd] += per*scale
+                        
+                        # account for constraints
                         for param_type in self.types:
-                            value_dict[param_type] = np.zeros(
-                                self.n_grd_param, dtype='float')
-                            if param_type == self.types[itype]:
-                                value_dict[param_type][igrd] = per
+                            for jgrd in range(self.n_grd_param):
+                                index = (
+                                    model_params.equal_dict[param_type][jgrd])
+                                if index != jgrd:
+                                    value_dict[param_type][jgrd] = (
+                                        value_dict[param_type][index])
 
-                        current_model = current_model.build_model(
+                        per_arr = np.hstack(
+                            [value_dict[p] for p in self.types])
+                        # perturbations.append(per_arr)
+                        
+                        # if model_params._mesh_type == 'lininterp':
+                        #     current_mesh = current_model.__copy__()
+                        # else:
+                        #     current_mesh = umcutils.mesh
+
+                        new_model = model_ref.build_model(
                             umcutils.mesh, model_params, value_dict)
-                        models.append(current_model)
+                        models.append(new_model)
 
                         if log:
                             log.write(
                                 '{} {} {} {} {} {} {:.3f} {:.3f} {:.3f}\n'
                                 .format(rank, ipass, imod, istep, idim,
-                                        current_point, lo, up, per))
+                                        per_arr, lo, up, per))
 
-                        current_point[idim] += per
+                        scale_arr = np.hstack(
+                            [self.range_dict[p][:,1] - self.range_dict[p][:,0] 
+                            for p in self.types])
+                        print(per_arr)
+                        # current_point += per_arr / scale_arr
+                        # current_point[idim] += per
+                        current_point = per_arr / scale_arr
+
+                        perturbations.append(per_arr)
+
+                        # account for constraints
+                        # for jdim in self.n_params:
+                        #     jtype = int(jdim // self.n_grd_param)
+                        #     jgrd = jdim % self.n_grd_param
+                        #     index = (
+                        #         model_params.equal_dict[param_type][jgrd])
+                        #     if index != jgrd:
+                        #         kdim = jtype * self.n_grd_param + index
+                        #         current_point[kdim] = per
+
+                        istep += 1
             else:
                 models = None
 
             self.compute_one_step(
-                umcutils, dataset, models, result, windows, comm)
+                umcutils, dataset, models, perturbations,
+                result, windows, comm)
 
             # check convergence
             if rank == 0:
                 if ipass > 2:
-                    print
+
                     perturbations = result.get_model_perturbations(
-                        model_ref, types=self.types,
+                        # model_ref, types=self.types,
                         smooth=True, n_s=self.n_s, in_percent=False)
                     print(ipass, perturbations.shape)
+
                     if (perturbations[-1] == 0).all():
                         pass
                     else:
@@ -511,18 +622,26 @@ class NeighbouhoodAlgorithm:
                 print('Results saved to \'{}\''.format(self.result_path))
 
             points = self.get_points_for_voronoi(
-                result.models, model_ref)
-            if points.shape[1] == 2:
-                misfits = result.misfit_dict['variance'].mean(axis=1)
-                figpath = 'voronoi_syntest1_{}.pdf'.format(n_pass)
-                self.save_voronoi_2d(
-                    figpath, points, misfits,
-                    title='iteration {}'.format(n_pass))
+                result.perturbations)
 
-            conv_curve_path = 'convergence_curve_nparam16.pdf'
+            if points.shape[1] == 2:
+                points_cs = points
+            else:
+                points_cs = points[:, [0, 3]]
+
+            misfits = result.misfit_dict['variance'].mean(axis=1)
+            figpath = os.path.join(
+                self.out_dir, 'voronoi_syntest1_{}.pdf'.format(n_pass))
+            self.save_voronoi_2d(
+                figpath, points_cs, misfits,
+                title='iteration {}'.format(n_pass))
+
+            conv_curve_path = os.path.join(
+                self.out_dir, 'convergence_curve.pdf')
             self.save_convergence_curve(conv_curve_path, result, smooth=True)
 
-            var_curve_path = 'variance_curve_nparam16.pdf'
+            var_curve_path = os.path.join(
+                self.out_dir, 'variance_curve.pdf')
             self.save_variance_curve(var_curve_path, result, smooth=True)
 
         return result
@@ -559,9 +678,14 @@ class NeighbouhoodAlgorithm:
         # add dummy points
         # stackoverflow.com/questions/20515554/
         # colorize-voronoi-diagram?lq=1
+        x_max = points[:, 0].max()
+        x_min = points[:, 0].min()
+        y_max = points[:, 1].max()
+        y_min = points[:, 1].min()
         points_ = np.append(
             points,
-            [[999,999], [-999,999], [999,-999], [-999,-999]],
+            [[x_min*10, y_min*10], [x_min*10, y_max*10],
+             [x_max*10, y_min*10], [x_max*10, y_max*10]],
             axis = 0)
         vor = Voronoi(points_)
 
@@ -575,8 +699,9 @@ class NeighbouhoodAlgorithm:
         mask = (
             (points[:,0]>=0.1)
             & (points[:,0]<=0.3)
-            & (points[:,1]<=-0.1)
-            & (points[:,1]>=-0.3))
+            & (points[:,1]>=-0.1)
+            & (points[:,1]<=0.1))
+        mask = np.ones(points.shape[0], dtype='bool')
         log_misfits_masked = log_misfits[mask]
         c_norm_masked = colors.Normalize(
             vmin=log_misfits_masked.min(), vmax=log_misfits_masked.max())
@@ -619,12 +744,14 @@ class NeighbouhoodAlgorithm:
                     axes[1].fill(*zip(*poly), color=color_masked)
 
         for ax in axes:
-            ax.plot(0.2, -0.2, 'xr', markersize=6)
+            # ax.plot(0.2, -0.2, 'xr', markersize=6)
+            ax.plot(0.2, 0., 'xr', markersize=6)
             ax.set_aspect('equal')
             ax.set(xlabel='dVs1 (km/s)', ylabel='dVs2 (km/s)')
 
+        # axes[0].set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
         axes[0].set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
-        axes[1].set(xlim=[0.1, 0.3], ylim=[-0.3,-0.1])
+        axes[1].set(xlim=[0.1, 0.3], ylim=[-0.1,0.1])
 
         if 'title' in kwargs:
             fig.suptitle(kwargs['title'])
@@ -633,7 +760,7 @@ class NeighbouhoodAlgorithm:
 
     def save_convergence_curve(self, path, result, smooth=True):
         perturbations = result.get_model_perturbations(
-                self.model_ref, types=self.types,
+                # self.model_ref, types=self.types,
                 smooth=smooth, n_s=self.n_s, in_percent=False)
 
         pert_diff = np.diff(perturbations, axis=0).max(axis=1)
@@ -673,9 +800,11 @@ if __name__ == '__main__':
     n_cores = comm.Get_size()
     rank = comm.Get_rank()
 
-    log = open('log_{}'.format(rank), 'w', buffering=1)
-
     na = NeighbouhoodAlgorithm.from_file(sys.argv[1], comm)
+
+    log_path = os.path.join(
+        na.out_dir, 'log_{}'.format(rank))
+    log = open(log_path, 'w', buffering=1)
 
     if rank == 0:
         start_time = time.time_ns()
@@ -695,7 +824,7 @@ if __name__ == '__main__':
         fig, ax = result.plot_models(
             types=[ParameterType.VSH], n_best=1,
             color='black', label='best model')
-        _, ax = work_parameters.get_model_syntest1().plot(
+        _, ax = work_parameters.get_model_syntest2().plot(
             types=[ParameterType.VSH], ax=ax,
             color='red', label='input')
         _, ax = SeismicModel.ak135().plot(
@@ -705,7 +834,9 @@ if __name__ == '__main__':
             ylim=[3479.5, 4000],
             xlim=[6.5, 8.])
         ax.legend()
+        fig_path = os.path.join(
+            na.out_dir, 'inverted_models.pdf')
         plt.savefig(
-            'recovered_models_syntest1_nparam16_nspc256_nmod6000_ns120_nr3.pdf',
+            fig_path,
             bbox_inches='tight')
         plt.close(fig)

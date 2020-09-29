@@ -44,6 +44,41 @@ def get_model(
     
     return ak135, model_params
 
+def get_model_lininterp(
+        n_upper_mantle=20, n_mtz=10, n_lower_mantle=12, n_dpp=8,
+        types=[ParameterType.VSH], verbose=0):
+    '''Boxcar mesh using ak135 as reference model for the structure of
+        the upper mantle and transition zone down to 1000 km depth.
+    '''
+    ak135 = SeismicModel.ak135()
+    # model parameters
+    depth_moho = 6371. - 6336.6
+    depth_410 = 410.
+    depth_660 = 660.
+    depth_dpp = 2691.5
+    depth_cmb = 2891.5
+    rs_upper_mantle = np.linspace(depth_410, depth_moho, n_upper_mantle)
+    rs_mtz = np.linspace(depth_660, depth_410, n_mtz,
+        endpoint=(n_upper_mantle==0))
+    rs_lower_mantle = np.linspace(
+        depth_dpp, depth_660, n_lower_mantle, endpoint=(n_mtz==0))
+    rs_dpp = np.linspace(
+        depth_cmb, depth_dpp, n_dpp, endpoint=(n_lower_mantle==0))
+    radii = 6371. - np.round(
+        np.hstack((rs_lower_mantle, rs_mtz, rs_upper_mantle, rs_dpp)), 4)
+    if verbose > 1:
+        print('dr_um={}, dr_mtz={}, dr_lm={}, dr_dpp={}'.format(
+            rs_upper_mantle[1] - rs_upper_mantle[0],
+            rs_mtz[1] - rs_mtz[0],
+            rs_lower_mantle[1] - rs_lower_mantle[0],
+            rs_dpp[1] - rs_dpp[0]))
+
+    model_params = ModelParameters(types, radii, mesh_type='lininterp')
+    # mesh
+    model = ak135.lininterp_mesh(model_params)
+    
+    return model, model_params
+
 def get_ref_event():
     catalog = read_catalog()
     event = Event.event_from_catalog(
@@ -99,6 +134,13 @@ def get_dataset_syntest2(
         get_model_syntest2(), tlen, nspc, sampling_hz, mode,
         add_noise, noise_normalized_std)
 
+def get_dataset_syntest3(
+        tlen=1638.4, nspc=256, sampling_hz=20, mode=0,
+        add_noise=False, noise_normalized_std=1.):
+    return get_dataset(
+        get_model_syntest3(), tlen, nspc, sampling_hz, mode,
+        add_noise, noise_normalized_std)
+
 def get_model_syntest1():
     model_ref = SeismicModel.ak135()
     types = [ParameterType.VSH]
@@ -117,6 +159,20 @@ def get_model_syntest1():
 def get_model_syntest2():
     model_ref = SeismicModel.ak135()
     types = [ParameterType.VSH]
+    radii = np.array([3479.5, 3679.5], dtype='float')
+    model_params = ModelParameters(
+        types, radii, mesh_type='lininterp')
+    model = model_ref.lininterp_mesh(
+        model_params, discontinuous=True)
+    values = np.array([0.2, 0.2])
+    values_dict = {param_type: values for param_type in types}
+    model_mul = model.build_model(model, model_params, values_dict)
+
+    return model_mul
+
+def get_model_syntest3():
+    model_ref = SeismicModel.ak135()
+    types = [ParameterType.VSH]
     radii = np.array(
         [3479.5+i*50 for i in range(9)], dtype='float')
     model_params = ModelParameters(types, radii, mesh_type='boxcar')
@@ -131,13 +187,46 @@ def get_model_syntest2():
     return model_mul
 
 if __name__ == '__main__':
-    # model_syntest1 = get_model_syntest1()
-    # fig, ax = model_syntest1.plot()
-    # plt.savefig('model_syntest1.pdf')
+    # model_syntest2 = get_model_syntest2()
+    # fig, ax = model_syntest2.plot(types=[ParameterType.VSH])
+    # SeismicModel.ak135().plot(types=[ParameterType.VSH], ax=ax, label='ak135')
+    # plt.savefig('model_syntest2.pdf')
+    # plt.show()
     # plt.close(fig)
 
-    dataset, output = get_dataset_syntest1(
-        mode=2, add_noise=True, noise_normalized_std=1.)
-    dataset.filter(0.005, 0.1, type='bandpass')
-    dataset.plot_event(0, color='black')
+    model_, model_params = get_model_lininterp(0, 0, 0, 2)
+
+    value_dict = {
+        ParameterType.VSH: np.array([0.2, 0.2]),
+        ParameterType.RADIUS: np.array([0., 0.])}
+    model = model_.build_model(model_, model_params, value_dict)
+    fig, ax = model.plot(types=model_params._types, label='1')
+
+    value_dict = {
+        ParameterType.VSH: np.array([0.3, 0.3]),
+        ParameterType.RADIUS: np.array([0., 0.])}
+    model = model_.build_model(model_, model_params, value_dict)
+    model.plot(types=model_params._types, label='2', ax=ax)
+
+    value_dict = {
+        ParameterType.VSH: np.array([0.3, 0.3]),
+        ParameterType.RADIUS: np.array([0., -100.])}
+    model = model_.build_model(model_, model_params, value_dict)
+    model.plot(types=model_params._types, label='3', ax=ax)
+
+    value_dict = {
+        ParameterType.VSH: np.array([0.4, 0.4]),
+        ParameterType.RADIUS: np.array([0., -100.])}
+    model = model_.build_model(model_, model_params, value_dict)
+    model.plot(types=model_params._types, label='4', ax=ax)
+    
+    SeismicModel.ak135().plot(types=[ParameterType.VSH], ax=ax, label='ak135')
+    get_model_syntest2().plot(types=[ParameterType.VSH], ax=ax, label='target')
     plt.show()
+    plt.close(fig)
+
+    # dataset, output = get_dataset_syntest1(
+    #     mode=2, add_noise=True, noise_normalized_std=1.)
+    # dataset.filter(0.005, 0.1, type='bandpass')
+    # dataset.plot_event(0, color='black')
+    # plt.show()

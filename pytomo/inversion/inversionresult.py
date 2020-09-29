@@ -23,8 +23,9 @@ class InversionResult:
         self.windows = windows
         self.misfit_dict = dict()
         self.models = []
+        self.perturbations = []
     
-    def add_result(self, models, misfit_dict):
+    def add_result(self, models, misfit_dict, perturbations):
         '''Add misfit_dict for new models to current inversion result.
         The dataset and windows must be the same.
         
@@ -39,6 +40,8 @@ class InversionResult:
             assert len(models) == misfit_dict[key].shape[0]
             
         self.models += models
+        self.perturbations += perturbations
+
         for misfit_name in misfit_dict.keys():
             if misfit_name not in self.misfit_dict:
                 self.misfit_dict[misfit_name] = misfit_dict[misfit_name]
@@ -47,8 +50,12 @@ class InversionResult:
                     (self.misfit_dict[misfit_name],
                     misfit_dict[misfit_name]))
     
+    # TODO delete
+    # def get_model_perturbations(
+    #         self, model_ref, types, smooth=True, n_s=None,
+    #         in_percent=False):
     def get_model_perturbations(
-            self, model_ref, types, smooth=True, n_s=None,
+            self, smooth=True, n_s=None,
             in_percent=False):
         '''Get the model perturbations w.r.t. model_ref to use as
         a convergence criteria
@@ -63,13 +70,16 @@ class InversionResult:
             perturbations (ndarray): array of perturbations.
                 If smooth, shape=(n_iteration,), else shape=(n_models,)
         '''
-        pert_list = []
-        for i in range(len(self.models)):
-            per_arr = self.models[i].get_perturbations_to(
-                model_ref, types, in_percent)
-            pert_list.append(per_arr)
+        # TODO delete
+        # pert_list = []
+        # for i in range(len(self.models)):
+        #     per_arr = self.models[i].get_perturbations_to(
+        #         model_ref, types, in_percent)
+        #     pert_list.append(per_arr)
         
-        perturbations = np.array(pert_list)
+        # perturbations = np.array(pert_list)
+
+        perturbations = np.array(self.perturbations)
 
         if smooth:
             n_it = int(len(self.models)//n_s)

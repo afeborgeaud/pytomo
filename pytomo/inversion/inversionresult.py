@@ -102,6 +102,31 @@ class InversionResult:
 
         return perturbations
 
+    def get_model_perturbations_diff(
+            self, n_r, scale=None, smooth=True, n_s=None):
+        perturbations = np.array(self.perturbations)
+        if scale is not None:
+            perturbations /= scale
+        perturbations_diff = np.abs(np.diff(perturbations, axis=0))
+        mask = [(i+1)%n_r == 0 for i in range(perturbations_diff.shape[0])]
+        perturbations_diff[mask, :] = 0.
+
+        if smooth:
+            n_it = int(len(self.models)//n_s)
+            if len(self.models) % n_s != 0:
+                n_it += 1
+            perturbations_diff_smooth = np.zeros(
+                (n_it, perturbations.shape[1]))
+            for i in range(n_it):
+                s = i * n_s
+                e = s + n_s
+                perturbations_diff_smooth[i] = (
+                    perturbations_diff[s:e].mean(axis=0))
+            perturbations_diff = perturbations_diff_smooth
+        
+        return perturbations_diff
+        
+
     def get_variances(self, smooth=True, n_s=None):
         variances = self.misfit_dict['variance'].mean(axis=1)
         if smooth:

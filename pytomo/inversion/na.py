@@ -363,6 +363,10 @@ class NeighbouhoodAlgorithm:
 
                 range_dict[param_type] = range_arr
 
+            scale_arr = np.hstack(
+                [range_dict[p][:,1] - range_dict[p][:,0] 
+                for p in self.types])
+
             umcutils = UniformMonteCarlo(
                 model_ref, model_params, range_dict,
                 mesh_type='lininterp', seed=self.seed)
@@ -558,10 +562,7 @@ class NeighbouhoodAlgorithm:
                                 .format(rank, ipass, imod, istep, idim,
                                         per_arr, lo, up, per))
 
-                        scale_arr = np.hstack(
-                            [self.range_dict[p][:,1] - self.range_dict[p][:,0] 
-                            for p in self.types])
-                        print(per_arr)
+                        # print(per_arr)
                         # current_point += per_arr / scale_arr
                         # current_point[idim] += per
                         current_point = per_arr / scale_arr
@@ -589,24 +590,14 @@ class NeighbouhoodAlgorithm:
             # check convergence
             if rank == 0:
                 if ipass > 2:
+                    perturbations_diff = result.get_model_perturbations_diff(
+                        self.n_r, scale=scale_arr, smooth=True, n_s=self.n_s)
+                    perturbations_diff_free = perturbations_diff[
+                        :, free_indices]
 
-                    perturbations = result.get_model_perturbations(
-                        # model_ref, types=self.types,
-                        smooth=True, n_s=self.n_s, in_percent=False)
-                    print(ipass, perturbations.shape)
-
-                    if (perturbations[-1] == 0).all():
-                        pass
-                    else:
-                        per_inc_1 = np.abs((perturbations[-1]-perturbations[-2])
-                            / perturbations[-2])
-                        per_inc_2 = np.abs((perturbations[-2]-perturbations[-3])
-                            / perturbations[-3])
-                        print(ipass, 'per_inc ', per_inc_1, per_inc_2)
-                        converged = (
-                            (per_inc_1 <= self.convergence_threshold).all()
-                            and (per_inc_2 <= self.convergence_threshold).all()
-                            )
+                    converged = (
+                        (perturbations_diff_free[-2:] 
+                        <= self.convergence_threshold).all())
 
             converged = comm.bcast(converged, root=0)
 
@@ -631,14 +622,15 @@ class NeighbouhoodAlgorithm:
 
             misfits = result.misfit_dict['variance'].mean(axis=1)
             figpath = os.path.join(
-                self.out_dir, 'voronoi_syntest1_{}.pdf'.format(n_pass))
+                self.out_dir, 'voronoi_syntest1_{}.pdf'.format(ipass))
             self.save_voronoi_2d(
                 figpath, points_cs, misfits,
-                title='iteration {}'.format(n_pass))
+                title='iteration {}'.format(ipass))
 
             conv_curve_path = os.path.join(
                 self.out_dir, 'convergence_curve.pdf')
-            self.save_convergence_curve(conv_curve_path, result, smooth=True)
+            self.save_convergence_curve(
+                conv_curve_path, result, scale_arr, free_indices, smooth=True)
 
             var_curve_path = os.path.join(
                 self.out_dir, 'variance_curve.pdf')
@@ -758,15 +750,17 @@ class NeighbouhoodAlgorithm:
         plt.savefig(path, bbox_inches='tight')
         plt.close(fig)
 
-    def save_convergence_curve(self, path, result, smooth=True):
-        perturbations = result.get_model_perturbations(
-                # self.model_ref, types=self.types,
-                smooth=smooth, n_s=self.n_s, in_percent=False)
+    def save_convergence_curve(
+            self, path, result, scale_arr, free_indices, smooth=True):
+        perturbations_diff = result.get_model_perturbations_diff(
+                        self.n_r, scale=scale_arr, smooth=True, n_s=self.n_s)
+        perturbations_diff_free = perturbations_diff[
+            :, free_indices].max(axis=1)
 
-        pert_diff = np.diff(perturbations, axis=0).max(axis=1)
-
+        x = np.arange(1, perturbations_diff_free.shape[0]+1)
+        
         fig, ax = plt.subplots(1)
-        ax.plot(pert_diff, '-xk')
+        ax.plot(x, perturbations_diff_free, '-xk')
         if smooth:
             ax.set(
                 xlabel='Iteration #',
@@ -780,9 +774,10 @@ class NeighbouhoodAlgorithm:
     
     def save_variance_curve(self, path, result, smooth=True):
         variances = result.get_variances(smooth=smooth, n_s=self.n_s)
+        x = np.arange(1, variances.shape[0]+1)
 
         fig, ax = plt.subplots(1)
-        ax.plot(variances, '-xk')
+        ax.plot(x, variances, '-xk')
         if smooth:
             ax.set(
                 xlabel='Iteration #',

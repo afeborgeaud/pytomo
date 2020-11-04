@@ -23,6 +23,7 @@ import sys
 import os
 import glob
 import warnings
+import copy
 
 class InputFile:
     """Input file for NeighbourAlgorithm (NA) inversion.
@@ -236,7 +237,6 @@ class NeighbouhoodAlgorithm:
         scale_arr = np.hstack(
             [self.range_dict[p][:,1] - self.range_dict[p][:,0]
             for p in self.types])
-        print(scale_arr)
 
         points = np.array(perturbations)
         points /= scale_arr
@@ -329,13 +329,16 @@ class NeighbouhoodAlgorithm:
 
             model_ref, model_params = work_parameters.get_model_lininterp(
                 n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, self.types,
-                verbose=self.verbose)
+                verbose=self.verbose, discontinuous=True)
 
             # add constraints
             mask_dict = dict()
+            mask_dict[ParameterType.VSH] = np.ones(
+                model_params._n_grd_params, dtype='bool')
             mask_dict[ParameterType.RADIUS] = np.ones(
                 model_params._n_grd_params, dtype='bool')
             mask_dict[ParameterType.RADIUS][0] = False
+            # mask_dict[ParameterType.VSH][0] = False
 
             equal_dict = dict()
             equal_dict[ParameterType.VSH] = np.arange(
@@ -355,9 +358,15 @@ class NeighbouhoodAlgorithm:
             for param_type in self.types:
                 range_arr = np.empty((self.n_grd_param, 2), dtype='float')
                 if param_type == ParameterType.RADIUS:
-                    range_arr[:, 0] = -190.
-                    range_arr[:, 1] = 190.
-                else:
+                    range_arr[:, 0] = -10 #-190.
+                    range_arr[:, 1] = 100 #190.
+                    # range_arr[0, 0] = 0.
+                    # range_arr[0, 1] = 1.
+                    # range_arr[1, 0] = -100.
+                    # range_arr[1, 1] = 50.
+                    # range_arr[2, 0] = -40.
+                    # range_arr[2, 1] = 100.
+                if param_type == ParameterType.VSH:
                     range_arr[:, 0] = -0.5
                     range_arr[:, 1] = 0.5
 
@@ -385,7 +394,7 @@ class NeighbouhoodAlgorithm:
         if rank == 0:
             # dataset, output_ref = work_parameters.get_dataset_syntest1(
             #     self.tlen, self.nspc, self.sampling_hz, mode=self.mode)
-            dataset, output_ref = work_parameters.get_dataset_syntest2(
+            dataset, output_ref = work_parameters.get_dataset_syntest4(
                 self.tlen, self.nspc, self.sampling_hz, mode=self.mode,
                 add_noise=False, noise_normalized_std=1.)
             # dataset = work_parameters.get_dataset(
@@ -441,7 +450,7 @@ class NeighbouhoodAlgorithm:
                 if points.shape[1] == 2:
                     points_cs = points
                 else:
-                    points_cs = points[:, [0, 3]]
+                    points_cs = points[:, [1, 3]]
                 misfits = result.misfit_dict['variance'].mean(axis=1)
                 figpath = os.path.join(
                     self.out_dir, 'voronoi_syntest1_{}.pdf'.format(ipass))
@@ -476,10 +485,9 @@ class NeighbouhoodAlgorithm:
 
                         idim, itype, igrd = model_params.get_it_indices()
                         model_params.it += 1
-                        print(istep, idim, itype, igrd)
+                        # print(istep, idim, itype, igrd)
 
                         # calculate bounds
-                        print(points.shape)
                         points_free = points[:, free_indices]
                         current_point_free = current_point[free_indices]
                         idim_free = np.where(free_indices==idim)[0][0]
@@ -552,8 +560,13 @@ class NeighbouhoodAlgorithm:
                         # else:
                         #     current_mesh = umcutils.mesh
 
+                        # TODO implements
+                        value_dict_m = copy.deepcopy(value_dict)
+                        # value_dict_m[ParameterType.VSH][1] = 0.
+
                         new_model = model_ref.build_model(
-                            umcutils.mesh, model_params, value_dict)
+                            umcutils.mesh, model_params,
+                            value_dict, value_dict_m)
                         models.append(new_model)
 
                         if log:
@@ -618,7 +631,7 @@ class NeighbouhoodAlgorithm:
             if points.shape[1] == 2:
                 points_cs = points
             else:
-                points_cs = points[:, [0, 3]]
+                points_cs = points[:, [1, 3]]
 
             misfits = result.misfit_dict['variance'].mean(axis=1)
             figpath = os.path.join(
@@ -742,7 +755,8 @@ class NeighbouhoodAlgorithm:
             ax.set(xlabel='dVs1 (km/s)', ylabel='dVs2 (km/s)')
 
         # axes[0].set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
-        axes[0].set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
+        # axes[0].set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
+        axes[0].set(xlim=[x_min, x_max], ylim=[y_min, y_max])
         axes[1].set(xlim=[0.1, 0.3], ylim=[-0.1,0.1])
 
         if 'title' in kwargs:
@@ -819,7 +833,7 @@ if __name__ == '__main__':
         fig, ax = result.plot_models(
             types=[ParameterType.VSH], n_best=1,
             color='black', label='best model')
-        _, ax = work_parameters.get_model_syntest2().plot(
+        _, ax = work_parameters.get_model_syntest4().plot(
             types=[ParameterType.VSH], ax=ax,
             color='red', label='input')
         _, ax = SeismicModel.ak135().plot(

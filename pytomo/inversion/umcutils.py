@@ -4,6 +4,7 @@ from pytomo.work.ca import params as work_params
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import copy
 
 class UniformMonteCarlo:
     """Implements the uniform monte carlo method.
@@ -26,7 +27,8 @@ class UniformMonteCarlo:
         elif mesh_type == 'boxcar':
             self.model, self.mesh = model.boxcar_mesh(self.model_params)
         elif mesh_type == 'lininterp':
-            self.model = model.lininterp_mesh(self.model_params)
+            self.model = model.lininterp_mesh(
+                self.model_params, discontinuous=True)
             self.mesh = self.model.__copy__()
         else:
             raise ValueError("Expect 'triangle' or 'boxcar' or 'lininterp'")
@@ -65,10 +67,21 @@ class UniformMonteCarlo:
             perturbations.append(
                 np.hstack([v for v in value_dict.values()]))
 
+            # TODO implements
+            value_dict_m = copy.deepcopy(value_dict)
+            # value_dict_m[ParameterType.VSH][1] = 0.
+
             model_sample = self.model.build_model(
-                self.mesh, self.model_params, value_dict)
+                self.mesh, self.model_params, value_dict, value_dict_m)
             model_sample._model_id = model_id
             models.append(model_sample)
+
+            # TODO delete
+            # model_sample.plot(types=[ParameterType.VSH])
+            # plt.text(0, 4000, value_dict[ParameterType.VSH])
+            # plt.text(0, 4500, value_dict_m[ParameterType.VSH])
+            # plt.text(0, 5000, value_dict_m[ParameterType.RADIUS])
+            # plt.show()
 
         return models, perturbations
 

@@ -111,6 +111,7 @@ class UniformMonteCarlo:
         corrs = np.empty((n_mod, n_window), dtype='float')
         variances = np.empty((n_mod, n_window), dtype='float')
         noises = np.empty((n_mod, n_window), dtype='float')
+        data_norms = np.empty((n_mod, n_window), dtype='float')
 
         for imod in range(n_mod):
             win_count = 0
@@ -142,24 +143,27 @@ class UniformMonteCarlo:
                         if np.all(u_cut==0):
                             print('{} {} is zero'.format(imod, window))
 
-                        # weight = 1. / np.max(np.abs(data_cut))
-                        # print('weight', weight)
-                        # u_cut *= weight
-                        # data_cut *= weight
-                        # noise *= weight
-                        corr = 0.5 * (1. - np.corrcoef(u_cut, data_cut)[0, 1])
-                        variance = (np.dot(u_cut-data_cut, u_cut-data_cut)
-                            / np.dot(data_cut, data_cut))
+                        weight = 1. / np.max(np.abs(data_cut))
+                        u_cut_w = u_cut * weight
+                        data_cut_w = data_cut * weight
+                        noise_w = noise * weight
+                        corr = 0.5 * (
+                            1. - np.corrcoef(u_cut_w, data_cut_w)[0, 1])
+                        variance = (
+                            np.dot(u_cut_w-data_cut_w, u_cut_w-data_cut_w))
+                            # / np.dot(data_cut_w, data_cut_w))
                         corrs[imod, win_count] = corr
                         variances[imod, win_count] = variance
-                        noises[imod, win_count] = noise
-
+                        noises[imod, win_count] = noise_w
+                        data_norms[imod, win_count] = np.dot(
+                            data_cut_w, data_cut_w)
                         win_count += 1
                     
         misfit_dict = {
             'corr': corrs,
             'variance': variances,
-            'noise': noises}
+            'noise': noises,
+            'data_norm': data_norms}
         return misfit_dict
 
 

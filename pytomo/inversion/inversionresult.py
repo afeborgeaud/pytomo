@@ -1,3 +1,4 @@
+from pydsm.dsm import compute_models_parallel
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -18,9 +19,10 @@ class InversionResult:
             containing misfit values (corr, variance)
     '''
 
-    def __init__(self, dataset, windows):
+    def __init__(self, dataset, windows, meta=None):
         self.dataset = dataset
         self.windows = windows
+        self.meta = meta
         self.misfit_dict = dict()
         self.models = []
         self.perturbations = []
@@ -125,7 +127,6 @@ class InversionResult:
             perturbations_diff = perturbations_diff_smooth
         
         return perturbations_diff
-        
 
     def get_variances(self, smooth=True, n_s=None):
         variances = self.misfit_dict['variance'].mean(axis=1)
@@ -156,48 +157,95 @@ class InversionResult:
             output = pickle.load(f)
         return output
     
-    def plot_models(self, types, n_best=-1, **kwargs):
+    def plot_models(
+            self, types, n_best=-1, n_mod=-1, ax=None,
+            key='variance', **kwargs):
         '''Plot models colored by misfit value.
 
         Args:
             types (list(pydsm.modelparameter.ParameterType)):
                 types e.g., RHO
         '''
-        avg_corrs = self.misfit_dict['corr'].mean(axis=1)
-        avg_vars = self.misfit_dict['variance'].mean(axis=1)
-        indices_best = np.arange(len(avg_corrs), dtype=int)
+        assert key in {'variance', 'misfit'}
+        avg_misfit = self.misfit_dict[key].mean(axis=1)
+        indices_best = np.arange(len(avg_misfit), dtype=int)
         if type(n_best)==int and n_best > 0:
-            n_best = min(n_best, len(avg_corrs))
-            indices_best = avg_corrs.argsort()[:n_best]
-            print(avg_corrs[indices_best])
-            print(avg_corrs.max())
-            print(avg_vars[indices_best])
-            print(avg_vars.max())
+            indices_best = self.get_indices_best_models(n_best, n_mod, key)
+            print(avg_misfit[indices_best])
+            print(avg_misfit.max())
             print(indices_best)
         elif type(n_best)==float:
             if n_best <= 1:
                 # TODO make it a percentage of the number of models
-                indices_best = np.where(avg_corrs <= (1+n_best)*avg_corrs.min())
+                indices_best = (np.where(avg_misfit 
+                    <= (1+n_best)*avg_misfit.min()))
 
         cm = plt.get_cmap('Greys_r')
-        c_norm  = colors.Normalize(vmin=avg_corrs.min(),
-                                   vmax=avg_corrs.max()*1.1)
+        c_norm  = colors.Normalize(vmin=avg_misfit.min(),
+                                   vmax=avg_misfit.max()*1.1)
         scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
 
         if 'color' not in kwargs:
-            color = scalar_map.to_rgba(avg_corrs[indices_best[0]])
+            color = scalar_map.to_rgba(avg_misfit[indices_best[0]])
         else:
             color = kwargs['color']
             kwargs.pop('color', None)
-            
-        fig, ax = self.models[indices_best[0]].plot(
-            types=types, color=color, **kwargs)
+        
+        if ax is None:
+            fig, ax = self.models[indices_best[0]].plot(
+                types=types, color=color, **kwargs)
+        else:
+            self.models[indices_best[0]].plot(
+                types=types, ax=ax, color=color, **kwargs)
+            fig = None
 
         for i in indices_best[1:]:
-            color = scalar_map.to_rgba(avg_corrs[i])
+            color = scalar_map.to_rgba(avg_misfit[i])
             self.models[i].plot(ax=ax, types=types, color=color, **kwargs)
 
         # model_ref.plot(ax=ax, types=[ParameterType.VPV], color='red')
         ax.get_legend().remove()
         
         return fig, ax
+
+    def get_indices_best_models(self, n_best=-1, n_mod=-1, key='variance'):
+        assert key in {'corr', 'variance'}
+        avg_misfit = self.misfit_dict[key].mean(axis=1)
+        n_best = min(n_best, len(avg_misfit))
+        n_mod = len(avg_misfit) if n_mod == -1 else n_mod
+        i_bests = avg_misfit[:n_mod].argsort()[:n_best]
+        return i_bests
+
+    def compute_models(self, models, comm):
+        outputs = compute_models_parallel(
+            self.dataset, models, self.dataset.tlen,
+            self.dataset.nspc, self.dataset.sampling_hz,
+            comm, mode=self.meta['mode'], verbose=self.meta['verbose'])
+        filter_type = self.meta['filter_type']
+        freq = self.meta['freq']
+        freq2 = self.meta['freq2']
+        if comm.Get_rank() == 0:
+            if filter_type is not None:
+                for imod in range(len(outputs)):
+                    for iev in range(len(outputs[0])):
+                        outputs[imod][iev].filter(
+                            freq, freq2, filter_type)
+        return outputs
+
+    def plot_event(self, outputs, iev, ax):
+        component = self.meta['components'][0]
+        outputs[iev].plot_component(
+            component, self.windows, ax=ax,
+            align_zero=True, color='black')
+        if ('distance_min' in self.meta.keys()
+            and 'distance_max' in self.meta.keys()):
+            self.dataset.plot_event(
+                iev, self.windows, align_zero=True,
+                component=component, ax=ax,
+                dist_min=self.meta['distance_min'],
+                dist_max=self.meta['distance_max'],
+                color='cyan')
+        else:
+            self.dataset.plot_event(
+                iev, self.windows, align_zero=True,
+                component=component, ax=ax, color='cyan')

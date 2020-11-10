@@ -108,8 +108,9 @@ class UniformMonteCarlo:
         n_ev = len(dataset.events)
         n_window = len(windows)
 
-        corrs = np.empty((n_mod, n_window), dtype=np.float32)
-        variances = np.empty((n_mod, n_window), dtype=np.float32)
+        corrs = np.empty((n_mod, n_window), dtype='float')
+        variances = np.empty((n_mod, n_window), dtype='float')
+        noises = np.empty((n_mod, n_window), dtype='float')
 
         for imod in range(n_mod):
             win_count = 0
@@ -136,19 +137,29 @@ class UniformMonteCarlo:
                         u_cut = output.us[icomp, jsta, i_start:i_end]
                         data_cut = dataset.data[
                             iwin, icomp, ista, :]
+                        noise = dataset.noise[iwin, icomp, ista]
 
                         if np.all(u_cut==0):
                             print('{} {} is zero'.format(imod, window))
 
+                        # weight = 1. / np.max(np.abs(data_cut))
+                        # print('weight', weight)
+                        # u_cut *= weight
+                        # data_cut *= weight
+                        # noise *= weight
                         corr = 0.5 * (1. - np.corrcoef(u_cut, data_cut)[0, 1])
                         variance = (np.dot(u_cut-data_cut, u_cut-data_cut)
                             / np.dot(data_cut, data_cut))
                         corrs[imod, win_count] = corr
                         variances[imod, win_count] = variance
+                        noises[imod, win_count] = noise
 
                         win_count += 1
                     
-        misfit_dict = {'corr': corrs, 'variance': variances}
+        misfit_dict = {
+            'corr': corrs,
+            'variance': variances,
+            'noise': noises}
         return misfit_dict
 
 

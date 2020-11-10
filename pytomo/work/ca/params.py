@@ -56,7 +56,7 @@ def get_model_lininterp(
     depth_moho = 6371. - 6336.6
     depth_410 = 410.
     depth_660 = 660.
-    depth_dpp = 2881.5 #2691.5
+    depth_dpp = 2691.5
     depth_cmb = 2891.5
     rs_upper_mantle = np.linspace(depth_410, depth_moho, n_upper_mantle)
     rs_mtz = np.linspace(depth_660, depth_410, n_mtz,
@@ -102,7 +102,7 @@ def get_dataset(
         Station(
             '{:03d}'.format(i), 'DSM',
             event.latitude+70+0.5*i, event.longitude+0.1)
-        for i in range(20)]
+        for i in range(61)]
     dataset = Dataset.dataset_from_arrays(
         events, [stations], sampling_hz=sampling_hz)
     
@@ -177,6 +177,12 @@ def get_model_syntest2():
         types, radii, mesh_type='lininterp')
     model = model_ref.lininterp_mesh(
         model_params, discontinuous=True)
+    
+    # set D'' layer to constant S-velocity
+    izone = model.get_zone(3479.5)
+    vsh_dpp = model.get_value_at(radii[-1], ParameterType.VSH)
+    model._vsh[:, izone] = np.array([vsh_dpp, 0., 0., 0.])
+
     values = np.array([0.2, 0.2])
     values_dict = {param_type: values for param_type in types}
     model_mul = model.build_model(model, model_params, values_dict)
@@ -245,12 +251,12 @@ def get_model_syntest5():
 
     return model_mul
 
-    
 
 if __name__ == '__main__':
-    # model_syntest2 = get_model_syntest2()
-    # fig, ax = model_syntest2.plot(types=[ParameterType.VSH])
-    # SeismicModel.ak135().plot(types=[ParameterType.VSH], ax=ax, label='ak135')
+    model_syntest2 = get_model_syntest2()
+    fig, ax = model_syntest2.plot(types=[ParameterType.VSH])
+    SeismicModel.ak135().plot(types=[ParameterType.VSH], ax=ax, label='ak135')
+    plt.show()
     # plt.savefig('model_syntest2.pdf')
     # plt.show()
     # plt.close(fig)

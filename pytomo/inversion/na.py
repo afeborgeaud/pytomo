@@ -1,16 +1,10 @@
-from pytomo.inversion.umcutils import UniformMonteCarlo
-from pytomo.work.ca import params as work_parameters
 from pytomo.inversion.inversionresult import InversionResult
+from pytomo.inversion import modelutils
+from pytomo.inversion.umcutils import UniformMonteCarlo
 import pytomo.inversion.voronoi as voronoi
-from scipy.spatial import voronoi_plot_2d, Voronoi
+from pytomo import utilities
 from pydsm.seismicmodel import SeismicModel
 from pydsm.modelparameters import ModelParameters, ParameterType
-from pytomo import utilities
-import numpy as np
-import time
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
 from pydsm.event import Event
 from pydsm.station import Station
 from pydsm.utils.cmtcatalog import read_catalog
@@ -18,7 +12,13 @@ from pydsm.dataset import Dataset
 from pydsm.dsm import PyDSMInput, compute, compute_models_parallel
 from pydsm.windowmaker import WindowMaker
 from pydsm.component import Component
+import numpy as np
 from mpi4py import MPI
+from scipy.spatial import voronoi_plot_2d, Voronoi
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
+import time
 import sys
 import os
 import glob
@@ -67,8 +67,6 @@ class InputFile:
         elif key == 'sampling_hz':
             value_parsed = int(value)
         elif key == 'n_mod':
-            value_parsed = int(value)
-        elif key == 'n_block':
             value_parsed = int(value)
         elif key == 'n_s':
             value_parsed = int(value)
@@ -123,17 +121,21 @@ class NeighbouhoodAlgorithm:
             (n_r%n_s=0)
     '''
     def __init__(
-            self, tlen, nspc, sampling_hz, mode, n_mod, n_block, n_s, n_r,
+            self, dataset, model_ref, model_params, range_dict, tlen, nspc,
+            sampling_hz, mode, n_mod, n_s, n_r,
             phases, components, t_before, t_after, filter_type,
             freq, freq2, sac_files, distance_min, distance_max,
             convergence_threshold,
             stf_catalog, result_path, seed, verbose, comm):
+        self.dataset = dataset
+        self.model_ref = model_ref
+        self.model_params = model_params
+        self.range_dict = range_dict
         self.tlen = tlen
         self.nspc = nspc
         self.sampling_hz = sampling_hz
         self.mode = mode
         self.n_mod = n_mod
-        self.n_block = n_block
         self.n_s = n_s
         self.n_r = n_r
         self.phases = phases
@@ -164,13 +166,14 @@ class NeighbouhoodAlgorithm:
         self.result_path = os.path.join(self.out_dir, result_path)
 
     @classmethod
-    def from_file(cls, input_file_path, comm):
-        '''Build object from the input file
+    def from_file(
+        cls, input_file_path, model_ref, model_params,
+        range_dict, dataset, comm):
+        '''Build NeighbourhoodAlgorithm object from input file and
+        key inputs
         Args:
-            input_file_path (str): path of the input file
-            comm (mpi4py.Comm_world): MPI communicator
         Returns:
-            ConstrainedMonteCarlo object
+            na (NeighbourhoodAlgorithm):
         '''
         params = InputFile(input_file_path).read()
 
@@ -179,7 +182,6 @@ class NeighbouhoodAlgorithm:
         sampling_hz = params['sampling_hz']
         mode = params['mode']
         n_mod = params['n_mod']
-        n_block = params['n_block']
         n_s = params['n_s']
         n_r = params['n_r']
         phases = params['phases']
@@ -189,7 +191,7 @@ class NeighbouhoodAlgorithm:
         filter_type = params['filter_type']
         freq = params['freq']
         freq2 = params['freq2']
-        sac_files = params['sac_files']
+        sac_files = None
         distance_min = params['distance_min']
         distance_max = params['distance_max']
         stf_catalog = params['stf_catalog']
@@ -198,12 +200,69 @@ class NeighbouhoodAlgorithm:
         verbose = params['verbose']
         convergence_threshold = params['convergence_threshold']
 
+        # fix 
+        dataset.tlen = tlen
+        dataset.nspc = nspc
+
         return cls(
-            tlen, nspc, sampling_hz, mode, n_mod, n_block, n_s, n_r,
+            dataset, model_ref, model_params, range_dict, tlen, nspc,
+            sampling_hz, mode, n_mod, n_s, n_r,
             phases, components, t_before, t_after, filter_type,
             freq, freq2, sac_files, distance_min, distance_max,
             convergence_threshold,
             stf_catalog, result_path, seed, verbose, comm)
+
+    def get_meta(self):
+        '''Return meta parameters for the NA inversion'''
+        return dict(
+            range_dict=self.range_dict, tlen=self.tlen, nspc=self.nspc,
+            sampling_hz=self.sampling_hz, mode=self.mode, n_mod=self.n_mod,
+            n_s=self.n_s, n_r=self.n_r, phases=self.phases,
+            components=self.components, t_before=self.t_before,
+            t_after=self.t_after, filter_type=self.filter_type,
+            freq=self.freq, freq2=self.freq2, sac_files=self.sac_files,
+            distance_min=self.distance_min, distance_max=self.distance_max,
+            convergence_threshold=self.convergence_threshold,
+            stf_catalog=self.stf_catalog, result_path=self.result_path,
+            seed=self.seed, verbose=self.verbose, out_dir=self.out_dir)
+
+    @classmethod
+    def from_file_with_default(cls, input_file_path, comm):
+        '''Build object from the input file and default values
+        Args:
+            input_file_path (str): path of the input file
+            comm (mpi4py.Comm_world): MPI communicator
+        Returns:
+            na (NeighbourhoodAlgorithm):
+        '''
+        params = InputFile(input_file_path).read()
+
+        # define default model parameters
+        types = [ParameterType.VSH]
+        n_upper_mantle = 0
+        n_mtz = 0
+        n_lower_mantle = 0
+        n_dpp = 4
+        model_ref, model_params = modelutils.std_boxcar_mesh(
+            n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, types,
+            verbose=params['verbose'])
+
+        # define default parameter ranges
+        range_dict = dict()
+        for param_type in types:
+            range_arr = np.empty(
+                (model_params._n_grd_params, 2), dtype='float')
+            range_arr[:, 0] = -0.5
+            range_arr[:, 1] = 0.5
+            range_dict[param_type] = range_arr
+
+        # create dataset
+        dataset = Dataset.dataset_from_sac(
+            params['sac_files'], headonly=False)
+
+        return cls.from_file(
+            input_file_path, model_ref, model_params,
+            range_dict, dataset, comm)
 
     def get_windows(self, dataset):
         windows = []
@@ -226,7 +285,8 @@ class NeighbouhoodAlgorithm:
                     outputs[imod][iev].filter(
                         self.freq, self.freq2, self.filter_type)
 
-    def get_points_for_voronoi(self, perturbations):
+    @staticmethod
+    def get_points_for_voronoi(perturbations, range_dict, types):
         '''
         Args:
             perturbations (list(ndarray)): list of model perturbations
@@ -235,52 +295,28 @@ class NeighbouhoodAlgorithm:
                 space to define the voronoi cells
         '''
         scale_arr = np.hstack(
-            [self.range_dict[p][:,1] - self.range_dict[p][:,0]
-            for p in self.types])
+            [range_dict[p][:,1] - range_dict[p][:,0]
+            for p in types])
 
         points = np.array(perturbations)
         points /= scale_arr
 
         return points
 
-    # def get_points_for_voronoi(self, models, model_ref):
-    #     '''
-    #     Args:
-    #         perturbations (dict): dict of model perturbations
-    #     Return:
-    #         points: points in a n_grd_params*len(types) dimensional
-    #             space to define the voronoi cells
-    #     '''
-    #     points = np.zeros(
-    #         (len(models), self.n_grd_param*len(self.types)),
-    #         dtype='float')
-    #     for imod, model in enumerate(models):
-    #         points[imod] = model.get_perturbations_to(
-    #             model_ref, self.types, in_percent=False,
-    #             range_dict=self.range_dict)
-    #         print(points[imod])
-
-    #     return points
-
-    def unravel_voronoi_point_bounds(self, point_bounds, imods=None):
-        range_dict = dict()
-        for itype, param_type in enumerate(self.types):
-            start = itype * self.n_grd_param
-            end = start + self.n_grd_param
-            if imods is None:
-                range_dict[param_type] = point_bounds[:, start:end]
-            else:
-                range_dict[param_type] = point_bounds[imods, start:end]
-        return range_dict
-
     def get_bounds_for_voronoi(self):
-        min_bounds = np.zeros(self.n_grd_param*len(self.types), dtype='float')
-        max_bounds = np.zeros(self.n_grd_param*len(self.types), dtype='float')
-        for itype in range(len(self.types)):
-            for igrd in range(self.n_grd_param):
-                i = igrd + itype * self.n_grd_param
-                min_bounds[i] = self.range_dict[self.types[itype]][igrd, 0]
-                max_bounds[i] = self.range_dict[self.types[itype]][igrd, 1]
+        min_bounds = np.zeros(
+            self.model_params._n_grd_params*len(self.model_params._types),
+            dtype='float')
+        max_bounds = np.zeros(
+            self.model_params._n_grd_params*len(self.model_params._types),
+            dtype='float')
+        for itype in range(len(self.model_params._types)):
+            for igrd in range(self.model_params._n_grd_params):
+                i = igrd + itype * self.model_params._n_grd_params
+                min_bounds[i] = self.range_dict[
+                    self.model_params._types[itype]][igrd, 0]
+                max_bounds[i] = self.range_dict[
+                    self.model_params._types[itype]][igrd, 1]
                 # scale
                 min_bounds[i] /= (max_bounds[i] - min_bounds[i])
                 max_bounds[i] /= (max_bounds[i] - min_bounds[i])
@@ -311,117 +347,57 @@ class NeighbouhoodAlgorithm:
             result (InversionResult): inversion results
         '''
         rank = comm.Get_rank()
+        if log is not None:
+            log.write('Start running NA...\n')
 
         n_distinct_comp_phase = len(self.phases)
+
+        free_indices = self.model_params.get_free_indices()
 
         n_pass = self.n_mod // self.n_s
         assert self.n_mod % self.n_s == 0
         if self.verbose > 1:
             print('n_pass={}'.format(n_pass))
-        
-        self.types = [ParameterType.VSH, ParameterType.RADIUS]
 
         if rank == 0:
-            n_upper_mantle = 0 # 20
-            n_mtz = 0 # 10
-            n_lower_mantle = 0 # 12
-            n_dpp = 2 # 9
-
-            model_ref, model_params = work_parameters.get_model_lininterp(
-                n_upper_mantle, n_mtz, n_lower_mantle, n_dpp, self.types,
-                verbose=self.verbose, discontinuous=True)
-
-            # add constraints
-            mask_dict = dict()
-            mask_dict[ParameterType.VSH] = np.ones(
-                model_params._n_grd_params, dtype='bool')
-            mask_dict[ParameterType.RADIUS] = np.ones(
-                model_params._n_grd_params, dtype='bool')
-            mask_dict[ParameterType.RADIUS][0] = False
-            # mask_dict[ParameterType.VSH][0] = False
-
-            equal_dict = dict()
-            equal_dict[ParameterType.VSH] = np.arange(
-                model_params._n_grd_params, dtype='int')
-            equal_dict[ParameterType.VSH][1] = 0
-
-            model_params.set_constraints(mask_dict, equal_dict)
-
-            free_indices = model_params.get_free_indices()
-            print('free indices', free_indices)
-
-            self.model_ref = model_ref
-            self.n_grd_param = model_params._n_grd_params
-            self.n_params = model_params.get_n_params()
-            
-            range_dict = dict()
-            for param_type in self.types:
-                range_arr = np.empty((self.n_grd_param, 2), dtype='float')
-                if param_type == ParameterType.RADIUS:
-                    range_arr[:, 0] = -10 #-190.
-                    range_arr[:, 1] = 100 #190.
-                    # range_arr[0, 0] = 0.
-                    # range_arr[0, 1] = 1.
-                    # range_arr[1, 0] = -100.
-                    # range_arr[1, 1] = 50.
-                    # range_arr[2, 0] = -40.
-                    # range_arr[2, 1] = 100.
-                if param_type == ParameterType.VSH:
-                    range_arr[:, 0] = -0.5
-                    range_arr[:, 1] = 0.5
-
-                range_dict[param_type] = range_arr
-
             scale_arr = np.hstack(
-                [range_dict[p][:,1] - range_dict[p][:,0] 
-                for p in self.types])
+                [self.range_dict[p][:,1] - self.range_dict[p][:,0] 
+                for p in self.model_params._types])
 
             umcutils = UniformMonteCarlo(
-                model_ref, model_params, range_dict,
+                self.model_ref, self.model_params, self.range_dict,
                 mesh_type='lininterp', seed=self.seed)
             models, perturbations = umcutils.sample_models(self.n_s)
         else:
-            model_params = None
             models = None
             perturbations = None
-            model_ref = None
             umcutils = None
-            range_dict = None
 
-        range_dict = comm.bcast(range_dict, root=0)
-        self.range_dict = range_dict
+        self.range_dict = comm.bcast(self.range_dict, root=0)
         
         if rank == 0:
-            # dataset, output_ref = work_parameters.get_dataset_syntest1(
-            #     self.tlen, self.nspc, self.sampling_hz, mode=self.mode)
-            dataset, output_ref = work_parameters.get_dataset_syntest4(
-                self.tlen, self.nspc, self.sampling_hz, mode=self.mode,
-                add_noise=False, noise_normalized_std=1.)
-            # dataset = work_parameters.get_dataset(
-            #   tlen, nspc, sampling_hz, mode=mode)
-            # dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
             if self.filter_type is not None:
-                dataset.filter(self.freq, self.freq2, self.filter_type)
+                self.dataset.filter(self.freq, self.freq2, self.filter_type)
 
-            windows = self.get_windows(dataset)
+            windows = self.get_windows(self.dataset)
 
             npts_max = int((self.t_before+self.t_after) * self.sampling_hz)
-            dataset.apply_windows(
+            self.dataset.apply_windows(
                 windows, n_distinct_comp_phase, npts_max, buffer=0.)
         else:
             windows = None
-            dataset = None
-        dataset = comm.bcast(dataset, root=0)
+            self.dataset = None
+        self.dataset = comm.bcast(self.dataset, root=0)
 
         result = InversionResult(
-                    dataset, windows)
+                    self.dataset, windows, self.get_meta())
 
         if rank == 0:
             start_time = time.time_ns()
 
         # step 0
         self.compute_one_step(
-            umcutils, dataset, models, perturbations, result,
+            umcutils, self.dataset, models, perturbations, result,
             windows, comm)
         comm.Barrier()
 
@@ -433,30 +409,9 @@ class NeighbouhoodAlgorithm:
             if rank == 0:
                 # indexing of points corrsespond to that of 
                 # perturbations and of that of models
-                points = self.get_points_for_voronoi(
-                    result.perturbations)
-
-                # if points.shape[1] == 2:
-                #     if log:
-                #         log.write('Building voronoi diag...\n')
-                #     start_time = time.time_ns()
-                #     vor = Voronoi(points)
-                #     end_time = time.time_ns()
-                #     if log:
-                #         log.write(
-                #             'Voronoi diag build in {} s\n'
-                #             .format((end_time - start_time)*1e-9))
-
-                if points.shape[1] == 2:
-                    points_cs = points
-                else:
-                    points_cs = points[:, [1, 3]]
-                misfits = result.misfit_dict['variance'].mean(axis=1)
-                figpath = os.path.join(
-                    self.out_dir, 'voronoi_syntest1_{}.pdf'.format(ipass))
-                self.save_voronoi_2d(
-                    figpath, points_cs, misfits,
-                    title='iteration {}'.format(ipass))
+                points = NeighbouhoodAlgorithm.get_points_for_voronoi(
+                    result.perturbations, self.range_dict,
+                    self.model_params._types)
 
                 min_bounds, max_bounds = self.get_bounds_for_voronoi()
                 indices_best = umcutils.get_best_models(
@@ -470,29 +425,25 @@ class NeighbouhoodAlgorithm:
                     current_perturbations = np.array(result.perturbations[ip])
 
                     value_dict = dict()
-                    for i, param_type in enumerate(self.types):
+                    for i, param_type in enumerate(self.model_params._types):
                         value_dict[param_type] = current_perturbations[
-                            (i*self.n_grd_param):((i+1)*self.n_grd_param)]
+                            (i*self.model_params._n_grd_params)
+                            :((i+1)*self.model_params._n_grd_params)]
 
                     n_step = int(self.n_s//self.n_r)
 
                     current_point = np.array(points[ip])
-                    model_params.it = 0 # just to be sure
+                    self.model_params.it = 0 # just to be sure
                     for istep in range(n_step):
-                        # idim = istep % (self.n_grd_param*len(self.types))
-                        # itype = int(idim // self.n_grd_param)
-                        # igrd = idim % self.n_grd_param
-
-                        idim, itype, igrd = model_params.get_it_indices()
-                        model_params.it += 1
+                        idim, itype, igrd = self.model_params.get_it_indices()
+                        self.model_params.it += 1
                         # print(istep, idim, itype, igrd)
 
-                        # calculate bounds
+                        # calculate bound
                         points_free = points[:, free_indices]
                         current_point_free = current_point[free_indices]
                         idim_free = np.where(free_indices==idim)[0][0]
 
-                        start_time = time.time_ns()
                         tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
                             points_free, points_free[ip],
                             current_point_free, idim_free, n_nearest=300,
@@ -513,59 +464,39 @@ class NeighbouhoodAlgorithm:
                                 of Voronoi cell. 
                                 Please increase n_nearest''')
                         bounds = tmp_bounds2
-                        end_time = time.time_ns()
-                        if log:
-                            log.write(
-                                ('bounds for model {} '
-                                + 'for dim {} found in {} s\n')
-                                .format(
-                                    imod, idim,
-                                    (end_time-start_time)*1e-9))
 
                         lo, up = bounds
 
                         # per = self.rng_gibbs.uniform(lo, up, 1)[0]
                         per = self.bi_triangle(lo, up)
-                        # print(rank, ipass, imod, istep, lo, up, per)
-
-                        # value_dict = dict()
-                        # for param_type in self.types:
-                        #     value_dict[param_type] = np.zeros(
-                        #         self.n_grd_param, dtype='float')
-                        #     if param_type == self.types[itype]:
-                        #         scale = (
-                        #             self.range_dict[param_type][igrd, 1]
-                        #             - self.range_dict[param_type][igrd, 0])
-                        #         value_dict[param_type][igrd] = per * scale
                         
-                        scale = (self.range_dict[self.types[itype]][igrd, 1]
-                                - self.range_dict[self.types[itype]][igrd, 0])
-                        value_dict[self.types[itype]][igrd] += per*scale
+                        scale = (
+                            self.range_dict[
+                                self.model_params._types[itype]][igrd, 1]
+                            - self.range_dict[
+                                self.model_params._types[itype]][igrd, 0])
+                        value_dict[
+                            self.model_params._types[itype]][igrd] += per*scale
                         
                         # account for constraints
-                        for param_type in self.types:
-                            for jgrd in range(self.n_grd_param):
+                        for param_type in self.model_params._types:
+                            for jgrd in range(self.model_params._n_grd_params):
                                 index = (
-                                    model_params.equal_dict[param_type][jgrd])
+                                    self.model_params.equal_dict[
+                                        param_type][jgrd])
                                 if index != jgrd:
                                     value_dict[param_type][jgrd] = (
                                         value_dict[param_type][index])
 
                         per_arr = np.hstack(
-                            [value_dict[p] for p in self.types])
-                        # perturbations.append(per_arr)
-                        
-                        # if model_params._mesh_type == 'lininterp':
-                        #     current_mesh = current_model.__copy__()
-                        # else:
-                        #     current_mesh = umcutils.mesh
+                            [value_dict[p] for p in self.model_params._types])
 
                         # TODO implements
                         value_dict_m = copy.deepcopy(value_dict)
                         # value_dict_m[ParameterType.VSH][1] = 0.
 
-                        new_model = model_ref.build_model(
-                            umcutils.mesh, model_params,
+                        new_model = self.model_ref.build_model(
+                            umcutils.mesh, self.model_params,
                             value_dict, value_dict_m)
                         models.append(new_model)
 
@@ -582,22 +513,12 @@ class NeighbouhoodAlgorithm:
 
                         perturbations.append(per_arr)
 
-                        # account for constraints
-                        # for jdim in self.n_params:
-                        #     jtype = int(jdim // self.n_grd_param)
-                        #     jgrd = jdim % self.n_grd_param
-                        #     index = (
-                        #         model_params.equal_dict[param_type][jgrd])
-                        #     if index != jgrd:
-                        #         kdim = jtype * self.n_grd_param + index
-                        #         current_point[kdim] = per
-
                         istep += 1
             else:
                 models = None
 
             self.compute_one_step(
-                umcutils, dataset, models, perturbations,
+                umcutils, self.dataset, models, perturbations,
                 result, windows, comm)
 
             # check convergence
@@ -621,24 +542,14 @@ class NeighbouhoodAlgorithm:
             end_time = time.time_ns()
             result.save(self.result_path)
             if self.verbose > 0:
-                print('Models and misfits computation done in {} s'
-                    .format((end_time-start_time) * 1e-9))
-                print('Results saved to \'{}\''.format(self.result_path))
-
-            points = self.get_points_for_voronoi(
-                result.perturbations)
-
-            if points.shape[1] == 2:
-                points_cs = points
-            else:
-                points_cs = points[:, [1, 3]]
-
-            misfits = result.misfit_dict['variance'].mean(axis=1)
-            figpath = os.path.join(
-                self.out_dir, 'voronoi_syntest1_{}.pdf'.format(ipass))
-            self.save_voronoi_2d(
-                figpath, points_cs, misfits,
-                title='iteration {}'.format(ipass))
+                if log is not None:
+                    log.write('Models and misfits computation done in {} s\n'
+                        .format((end_time-start_time) * 1e-9))
+                    log.write('Results saved to \'{}\''.format(self.result_path))
+                else:
+                    print('Models and misfits computation done in {} s'
+                        .format((end_time-start_time) * 1e-9))
+                    print('Results saved to \'{}\''.format(self.result_path))
 
             conv_curve_path = os.path.join(
                 self.out_dir, 'convergence_curve.pdf')
@@ -672,7 +583,11 @@ class NeighbouhoodAlgorithm:
         x = self.bi_triangle_cfd_inv(x_unif, a, b)
         return x
 
-    def save_voronoi_2d(self, path, points, misfits, **kwargs):
+    @staticmethod
+    def plot_voronoi_2d(
+            points, misfits,
+            xlim=None, ylim=None,
+            ax=None, **kwargs):
         '''Save the voronoi diagram to fig path
         Args:
             path (str): path of the output figure
@@ -689,8 +604,9 @@ class NeighbouhoodAlgorithm:
         y_min = points[:, 1].min()
         points_ = np.append(
             points,
-            [[x_min*10, y_min*10], [x_min*10, y_max*10],
-             [x_max*10, y_min*10], [x_max*10, y_max*10]],
+            # [[x_min*10, y_min*10], [x_min*10, y_max*10],
+            #  [x_max*10, y_min*10], [x_max*10, y_max*10]],
+            [[-9999, -9999], [-9999, 9999], [9999, -9999], [9999, 9999]],
             axis = 0)
         vor = Voronoi(points_)
 
@@ -712,7 +628,10 @@ class NeighbouhoodAlgorithm:
             vmin=log_misfits_masked.min(), vmax=log_misfits_masked.max())
         scalar_map_masked = cmx.ScalarMappable(norm=c_norm_masked, cmap=cm)
 
-        fig, axes = plt.subplots(1, 2, figsize=(9.5,4))
+        if ax is None:
+            fig, ax = plt.subplots(1, 1)
+        else:
+            fig = None
 
         voronoi_plot_2d(
             vor,
@@ -720,14 +639,7 @@ class NeighbouhoodAlgorithm:
             line_colors='green',
             line_width=.5,
             point_size=2,
-            ax=axes[0])
-        voronoi_plot_2d(
-            vor,
-            show_vertices=False,
-            line_colors='green',
-            line_width=.5,
-            point_size=2,
-            ax=axes[1])
+            ax=ax)
 
         # colorize
         for ireg, reg in enumerate(vor.regions):
@@ -745,24 +657,21 @@ class NeighbouhoodAlgorithm:
                     color_masked = scalar_map_masked.to_rgba(log_misfits[ip])
 
                     poly = [vor.vertices[i] for i in reg]
-                    axes[0].fill(*zip(*poly), color=color)
-                    axes[1].fill(*zip(*poly), color=color_masked)
+                    ax.fill(*zip(*poly), color=color)
+                    ax.fill(*zip(*poly), color=color_masked)
 
-        for ax in axes:
-            # ax.plot(0.2, -0.2, 'xr', markersize=6)
-            ax.plot(0.2, 0., 'xr', markersize=6)
-            ax.set_aspect('equal')
-            ax.set(xlabel='dVs1 (km/s)', ylabel='dVs2 (km/s)')
+        ax.plot(0.2, 0., '*c', markersize=8)
+        ax.set_aspect('equal')
 
-        # axes[0].set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
-        # axes[0].set(xlim=[-0.5, 0.5], ylim=[-0.5,0.5])
-        axes[0].set(xlim=[x_min, x_max], ylim=[y_min, y_max])
-        axes[1].set(xlim=[0.1, 0.3], ylim=[-0.1,0.1])
+        if xlim is None:
+            xlim = [x_min, x_max]
+            ylim = [y_min, y_max]
+        ax.set(xlim=xlim, ylim=ylim)
 
-        if 'title' in kwargs:
+        if ('title' in kwargs) and (fig is not None):
             fig.suptitle(kwargs['title'])
-        plt.savefig(path, bbox_inches='tight')
-        plt.close(fig)
+        
+        return fig, ax
 
     def save_convergence_curve(
             self, path, result, scale_arr, free_indices, smooth=True):
@@ -803,13 +712,12 @@ class NeighbouhoodAlgorithm:
         plt.savefig(path, bbox_inches='tight')
         plt.close(fig)
 
-
 if __name__ == '__main__':
     comm = MPI.COMM_WORLD
     n_cores = comm.Get_size()
     rank = comm.Get_rank()
 
-    na = NeighbouhoodAlgorithm.from_file(sys.argv[1], comm)
+    na = NeighbouhoodAlgorithm.from_file_with_default(sys.argv[1], comm)
 
     log_path = os.path.join(
         na.out_dir, 'log_{}'.format(rank))
@@ -818,7 +726,6 @@ if __name__ == '__main__':
     if rank == 0:
         start_time = time.time_ns()
 
-    log.write('Start running NA...\n')
     result = na.compute(comm, log)
 
     if rank == 0:
@@ -833,14 +740,11 @@ if __name__ == '__main__':
         fig, ax = result.plot_models(
             types=[ParameterType.VSH], n_best=1,
             color='black', label='best model')
-        _, ax = work_parameters.get_model_syntest4().plot(
+        _, ax = na.model_ref.plot(
             types=[ParameterType.VSH], ax=ax,
-            color='red', label='input')
-        _, ax = SeismicModel.ak135().plot(
-            types=[ParameterType.VSH], ax=ax,
-            color='gray', label='ak135')
+            color='gray', label='ref')
         ax.set(
-            ylim=[3479.5, 4000],
+            ylim=[3480, 4000],
             xlim=[6.5, 8.])
         ax.legend()
         fig_path = os.path.join(

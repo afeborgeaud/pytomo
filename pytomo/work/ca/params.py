@@ -116,7 +116,9 @@ def get_dataset(
     if add_noise:
         noise_arr = white_noise(
             noise_normalized_std, dataset.data.shape)
-        norm = dataset.data.max(axis=3, keepdims=True)
+        npts_cut = int(dataset.data.shape[3]*0.9)
+        norm = np.abs(
+            dataset.data[:,:,:npts_cut]).max(axis=3, keepdims=True)
         noise_arr *= norm
         dataset.data += noise_arr
 

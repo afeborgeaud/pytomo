@@ -611,22 +611,13 @@ class NeighbouhoodAlgorithm:
         vor = Voronoi(points_)
 
         # color map
-        log_misfits = np.log(misfits)
+        # log_misfits = np.log(misfits)
+        log_misfits = np.array(misfits)
         cm = plt.get_cmap('hot')
-        c_norm  = colors.Normalize(
-            vmin=log_misfits.min(), vmax=log_misfits.max())
+        # c_norm  = colors.Normalize(
+        #     vmin=log_misfits.min(), vmax=log_misfits.max())
+        c_norm = colors.Normalize(vmin=0., vmax=0.3)
         scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
-
-        mask = (
-            (points[:,0]>=0.1)
-            & (points[:,0]<=0.3)
-            & (points[:,1]>=-0.1)
-            & (points[:,1]<=0.1))
-        mask = np.ones(points.shape[0], dtype='bool')
-        log_misfits_masked = log_misfits[mask]
-        c_norm_masked = colors.Normalize(
-            vmin=log_misfits_masked.min(), vmax=log_misfits_masked.max())
-        scalar_map_masked = cmx.ScalarMappable(norm=c_norm_masked, cmap=cm)
 
         if ax is None:
             fig, ax = plt.subplots(1, 1)
@@ -654,11 +645,9 @@ class NeighbouhoodAlgorithm:
                 if ips[0].shape[0] > 0:
                     ip = ips[0][0]
                     color = scalar_map.to_rgba(log_misfits[ip])
-                    color_masked = scalar_map_masked.to_rgba(log_misfits[ip])
 
                     poly = [vor.vertices[i] for i in reg]
                     ax.fill(*zip(*poly), color=color)
-                    ax.fill(*zip(*poly), color=color_masked)
 
         ax.plot(0.2, 0., '*c', markersize=8)
         ax.set_aspect('equal')
@@ -671,7 +660,7 @@ class NeighbouhoodAlgorithm:
         if ('title' in kwargs) and (fig is not None):
             fig.suptitle(kwargs['title'])
         
-        return fig, ax
+        return fig, ax, scalar_map
 
     def save_convergence_curve(
             self, path, result, scale_arr, free_indices, smooth=True):

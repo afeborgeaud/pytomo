@@ -150,7 +150,8 @@ class UniformMonteCarlo:
                         corr = 0.5 * (
                             1. - np.corrcoef(u_cut_w, data_cut_w)[0, 1])
                         variance = (
-                            np.dot(u_cut_w-data_cut_w, u_cut_w-data_cut_w))
+                            np.dot(u_cut_w-data_cut_w, u_cut_w-data_cut_w)
+                                / len(data_cut_w))
                             # / np.dot(data_cut_w, data_cut_w))
                         corrs[imod, win_count] = corr
                         variances[imod, win_count] = variance

@@ -56,7 +56,7 @@ input_params = input.read()
 tlen = input_params['tlen']
 nspc = input_params['nspc']
 dataset, _ = work_parameters.get_dataset_syntest2(tlen=tlen, nspc=nspc,
-    mode=0, add_noise=False, noise_normalized_std=1.)
+    mode=2, add_noise=True, noise_normalized_std=2.)
 
 na = NeighbouhoodAlgorithm.from_file(
     input_file, model_ref, model_params, range_dict,
@@ -114,7 +114,6 @@ if rank == 0:
     points = points[:, model_params.get_free_indices()]
     # points = np.array(result.perturbations)[
     # :, model_params.get_free_indices()]
-    log.write('{}\n'.format(points))
     misfits = result.misfit_dict['variance'].mean(axis=1)
     n_r = result.meta['n_r']
     n_s = result.meta['n_s']
@@ -127,7 +126,7 @@ if rank == 0:
         gs = gridspec.GridSpec(1, 3, width_ratios=[2,1,1])
         # plot voronoi cells
         ax0 = fig.add_subplot(gs[0])
-        NeighbouhoodAlgorithm.plot_voronoi_2d(
+        _, _, colormap = NeighbouhoodAlgorithm.plot_voronoi_2d(
             points[:imod+1], misfits[:imod+1],
             xlim=[-0.5,0.5], ylim=[-0.5,0.5], ax=ax0)
         ax0.set(
@@ -135,6 +134,10 @@ if rank == 0:
             ylabel='dH (km)')
         ax0.set_yticklabels(
             ['{:.0f}'.format(v*380.) for v in ax0.get_yticks()])
+        fig.colorbar(
+            colormap, ax=ax0, label='Variance',
+            shrink=0.5, fraction=0.07, pad=0.15,
+            orientation='horizontal')
         # plot model
         ax1 = fig.add_subplot(gs[1])
         result.plot_models(
@@ -151,15 +154,22 @@ if rank == 0:
             ylim=[3480, 4000],
             xlim=[6.5, 8.])
         ax1.legend(loc='upper right')
+        pos1 = list(ax1.get_position().bounds)
+        pos1[0] -= 0.03
+        ax1.set_position(pos1)
         # plot waveforms
         ax2 = fig.add_subplot(gs[2])
         if (i_out+1 < len(indices_better)
             and indices_better[i_out+1] == imod):
             i_out += 1
         result.plot_event(outputs[i_out], 0, ax2)
+        pos2 = list(ax2.get_position().bounds)
+        pos2[0] -= 0.015
+        ax2.set_position(pos2)
 
         fig.suptitle('Model #{}'.format(imod))
-        plt.savefig(figpath, bbox_inches='tight')
+        plt.savefig(
+            figpath, bbox_inches='tight', dpi=250)
         plt.close(fig)
 
 log.close()

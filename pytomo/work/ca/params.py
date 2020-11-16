@@ -78,10 +78,15 @@ def get_model_lininterp(
     # mesh
     model = ak135.lininterp_mesh(model_params, discontinuous=discontinuous)
 
+    # set D'' layer to constant velocity and density
     idpp = model.get_zone(3479.5)
-    vsh_dpp = model.get_value_at(6371.-depth_dpp, ParameterType.VSH)
-    model._vsh[:, idpp] = np.array([vsh_dpp, 0., 0., 0.])
-    # model._vsh[:, idpp+1] = np.array([vsh_dpp, 0., 0., 0.])
+    for p_type in [
+            ParameterType.VSH, ParameterType.VSV,
+            ParameterType.VPH, ParameterType.VPV,
+            ParameterType.RHO]:
+        v_dpp = model.get_value_at(6371.-depth_dpp, p_type)
+        model.set_value(
+            idpp, p_type, np.array([v_dpp, 0., 0., 0.]))
     
     return model, model_params
 
@@ -180,10 +185,16 @@ def get_model_syntest2():
     model = model_ref.lininterp_mesh(
         model_params, discontinuous=True)
     
-    # set D'' layer to constant S-velocity
-    izone = model.get_zone(3479.5)
-    vsh_dpp = model.get_value_at(radii[-1], ParameterType.VSH)
-    model._vsh[:, izone] = np.array([vsh_dpp, 0., 0., 0.])
+    # set D'' layer to constant velocity and density
+    depth_dpp = 2691.5
+    idpp = model.get_zone(3479.5)
+    for p_type in [
+            ParameterType.VSH, ParameterType.VSV,
+            ParameterType.VPH, ParameterType.VPV,
+            ParameterType.RHO]:
+        v_dpp = model.get_value_at(6371.-depth_dpp, p_type)
+        model.set_value(
+            idpp, p_type, np.array([v_dpp, 0., 0., 0.]))
 
     values = np.array([0.2, 0.2])
     values_dict = {param_type: values for param_type in types}

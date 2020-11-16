@@ -1,4 +1,5 @@
 from pydsm.dsm import compute_models_parallel
+from pydsm.component import Component
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -232,8 +233,9 @@ class InversionResult:
                             freq, freq2, filter_type)
         return outputs
 
-    def plot_event(self, outputs, iev, ax):
-        component = self.meta['components'][0]
+    def plot_event(
+            self, outputs, iev, ax, component=Component.T,
+            color='cyan'):
         outputs[iev].plot_component(
             component, self.windows, ax=ax,
             align_zero=True, color='black')
@@ -244,8 +246,8 @@ class InversionResult:
                 component=component, ax=ax,
                 dist_min=self.meta['distance_min'],
                 dist_max=self.meta['distance_max'],
-                color='cyan')
+                color=color)
         else:
             self.dataset.plot_event(
                 iev, self.windows, align_zero=True,
-                component=component, ax=ax, color='cyan')
+                component=component, ax=ax, color=color)

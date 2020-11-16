@@ -76,13 +76,6 @@ class UniformMonteCarlo:
             model_sample._model_id = model_id
             models.append(model_sample)
 
-            # TODO delete
-            # model_sample.plot(types=[ParameterType.VSH])
-            # plt.text(0, 4000, value_dict[ParameterType.VSH])
-            # plt.text(0, 4500, value_dict_m[ParameterType.VSH])
-            # plt.text(0, 5000, value_dict_m[ParameterType.RADIUS])
-            # plt.show()
-
         return models, perturbations
 
     def get_best_models(self, misfit_dict, n_best):

@@ -97,10 +97,12 @@ class InputFile:
             full_path = os.path.expanduser(value.strip())
             value_parsed = full_path
         elif key == 'phases':
-            ss = [s.strip() for s in value.strip().split()]
+            values = line.strip().split()[1:]
+            ss = [s.strip() for s in values]
             value_parsed = ss
         elif key == 'components':
-            ss = [s.strip() for s in value.strip().split()]
+            values = line.strip().split()[1:]
+            ss = [s.strip() for s in values]
             value_parsed = [Component.parse_component(s) for s in ss]
         elif key == 'seed':
             value_parsed = int(value)
@@ -353,6 +355,7 @@ class NeighbouhoodAlgorithm:
         n_distinct_comp_phase = len(self.phases)
 
         free_indices = self.model_params.get_free_indices()
+        print('free_indices: {}'.format(free_indices))
 
         n_pass = self.n_mod // self.n_s
         assert self.n_mod % self.n_s == 0
@@ -614,9 +617,9 @@ class NeighbouhoodAlgorithm:
         # log_misfits = np.log(misfits)
         log_misfits = np.array(misfits)
         cm = plt.get_cmap('hot')
-        # c_norm  = colors.Normalize(
-        #     vmin=log_misfits.min(), vmax=log_misfits.max())
-        c_norm = colors.Normalize(vmin=0., vmax=0.3)
+        c_norm  = colors.Normalize(
+            vmin=log_misfits.min(), vmax=log_misfits.max())
+        # c_norm = colors.Normalize(vmin=0., vmax=0.3)
         scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
 
         if ax is None:

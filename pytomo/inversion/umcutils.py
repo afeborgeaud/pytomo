@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import copy
+import sys
 
 class UniformMonteCarlo:
     """Implements the uniform monte carlo method.
@@ -42,37 +43,47 @@ class UniformMonteCarlo:
         '''
         perturbations = []
         models = []
-
+        
+        free_indices = set(self.model_params.get_free_indices())
         for imod in range(ns):
             model_id = 'model_{}'.format(imod)
             value_dict = dict()
+
+            it = 0
             for param_type in self.model_params._types:
                 values = np.zeros(
                     self.model_params._n_grd_params, dtype='float')
                 for igrd in range(self.model_params._n_grd_params):
+                    if it not in free_indices:
+                        it += 1
+                        continue
+                    it += 1
                     values[igrd] = self.rng.uniform(
                         self.range_dict[param_type][igrd, 0],
                         self.range_dict[param_type][igrd, 1],
                         1)
 
                 # account for constraints
-                mask = self.model_params.mask_dict[param_type]
-                values[~mask] = 0.
-                equal_indices = self.model_params.equal_dict[param_type]
-                for i, index in enumerate(equal_indices):
-                    values[i] = values[index]
+                # TODO check if necessary (done in params)
+                # mask = self.model_params.mask_dict[param_type]
+                # mask_expand = [
+                #     mask[i//2] for i in range(
+                #         self.model_params._n_grd_params)]
+                # values[~mask_expand] = 0.
+                # equal_indices = self.model_params.equal_dict[param_type]
+                # for i, index in enumerate(equal_indices):
+                #     values[i] = values[index]
 
                 value_dict[param_type] = values
 
             perturbations.append(
                 np.hstack([v for v in value_dict.values()]))
 
-            # TODO implements
-            value_dict_m = copy.deepcopy(value_dict)
-            # value_dict_m[ParameterType.VSH][1] = 0.
+            # TODO check not necessary
+            # value_dict_m = copy.deepcopy(value_dict)
 
             model_sample = self.model.build_model(
-                self.mesh, self.model_params, value_dict, value_dict_m)
+                self.mesh, self.model_params, value_dict)
             model_sample._model_id = model_id
             models.append(model_sample)
 

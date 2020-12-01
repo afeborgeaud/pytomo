@@ -1,6 +1,7 @@
 import params as work_parameters
 from pytomo.inversion.na import NeighbouhoodAlgorithm, InputFile
 from pydsm.modelparameters import ModelParameters, ParameterType
+from pydsm.component import Component
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
@@ -15,7 +16,7 @@ rank = comm.Get_rank()
 input_file = sys.argv[1]
 
 # model parameters
-types = [ParameterType.VSH, ParameterType.RADIUS]
+types = [ParameterType.VSV, ParameterType.RADIUS]
 n_upper_mantle = 0
 n_mtz = 0
 n_lower_mantle = 0
@@ -26,17 +27,16 @@ model_ref, model_params = work_parameters.get_model_lininterp(
 
 # constraints to parameters
 mask_dict = dict()
-mask_dict[ParameterType.VSH] = np.ones(
+mask_dict[ParameterType.VSV] = np.ones(
     model_params._n_grd_params, dtype='bool')
 mask_dict[ParameterType.RADIUS] = np.ones(
     model_params._n_grd_params, dtype='bool')
-mask_dict[ParameterType.RADIUS][0] = False
-# mask_dict[ParameterType.VSH][0] = False
+mask_dict[ParameterType.RADIUS][1] = False
 
 equal_dict = dict()
-equal_dict[ParameterType.VSH] = np.arange(
+equal_dict[ParameterType.VSV] = np.arange(
     model_params._n_grd_params, dtype='int')
-equal_dict[ParameterType.VSH][1] = 0
+equal_dict[ParameterType.VSV][1] = 0
 model_params.set_constraints(mask_dict, equal_dict)
 
 # parameter ranges
@@ -44,9 +44,9 @@ range_dict = dict()
 for param_type in model_params._types:
     range_arr = np.empty((model_params._n_grd_params, 2), dtype='float')
     if param_type == ParameterType.RADIUS:
-        range_arr[:, 0] = -190.
-        range_arr[:, 1] = 190.
-    if param_type == ParameterType.VSH:
+        range_arr[:, 0] = -15.
+        range_arr[:, 1] = 15.
+    elif param_type == ParameterType.VSV:
         range_arr[:, 0] = -0.5
         range_arr[:, 1] = 0.5
     range_dict[param_type] = range_arr
@@ -56,8 +56,10 @@ input = InputFile(input_file)
 input_params = input.read()
 tlen = input_params['tlen']
 nspc = input_params['nspc']
-dataset, _ = work_parameters.get_dataset_syntest2(tlen=tlen, nspc=nspc,
-    mode=2, add_noise=True, noise_normalized_std=2.)
+mode = input_params['mode']
+dataset, _ = work_parameters.get_dataset_syntest_cmb_topo(
+    tlen=tlen, nspc=nspc,
+    mode=mode, add_noise=False, noise_normalized_std=2.)
 
 na = NeighbouhoodAlgorithm.from_file(
     input_file, model_ref, model_params, range_dict,
@@ -76,7 +78,7 @@ if rank == 0:
     fig, ax = result.plot_models(
         types=types, n_best=1,
         color='black', label='best model')
-    work_parameters.get_model_syntest2().plot(
+    work_parameters.get_model_syntest_cmb_topo().plot(
         types=types, ax=ax,
         color='red', label='target')
     na.model_ref.plot(
@@ -131,10 +133,10 @@ if rank == 0:
             points[:imod+1], misfits[:imod+1],
             xlim=[-0.5,0.5], ylim=[-0.5,0.5], ax=ax0)
         ax0.set(
-            xlabel='dV (km/s)',
+            xlabel='dVSV (km/s)',
             ylabel='dH (km)')
         ax0.set_yticklabels(
-            ['{:.0f}'.format(v*380.) for v in ax0.get_yticks()])
+            ['{:.0f}'.format(v*30.) for v in ax0.get_yticks()])
         fig.colorbar(
             colormap, ax=ax0, label='Variance',
             shrink=0.5, fraction=0.07, pad=0.15,
@@ -143,8 +145,9 @@ if rank == 0:
         ax1 = fig.add_subplot(gs[1])
         result.plot_models(
             types=types, n_best=1, n_mod=imod+1, ax=ax1,
-            color='black', label='best model')
-        work_parameters.get_model_syntest2().plot(
+            color='black', label='best model',
+            linestyle='dashdot')
+        work_parameters.get_model_syntest_cmb_topo().plot(
             types=types, ax=ax1,
             color='cyan', label='target')
         na.model_ref.plot(
@@ -152,7 +155,7 @@ if rank == 0:
             color='gray', label='ref',
             linestyle='dashed')
         ax1.set(
-            ylim=[3480, 4000],
+            ylim=[3464.5, 4000],
             xlim=[6.5, 8.])
         ax1.legend(loc='upper right')
         pos1 = list(ax1.get_position().bounds)
@@ -163,10 +166,13 @@ if rank == 0:
         if (i_out+1 < len(indices_better)
             and indices_better[i_out+1] == imod):
             i_out += 1
-        result.plot_event(outputs[i_out], 0, ax2)
+        result.plot_event(
+            outputs[i_out], 0, ax2,
+            component=Component.T, color='cyan')
         pos2 = list(ax2.get_position().bounds)
         pos2[0] -= 0.015
         ax2.set_position(pos2)
+        ax2.set_title('Transverse')
 
         fig.suptitle('Model #{}'.format(imod))
         plt.savefig(

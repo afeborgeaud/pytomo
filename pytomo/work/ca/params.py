@@ -8,6 +8,7 @@ from pydsm.dsm import PyDSMInput, compute
 from pytomo.utilities import white_noise
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 def get_model(
         n_upper_mantle=20, n_mtz=10, n_lower_mantle=12, n_dpp=8,
@@ -106,8 +107,8 @@ def get_dataset(
     stations = [
         Station(
             '{:03d}'.format(i), 'DSM',
-            event.latitude+70+0.5*i, event.longitude+0.1)
-        for i in range(61)]
+            event.latitude+5+0.5*i, event.longitude+0.1)
+        for i in range(201)]
     dataset = Dataset.dataset_from_arrays(
         events, [stations], sampling_hz=sampling_hz)
     
@@ -159,6 +160,13 @@ def get_dataset_syntest4(
         add_noise=False, noise_normalized_std=1.):
     return get_dataset(
         get_model_syntest4(), tlen, nspc, sampling_hz, mode,
+        add_noise, noise_normalized_std)
+
+def get_dataset_syntest_cmb_topo(
+        tlen=1638.4, nspc=256, sampling_hz=20, mode=0,
+        add_noise=False, noise_normalized_std=1.):
+    return get_dataset(
+        get_model_syntest_cmb_topo(), tlen, nspc, sampling_hz, mode,
         add_noise, noise_normalized_std)
 
 def get_model_syntest1():
@@ -264,11 +272,39 @@ def get_model_syntest5():
 
     return model_mul
 
+def get_model_syntest_cmb_topo():
+    model_ref = SeismicModel.ak135()
+    types = [ParameterType.VSV, ParameterType.RADIUS]
+    radii = np.array([3479.5, 3679.5], dtype='float')
+    model_params = ModelParameters(
+        types, radii, mesh_type='lininterp')
+    model = model_ref.lininterp_mesh(
+        model_params, discontinuous=True)
+    
+    # set D'' layer to constant velocity and density
+    depth_dpp = 2691.5
+    idpp = model.get_zone(3479.5)
+    for p_type in [
+            ParameterType.VSH, ParameterType.VSV,
+            ParameterType.VPH, ParameterType.VPV,
+            ParameterType.RHO]:
+        v_dpp = model.get_value_at(6371.-depth_dpp, p_type)
+        model.set_value(
+            idpp, p_type, np.array([v_dpp, 0., 0., 0.]))
+
+    values = np.array([0.2, 0.2])
+    values_dict = {
+        ParameterType.VSV: values,
+        ParameterType.RADIUS: np.array([-8., 0.])}
+    model_mul = model.build_model(model, model_params, values_dict)
+
+    return model_mul
+
 
 if __name__ == '__main__':
-    model_syntest2 = get_model_syntest2()
-    fig, ax = model_syntest2.plot(types=[ParameterType.VSH])
-    SeismicModel.ak135().plot(types=[ParameterType.VSH], ax=ax, label='ak135')
+    model_syntest2 = get_model_syntest_cmb_topo()
+    fig, ax = model_syntest2.plot()
+    SeismicModel.ak135().plot(ax=ax, label='ak135')
     plt.show()
     # plt.savefig('model_syntest2.pdf')
     # plt.show()

@@ -109,7 +109,10 @@ class InversionResult:
             self, n_r, scale=None, smooth=True, n_s=None):
         perturbations = np.array(self.perturbations)
         if scale is not None:
-            perturbations /= scale
+            perturbations = np.true_divide(
+                perturbations, scale,
+                out=np.zeros_like(perturbations),
+                where=(scale!=0))
         perturbations_diff = np.abs(np.diff(perturbations, axis=0))
         mask = [(i+1)%n_r == 0 for i in range(perturbations_diff.shape[0])]
         perturbations_diff[mask, :] = 0.

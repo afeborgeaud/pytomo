@@ -1,5 +1,6 @@
 import params as work_parameters
 from pytomo.inversion.na import NeighbouhoodAlgorithm, InputFile
+from pytomo.inversion.inversionresult import InversionResult
 from pydsm.modelparameters import ModelParameters, ParameterType
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -69,7 +70,6 @@ log_path = os.path.join(
 log = open(log_path, 'w', buffering=1)
 
 result = na.compute(comm, log)
-
 
 # plot inverted model
 if rank == 0:
@@ -156,7 +156,7 @@ if rank == 0:
             xlim=[6.5, 8.])
         ax1.legend(loc='upper right')
         pos1 = list(ax1.get_position().bounds)
-        pos1[0] -= 0.03
+        pos1[0] -= 0.04
         ax1.set_position(pos1)
         # plot waveforms
         ax2 = fig.add_subplot(gs[2])
@@ -165,8 +165,9 @@ if rank == 0:
             i_out += 1
         result.plot_event(outputs[i_out], 0, ax2)
         pos2 = list(ax2.get_position().bounds)
-        pos2[0] -= 0.015
+        pos2[0] -= 0.03
         ax2.set_position(pos2)
+        ax2.set_title('Transverse')
 
         fig.suptitle('Model #{}'.format(imod))
         plt.savefig(

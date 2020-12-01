@@ -301,7 +301,9 @@ class NeighbouhoodAlgorithm:
             for p in types])
 
         points = np.array(perturbations)
-        points /= scale_arr
+        points = np.true_divide(
+            points, scale_arr, out=np.zeros_like(points),
+            where=(scale_arr!=0))
 
         return points
 
@@ -320,8 +322,9 @@ class NeighbouhoodAlgorithm:
                 max_bounds[i] = self.range_dict[
                     self.model_params._types[itype]][igrd, 1]
                 # scale
-                min_bounds[i] /= (max_bounds[i] - min_bounds[i])
-                max_bounds[i] /= (max_bounds[i] - min_bounds[i])
+                if (max_bounds[i] - min_bounds[i]) != 0:
+                    min_bounds[i] /= (max_bounds[i] - min_bounds[i])
+                    max_bounds[i] /= (max_bounds[i] - min_bounds[i])
         return min_bounds, max_bounds
 
     def compute_one_step(
@@ -438,9 +441,12 @@ class NeighbouhoodAlgorithm:
                     current_point = np.array(points[ip])
                     self.model_params.it = 0 # just to be sure
                     for istep in range(n_step):
-                        idim, itype, igrd = self.model_params.get_it_indices()
+                        idim, itype, igrd = (
+                            self.model_params.next())
                         self.model_params.it += 1
-                        # print(istep, idim, itype, igrd)
+                        log.write('{}'.format(free_indices))
+                        log.write(
+                            '{} {} {} {}\n'.format(istep, idim, itype, igrd))
 
                         # calculate bound
                         points_free = points[:, free_indices]
@@ -482,37 +488,44 @@ class NeighbouhoodAlgorithm:
                             self.model_params._types[itype]][igrd] += per*scale
                         
                         # account for constraints
-                        for param_type in self.model_params._types:
-                            for jgrd in range(self.model_params._n_grd_params):
-                                index = (
-                                    self.model_params.equal_dict[
-                                        param_type][jgrd])
-                                if index != jgrd:
-                                    value_dict[param_type][jgrd] = (
-                                        value_dict[param_type][index])
+                        # for param_type in self.model_params._types:
+                        #     for jgrd in range(
+                        #             self.model_params._n_grd_params//2):
+                        #         index = (
+                        #             self.model_params.equal_dict[
+                        #                 param_type][jgrd])
+                        #         if index != jgrd:
+                        #             value_dict[param_type][jgrd] = (
+                        #                 value_dict[param_type][index])
 
                         per_arr = np.hstack(
                             [value_dict[p] for p in self.model_params._types])
 
                         # TODO implements
-                        value_dict_m = copy.deepcopy(value_dict)
+                        # value_dict_m = copy.deepcopy(value_dict)
                         # value_dict_m[ParameterType.VSH][1] = 0.
+                        
+                        log.write('{}\n'.format(per_arr))
 
                         new_model = self.model_ref.build_model(
                             umcutils.mesh, self.model_params,
-                            value_dict, value_dict_m)
+                            value_dict)
                         models.append(new_model)
 
                         if log:
                             log.write(
-                                '{} {} {} {} {} {} {:.3f} {:.3f} {:.3f}\n'
+                                '{} {} {} {} {} {} {:.3f} '
+                                '{:.3f} {:.3f} {}\n'
                                 .format(rank, ipass, imod, istep, idim,
-                                        per_arr, lo, up, per))
+                                        per_arr, lo, up, per, scale))
 
                         # print(per_arr)
                         # current_point += per_arr / scale_arr
                         # current_point[idim] += per
-                        current_point = per_arr / scale_arr
+                        current_point = np.true_divide(
+                            per_arr, scale_arr,
+                            out=np.zeros_like(per_arr),
+                            where=(scale_arr!=0))
 
                         perturbations.append(per_arr)
 
@@ -527,13 +540,15 @@ class NeighbouhoodAlgorithm:
             # check convergence
             if rank == 0:
                 if ipass > 2:
+                    # TODO smooth or not smooth?
                     perturbations_diff = result.get_model_perturbations_diff(
-                        self.n_r, scale=scale_arr, smooth=True, n_s=self.n_s)
+                        self.n_r, scale=scale_arr, smooth=False, n_s=self.n_s)
                     perturbations_diff_free = perturbations_diff[
                         :, free_indices]
 
                     converged = (
-                        (perturbations_diff_free[-2:] 
+                        # (perturbations_diff_free[-2:]
+                        (perturbations_diff_free[-self.n_s:] 
                         <= self.convergence_threshold).all())
 
             converged = comm.bcast(converged, root=0)
@@ -619,7 +634,7 @@ class NeighbouhoodAlgorithm:
         cm = plt.get_cmap('hot')
         c_norm  = colors.Normalize(
             vmin=log_misfits.min(), vmax=log_misfits.max())
-        # c_norm = colors.Normalize(vmin=0., vmax=0.3)
+        c_norm = colors.Normalize(vmin=0., vmax=0.3)
         scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
 
         if ax is None:
@@ -632,8 +647,12 @@ class NeighbouhoodAlgorithm:
             show_vertices=False,
             line_colors='green',
             line_width=.5,
-            point_size=2,
+            show_points=False,
             ax=ax)
+        
+        ax.plot(
+            points[:,0], points[:,1],
+            '+g', markersize=5.)
 
         # colorize
         for ireg, reg in enumerate(vor.regions):
@@ -652,7 +671,8 @@ class NeighbouhoodAlgorithm:
                     poly = [vor.vertices[i] for i in reg]
                     ax.fill(*zip(*poly), color=color)
 
-        ax.plot(0.2, 0., '*c', markersize=8)
+        ax.plot(0.2, 0., '*c', markersize=12)
+        # ax.plot(0.2, -8./30., '*c', markersize=12)
         ax.set_aspect('equal')
 
         if xlim is None:

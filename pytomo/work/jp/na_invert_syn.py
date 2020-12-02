@@ -17,10 +17,6 @@ input_file = sys.argv[1]
 
 # model parameters
 types = [ParameterType.VSH, ParameterType.RADIUS]
-n_upper_mantle = 0
-n_mtz = 0
-n_lower_mantle = 0
-n_dpp = 2
 model_ref, model_params = work_parameters.get_model_lininterp(
     types=types, verbose=0, discontinuous=True)
 
@@ -52,10 +48,10 @@ for param_type in model_params._types:
         range_arr[4, 1] = 40.
         range_arr[5, 0] = -40.
         range_arr[5, 1] = 40.
-        range_arr[6, 0] = -80.
-        range_arr[6, 1] = 80.
-        range_arr[7, 0] = -80.
-        range_arr[7, 1] = 80.
+        range_arr[6, 0] = -65. # (250-2*40)/2 - 20
+        range_arr[6, 1] = 65.
+        range_arr[7, 0] = -65.
+        range_arr[7, 1] = 65.
         range_arr[8, 0] = -40.
         range_arr[8, 1] = 40.
         range_arr[9, 0] = -40.

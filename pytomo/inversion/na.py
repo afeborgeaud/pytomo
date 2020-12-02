@@ -450,18 +450,19 @@ class NeighbouhoodAlgorithm:
 
                         # calculate bound
                         points_free = points[:, free_indices]
-                        current_point_free = current_point[free_indices]
+                        current_point_free = np.array(
+                            current_point[free_indices])
                         idim_free = np.where(free_indices==idim)[0][0]
 
                         tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
                             points_free, points_free[ip],
-                            current_point_free, idim_free, n_nearest=300,
+                            current_point_free, idim_free, n_nearest=600,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
                         tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
                             points_free, points_free[ip],
-                            current_point_free, idim_free, n_nearest=500,
+                            current_point_free, idim_free, n_nearest=1000,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
@@ -471,19 +472,30 @@ class NeighbouhoodAlgorithm:
                             warnings.warn(
                                 '''Problems with finding bounds 
                                 of Voronoi cell. 
-                                Please increase n_nearest''')
+                                Please increase n_nearest.\n
+                                {}\n{}'''.format(tmp_bounds1, tmp_bounds2))
                         bounds = tmp_bounds2
 
                         lo, up = bounds
 
-                        # per = self.rng_gibbs.uniform(lo, up, 1)[0]
-                        per = self.bi_triangle(lo, up)
-                        
-                        scale = (
-                            self.range_dict[
+                        max_per = self.range_dict[
                                 self.model_params._types[itype]][igrd, 1]
-                            - self.range_dict[
-                                self.model_params._types[itype]][igrd, 0])
+                        min_per = self.range_dict[
+                                self.model_params._types[itype]][igrd, 0]
+                        scale = max_per - min_per
+
+                        # correct the Voronoi cell bounds to avoid 
+                        # sampling outsitde of the user-defined bounds
+                        max_per_i = current_point[idim] + up
+                        min_per_i = current_point[idim] + lo
+                        if max_per_i > max_per/scale:
+                            up = max_per/scale - current_point[idim]
+                        if min_per_i < min_per/scale:
+                            lo = min_per/scale - current_point[idim]
+
+                        per = self.rng_gibbs.uniform(lo, up, 1)[0]
+                        # per = self.bi_triangle(lo, up)
+                        
                         value_dict[
                             self.model_params._types[itype]][igrd] += per*scale
                         

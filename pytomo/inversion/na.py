@@ -560,7 +560,7 @@ class NeighbouhoodAlgorithm:
 
                     converged = (
                         # (perturbations_diff_free[-2:]
-                        (perturbations_diff_free[-self.n_s:] 
+                        (perturbations_diff_free[-2*self.n_s:] 
                         <= self.convergence_threshold).all())
 
             converged = comm.bcast(converged, root=0)

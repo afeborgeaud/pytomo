@@ -54,11 +54,11 @@ if rank == 0:
         models[imod].plot(
             types=types, ax=ax1,
             color='black', label='best model',
-            linewidth=2.)
+            linewidth=1.)
         work_parameters.get_model_syntest3().plot(
             types=types, ax=ax1,
             color='red', label='target',
-            linewidth=2.)
+            linewidth=1.)
         model_ref.plot(
             types=types, ax=ax1,
             color='gray', label='ref',
@@ -72,7 +72,9 @@ if rank == 0:
         ax1.set_position(pos1)
         # plot waveforms
         ax2 = fig.add_subplot(gs[1])
-        result.plot_event(outputs[imod], 0, ax2, color='red')
+        result.plot_event(
+            outputs[imod], 0, ax2, color='red',
+            linewidth=0.5)
         pos2 = list(ax2.get_position().bounds)
         pos2[0] -= 0.03 * figscale
         ax2.set_position(pos2)

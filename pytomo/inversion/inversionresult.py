@@ -238,7 +238,7 @@ class InversionResult:
 
     def plot_event(
             self, outputs, iev, ax, component=Component.T,
-            color='cyan'):
+            color='cyan', **kwargs):
         outputs[iev].plot_component(
             component, self.windows, ax=ax,
             align_zero=True, color='black')

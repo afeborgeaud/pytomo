@@ -6,5 +6,6 @@
 **/*png
 **/*.mp4
 **/*.csv
-pytomo/work/jp/*/*
+**/*.swp
+pytomo/work/jp/output*/*
 pytomo/work/ca/*/*

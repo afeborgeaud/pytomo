@@ -1,5 +1,5 @@
-from pydsm.dsm import compute_models_parallel
-from pydsm.component import Component
+from dsmpy.dsm import compute_models_parallel
+from dsmpy.component import Component
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors

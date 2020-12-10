@@ -1,5 +1,5 @@
-from pydsm.seismicmodel import SeismicModel
-from pydsm.modelparameters import ModelParameters, ParameterType
+from dsmpy.seismicmodel import SeismicModel
+from dsmpy.modelparameters import ModelParameters, ParameterType
 from pytomo.work.ca import params as work_params
 import numpy as np
 import matplotlib.pyplot as plt
@@ -63,24 +63,10 @@ class UniformMonteCarlo:
                         self.range_dict[param_type][igrd, 1],
                         1)
 
-                # account for constraints
-                # TODO check if necessary (done in params)
-                # mask = self.model_params.mask_dict[param_type]
-                # mask_expand = [
-                #     mask[i//2] for i in range(
-                #         self.model_params._n_grd_params)]
-                # values[~mask_expand] = 0.
-                # equal_indices = self.model_params.equal_dict[param_type]
-                # for i, index in enumerate(equal_indices):
-                #     values[i] = values[index]
-
                 value_dict[param_type] = values
 
             perturbations.append(
                 np.hstack([v for v in value_dict.values()]))
-
-            # TODO check not necessary
-            # value_dict_m = copy.deepcopy(value_dict)
 
             model_sample = self.model.build_model(
                 self.mesh, self.model_params, value_dict)
@@ -96,16 +82,18 @@ class UniformMonteCarlo:
         return indices_best
 
     def process_outputs(self, outputs, dataset, models, windows):
-        '''Process the output of pydsm.dsm.compute_models_parallel.
+        '''Process the output of compute_models_parallel().
+
         Args:
-            outputs (list(list(PyDSMOutput))): "shape" = (n_models, n_events)
-            dataset (pydsm.Dataset): dataset with observed data. Same as the
+            outputs (list of list of PyDSMOutput): (n_models, n_events)
+            dataset (Dataset): dataset with observed data. Same as the
                 one used for input to compute_models_parallel()
-            models (list(pydsm.SeismicModel)): seismic models
-            windows (list(pydsm.window.Window)): time windows. See
-                pydsm.windows_from_dataset()
+            models (list of SeismicModel): seismic models
+            windows (list of Window): time windows. See
+                windows_from_dataset()
         Returns:
-            misfit_dict (dict): values are ndarray((n_models, n_windows))
+            misfit_dict (dict): values are 
+                ndarray((n_models, n_windows))
                 containing misfit values (corr, variance)
         '''
         n_mod = len(models)
@@ -114,6 +102,7 @@ class UniformMonteCarlo:
 
         corrs = np.empty((n_mod, n_window), dtype='float')
         variances = np.empty((n_mod, n_window), dtype='float')
+        rolling_variances = np.empty((n_mod, n_window), dtype='float')
         noises = np.empty((n_mod, n_window), dtype='float')
         data_norms = np.empty((n_mod, n_window), dtype='float')
 
@@ -157,8 +146,15 @@ class UniformMonteCarlo:
                             np.dot(u_cut_w-data_cut_w, u_cut_w-data_cut_w)
                                 / len(data_cut_w))
                             # / np.dot(data_cut_w, data_cut_w))
+                        # rolling window variance
+                        size = int(10 * dataset.sampling_hz)
+                        stride = int(2 * dataset.sampling_hz)
+                        rolling_variance = (UniformMonteCarlo
+                            ._rolling_variance_misfit(
+                                u_cut, data_cut, size, stride))
                         corrs[imod, win_count] = corr
                         variances[imod, win_count] = variance
+                        rolling_variances[imod, win_count] = rolling_variance
                         noises[imod, win_count] = noise_w
                         data_norms[imod, win_count] = np.dot(
                             data_cut_w, data_cut_w)
@@ -167,10 +163,22 @@ class UniformMonteCarlo:
         misfit_dict = {
             'corr': corrs,
             'variance': variances,
+            'rolling_variance': rolling_variances,
             'noise': noises,
             'data_norm': data_norms}
         return misfit_dict
 
+    @staticmethod
+    def _rolling_variance_misfit(arr1, arr2, size, stride):
+        assert len(arr1) == len(arr2)
+        n = int((len(arr1)-size+1) // stride)
+        indices = np.array(
+            [np.arange(size)+stride*i 
+            for i in range(n)]
+        )
+        residuals = arr1[indices] - arr2[indices]
+        residuals /= np.max(residuals, axis=1).reshape(-1, 1)
+        return np.sum(np.sum(residuals**2, axis=1))
 
 if __name__ == '__main__':
     types = [ParameterType.VSH, ParameterType.VPH]

@@ -3,15 +3,15 @@ from pytomo.inversion import modelutils
 from pytomo.inversion.umcutils import UniformMonteCarlo
 import pytomo.inversion.voronoi as voronoi
 from pytomo import utilities
-from pydsm.seismicmodel import SeismicModel
-from pydsm.modelparameters import ModelParameters, ParameterType
-from pydsm.event import Event
-from pydsm.station import Station
-from pydsm.utils.cmtcatalog import read_catalog
-from pydsm.dataset import Dataset
-from pydsm.dsm import PyDSMInput, compute, compute_models_parallel
-from pydsm.windowmaker import WindowMaker
-from pydsm.component import Component
+from dsmpy.seismicmodel import SeismicModel
+from dsmpy.modelparameters import ModelParameters, ParameterType
+from dsmpy.event import Event
+from dsmpy.station import Station
+from dsmpy.utils.cmtcatalog import read_catalog
+from dsmpy.dataset import Dataset
+from dsmpy.dsm import PyDSMInput, compute, compute_models_parallel
+from dsmpy.windowmaker import WindowMaker
+from dsmpy.component import Component
 import numpy as np
 from mpi4py import MPI
 from scipy.spatial import voronoi_plot_2d, Voronoi
@@ -425,6 +425,7 @@ class NeighbouhoodAlgorithm:
 
                 models = []
                 perturbations = []
+                imod = 0
                 for imod in range(self.n_r):
                     ip = indices_best[imod]
                     # current_model = result.models[ip]
@@ -440,13 +441,16 @@ class NeighbouhoodAlgorithm:
 
                     current_point = np.array(points[ip])
                     self.model_params.it = 0 # just to be sure
-                    for istep in range(n_step):
+                    counter = 0
+                    max_count = 3000
+                    while istep < n_step and counter < max_count:
                         idim, itype, igrd = (
                             self.model_params.next())
                         self.model_params.it += 1
                         log.write('{}'.format(free_indices))
                         log.write(
-                            '{} {} {} {}\n'.format(istep, idim, itype, igrd))
+                            '{} {} {} {}\n'.format(
+                                istep, idim, itype, igrd))
 
                         # calculate bound
                         points_free = points[:, free_indices]
@@ -456,13 +460,13 @@ class NeighbouhoodAlgorithm:
 
                         tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
                             points_free, points_free[ip],
-                            current_point_free, idim_free, n_nearest=600,
+                            current_point_free, idim_free, n_nearest=1000,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
                         tmp_bounds2 = voronoi.implicit_find_bound_for_dim(
                             points_free, points_free[ip],
-                            current_point_free, idim_free, n_nearest=1000,
+                            current_point_free, idim_free, n_nearest=1500,
                             min_bound=min_bounds[idim],
                             max_bound=max_bounds[idim], step_size=0.001,
                             n_step_max=1000, log=log)
@@ -475,7 +479,6 @@ class NeighbouhoodAlgorithm:
                                 Please increase n_nearest.\n
                                 {}\n{}'''.format(tmp_bounds1, tmp_bounds2))
                         bounds = tmp_bounds2
-
                         lo, up = bounds
 
                         max_per = self.range_dict[
@@ -493,65 +496,59 @@ class NeighbouhoodAlgorithm:
                         if min_per_i < min_per/scale:
                             lo = min_per/scale - current_point[idim]
 
-                        per = self.rng_gibbs.uniform(lo, up, 1)[0]
-                        # per = self.bi_triangle(lo, up)
-                        
-                        value_dict[
-                            self.model_params._types[itype]][igrd] += per*scale
-                        
-                        # account for constraints
-                        # for param_type in self.model_params._types:
-                        #     for jgrd in range(
-                        #             self.model_params._n_grd_params//2):
-                        #         index = (
-                        #             self.model_params.equal_dict[
-                        #                 param_type][jgrd])
-                        #         if index != jgrd:
-                        #             value_dict[param_type][jgrd] = (
-                        #                 value_dict[param_type][index])
+                        if (up - lo) > self.convergence_threshold:
+                            per = self.rng_gibbs.uniform(lo, up, 1)[0]
+                            # per = self.bi_triangle(lo, up)
+                            
+                            value_dict[
+                                self.model_params._types[itype]
+                            ][igrd] += per*scale
 
-                        per_arr = np.hstack(
-                            [value_dict[p] for p in self.model_params._types])
+                            per_arr = np.hstack(
+                                [value_dict[p] 
+                                for p in self.model_params._types]
+                            )
+                            
+                            log.write('{}\n'.format(per_arr))
 
-                        # TODO implements
-                        # value_dict_m = copy.deepcopy(value_dict)
-                        # value_dict_m[ParameterType.VSH][1] = 0.
-                        
-                        log.write('{}\n'.format(per_arr))
+                            new_model = self.model_ref.build_model(
+                                umcutils.mesh, self.model_params,
+                                value_dict)
+                            models.append(new_model)
 
-                        new_model = self.model_ref.build_model(
-                            umcutils.mesh, self.model_params,
-                            value_dict)
-                        models.append(new_model)
+                            if log:
+                                log.write(
+                                    '{} {} {} {} {} {} {:.3f} '
+                                    '{:.3f} {:.3f} {}\n'
+                                    .format(rank, ipass, imod, istep, idim,
+                                            per_arr, lo, up, per, scale))
 
-                        if log:
-                            log.write(
-                                '{} {} {} {} {} {} {:.3f} '
-                                '{:.3f} {:.3f} {}\n'
-                                .format(rank, ipass, imod, istep, idim,
-                                        per_arr, lo, up, per, scale))
+                            current_point = np.true_divide(
+                                per_arr, scale_arr,
+                                out=np.zeros_like(per_arr),
+                                where=(scale_arr!=0))
 
-                        # print(per_arr)
-                        # current_point += per_arr / scale_arr
-                        # current_point[idim] += per
-                        current_point = np.true_divide(
-                            per_arr, scale_arr,
-                            out=np.zeros_like(per_arr),
-                            where=(scale_arr!=0))
+                            perturbations.append(per_arr)
 
-                        perturbations.append(per_arr)
-
-                        istep += 1
+                            istep += 1
+                        counter += 1
             else:
                 models = None
+                counter = None
+                max_count = None
+            counter = comm.bcast(counter, root=0)
+            max_count = comm.bcast(max_count, root=0)
 
-            self.compute_one_step(
-                umcutils, self.dataset, models, perturbations,
-                result, windows, comm)
+            if counter < max_count:
+                self.compute_one_step(
+                    umcutils, self.dataset, models, perturbations,
+                    result, windows, comm)
 
             # check convergence
             if rank == 0:
-                if ipass > 2:
+                if counter == max_count:
+                    converged = True
+                elif ipass > 2:
                     # TODO smooth or not smooth?
                     perturbations_diff = result.get_model_perturbations_diff(
                         self.n_r, scale=scale_arr, smooth=False, n_s=self.n_s)
@@ -575,7 +572,8 @@ class NeighbouhoodAlgorithm:
                 if log is not None:
                     log.write('Models and misfits computation done in {} s\n'
                         .format((end_time-start_time) * 1e-9))
-                    log.write('Results saved to \'{}\''.format(self.result_path))
+                    log.write(
+                        'Results saved to \'{}\''.format(self.result_path))
                 else:
                     print('Models and misfits computation done in {} s'
                         .format((end_time-start_time) * 1e-9))

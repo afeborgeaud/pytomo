@@ -6,13 +6,13 @@ from pydsm.modelparameters import ModelParameters, ParameterType
 import numpy as np
 import time
 import matplotlib.pyplot as plt
-from pydsm.event import Event
-from pydsm.station import Station
-from pydsm.utils.cmtcatalog import read_catalog
-from pydsm.dataset import Dataset
-from pydsm.dsm import PyDSMInput, compute, compute_models_parallel
-from pydsm.windowmaker import WindowMaker
-from pydsm.component import Component
+from dsmpy.event import Event
+from dsmpy.station import Station
+from dsmpy.utils.cmtcatalog import read_catalog
+from dsmpy.dataset import Dataset
+from dsmpy.dsm import PyDSMInput, compute, compute_models_parallel
+from dsmpy.windowmaker import WindowMaker
+from dsmpy.component import Component
 from mpi4py import MPI
 import sys
 

@@ -1,5 +1,5 @@
-from pydsm.modelparameters import ParameterType, ModelParameters
-from pydsm.seismicmodel import SeismicModel
+from dsmpy.modelparameters import ParameterType, ModelParameters
+from dsmpy.seismicmodel import SeismicModel
 import numpy as np
 
 def std_boxcar_mesh(

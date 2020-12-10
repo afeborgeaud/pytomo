@@ -1,9 +1,9 @@
-from pydsm.seismicmodel import SeismicModel
-from pydsm.station import Station
-from pydsm.event import Event
-from pydsm.utils.cmtcatalog import read_catalog
-from pydsm.dsm import PyDSMInput, compute
-from pydsm.component import Component
+from dsmpy.seismicmodel import SeismicModel
+from dsmpy.station import Station
+from dsmpy.event import Event
+from dsmpy.utils.cmtcatalog import read_catalog
+from dsmpy.dsm import PyDSMInput, compute
+from dsmpy.component import Component
 import numpy as np
 import matplotlib.pyplot as plt
 

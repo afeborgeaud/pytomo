@@ -1,6 +1,6 @@
-from pydsm.window import Window
-from pydsm.windowmaker import WindowMaker
-from pydsm.dataset import Dataset
+from dsmpy.window import Window
+from dsmpy.windowmaker import WindowMaker
+from dsmpy.dataset import Dataset
 from stream import read_sac
 import numpy as np
 import os

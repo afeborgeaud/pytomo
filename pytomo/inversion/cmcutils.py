@@ -1,6 +1,6 @@
-from pydsm.seismicmodel import SeismicModel
-from pydsm.modelparameters import ModelParameters, ParameterType
-from pydsm.component import Component
+from dsmpy.seismicmodel import SeismicModel
+from dsmpy.modelparameters import ModelParameters, ParameterType
+from dsmpy.component import Component
 import numpy as np
 import matplotlib.pyplot as plt
 import time

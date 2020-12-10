@@ -1,10 +1,10 @@
 import numpy as np
 import glob
 from mpi4py import MPI
-from pydsm.dataset import Dataset
-from pydsm.seismicmodel import SeismicModel
-from pydsm.component import Component
-from pydsm.windowmaker import WindowMaker
+from dsmpy.dataset import Dataset
+from dsmpy.seismicmodel import SeismicModel
+from dsmpy.component import Component
+from dsmpy.windowmaker import WindowMaker
 
 if __name__ == '__main__':
     sac_files = glob.glob(

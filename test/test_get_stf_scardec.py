@@ -1,6 +1,6 @@
-import pydsm.utils.scardec as scardec
-from pydsm.utils.cmtcatalog import read_catalog
-from pydsm.dataset import Dataset
+import dsmpy.utils.scardec as scardec
+from dsmpy.utils.cmtcatalog import read_catalog
+from dsmpy.dataset import Dataset
 import glob
 
 if __name__ == '__main__':

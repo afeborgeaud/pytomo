@@ -93,7 +93,7 @@ class ConstrainedMonteCarloUtils:
     Args:
         model (SeismicModel):
         model_params (ModelParameters):
-        cov (2-D ndarray): covariance matrix
+        cov (ndarray): covariance matrix
         mesh_type (str): 'triangle' or 'boxcar' (default: 'triangle')
         seed (int): seed for the random number generator (default: None)
     """
@@ -129,17 +129,20 @@ class ConstrainedMonteCarloUtils:
         return models
 
     def process_outputs(self, outputs, dataset, models, windows):
-        '''Process the output of pydsm.dsm.compute_models_parallel.
+        '''Process the output of compute_models_parallel().
+
         Args:
-            outputs (list(list(PyDSMOutput))): "shape" = (n_models, n_events)
-            dataset (pydsm.Dataset): dataset with observed data. Same as the
+            outputs (list of list of PyDSMOutput): (n_models, n_events)
+            dataset (Dataset): dataset with observed data. Same as the
                 one used for input to compute_models_parallel()
-            models (list(pydsm.SeismicModel)): seismic models
-            windows (list(pydsm.window.Window)): time windows. See
-                pydsm.windows_from_dataset()
+            models (list of SeismicModel): seismic models
+            windows (list of Window): time windows. See
+                windows_from_dataset()
         Returns:
-            misfit_dict (dict): values are ndarray((n_models, n_windows))
-                containing misfit values (corr, variance)
+            misfit_dict (dict): values are ndarray of shape
+            (n_models, n_windows)
+            containing misfit values (corr, variance)
+
         '''
         n_mod = len(models)
         n_ev = len(dataset.events)
@@ -189,12 +192,15 @@ class ConstrainedMonteCarloUtils:
     def smooth_damp_cov(n, g, l):
         '''Compute the precision matrix (inverse of covariance)
         to impose smoothness and damping on normally distributed models.
+
         Args:
             n (int): number of model parameters
             g (float): coefficient for smoothing (larger is smoother)
             l (float): coefficient for damping (larger is more damped)
-        Return:
-            prec (ndarray((n,n))): precision matrix
+
+        Returns:
+            prec (ndarray): precision matrix
+
         '''
         G = np.zeros((n, n), np.float32)
         L = np.zeros((n, n), np.float32)

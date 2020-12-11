@@ -8,14 +8,17 @@ import copy
 import sys
 
 class UniformMonteCarlo:
-    """Implements the uniform monte carlo method.
+    """Implements the Uniform Monte Carlo method.
 
     Args:
-        model (SeismicModel):
+        model (SeismicModel): reference seismic model.
         model_params (ModelParameters):
-        range_dict (dict): ParameterType:ndarray((2,))
-        mesh_type (str): 'triangle' or 'boxcar' (default: 'triangle')
-        seed (int): seed for the random number generator (default: None)
+        range_dict (dict): entries are of type
+            ParameterType:ndarray.
+        mesh_type (str): 'triangle' or 'boxcar' (default is 'triangle').
+        seed (int): seed for the random number generator
+            (default is None).
+
     """
 
     def __init__(
@@ -36,10 +39,16 @@ class UniformMonteCarlo:
         self.rng = np.random.default_rng(seed)
 
     def sample_models(self, ns):
-        '''
+        '''Sample ns seismic models using a uniform distribution.
+
+        Args:
+            ns (int): number of models.
+
         Returns:
-            models (list): list of ns sampled models
-            perturbations (dict): ndarray(ns, n_grid_params)
+            models (list of SeismicModel): list of sampled models.
+            perturbations (dict): model perturbations. Entries are of
+                type ParameterType:ndarray of shape (ns, n_grid_params).
+
         '''
         perturbations = []
         models = []

@@ -9,3 +9,8 @@
 **/*.swp
 pytomo/work/jp/output*/*
 pytomo/work/ca/*/*
+pytomo.egg-info
+dist
+build
+venv
+.idea

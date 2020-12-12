@@ -1,7 +1,7 @@
 # pytomo
 [![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-370/)
 
-Tools for seismic data processing and tomography in Python. Use [pydsm](https://github.com/afeborgeaud/pydsm) for exact 1-D waveform computation based on the Fortran Direct Solution Method (DSM).
+Tools for seismic data processing and tomography in Python. Use [dsmpy](https://github.com/afeborgeaud/dsmpy) for exact 1-D waveform computation.
 
 # Installation
 

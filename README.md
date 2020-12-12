@@ -1,4 +1,5 @@
 # pytomo
+[![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-370/)
 
 Tools for seismic data processing and tomography in Python. Use [pydsm](https://github.com/afeborgeaud/pydsm) for exact 1-D waveform computation based on the Fortran Direct Solution Method (DSM).
 
@@ -24,9 +25,9 @@ python -m build .
 ```
 5) This creates ```.whl``` and ```.gz.tar``` dist files in the ```dist``` directory. Now pydsm can be installed with
 ```
-pip install dist/pytomo-1.0a0-py3-none-any.whl
+pip install dist/*.whl
 ```
 or
 ```
-pip install dist/pytomo-1.0a0.tar.gz
+pip install dist/*.tar.gz
 ```

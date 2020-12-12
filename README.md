@@ -4,13 +4,29 @@ Tools for seismic data processing and tomography in Python. Use [pydsm](https://
 
 # Installation
 
-You'll need the following dependencies, which can be installed using the Conda package manager:
-```shell
-# create environment pytomo
-conda create -n pytomo
-# install dependencies
-conda install -n pytomo numpy mpi4py pandas matplotlib -y
-conda install -n pytomo -c conda-forge obspy geographiclib -y
-# activate env
-conda activate pytomo
+### Build from source
+1) Clone the pytomo repository
+```
+git clone https://github.com/afeborgeaud/pytomo
+```
+2) (Optional) You may want to install pytomo in a virtual environment. If so, do
+```
+python3 -m venv venv
+source activate ./venv/bin/activate
+```
+3) Install [*build*](https://pypi.org/project/build/), a PEP517 package builder
+```
+pip install build
+```
+4) To build the pytomo package, from the root directory ```pytomo``` run
+```
+python -m build .
+```
+5) This creates ```.whl``` and ```.gz.tar``` dist files in the ```dist``` directory. Now pydsm can be installed with
+```
+pip install dist/pytomo-1.0a0-py3-none-any.whl
+```
+or
+```
+pip install dist/pytomo-1.0a0.tar.gz
 ```

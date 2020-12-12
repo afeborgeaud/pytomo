@@ -1,11 +1,8 @@
 from pytomo.inversion.cmc import ConstrainedMonteCarlo, InputFile
 from pytomo.work.jp import params as work_parameters
 from pytomo.inversion.inversionresult import InversionResult
-from pydsm.seismicmodel import SeismicModel
-from pydsm.modelparameters import ModelParameters, ParameterType
-import numpy as np
-import time
-import matplotlib.pyplot as plt
+from dsmpy.seismicmodel import SeismicModel
+from dsmpy.modelparameters import ModelParameters, ParameterType
 from dsmpy.event import Event
 from dsmpy.station import Station
 from dsmpy.utils.cmtcatalog import read_catalog
@@ -15,6 +12,9 @@ from dsmpy.windowmaker import WindowMaker
 from dsmpy.component import Component
 from mpi4py import MPI
 import sys
+import numpy as np
+import time
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     comm = MPI.COMM_WORLD

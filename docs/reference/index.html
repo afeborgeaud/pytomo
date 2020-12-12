@@ -15,6 +15,7 @@
     <script src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Inversion" href="Inversion/index.html" />
     <link rel="prev" title="Welcome to pytomo’s documentation!" href="../index.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
@@ -34,109 +35,17 @@
             
   <div class="section" id="api-reference">
 <h1>API reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="module-pytomo.inversion.inversionresult">
-<span id="inversionresult"></span><h2>InversionResult<a class="headerlink" href="#module-pytomo.inversion.inversionresult" title="Permalink to this headline">¶</a></h2>
-<dl class="py class">
-<dt id="pytomo.inversion.inversionresult.InversionResult">
-<em class="property">class </em><code class="sig-prename descclassname">pytomo.inversion.inversionresult.</code><code class="sig-name descname">InversionResult</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">windows</span></em>, <em class="sig-param"><span class="n">meta</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult" title="Permalink to this definition">¶</a></dt>
-<dd><p>Pack the inversion results, models and dataset needed to
-reproduce the results</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dataset</strong> (<em>pydsm.dataset</em>) – dataset</p></li>
-<li><p><strong>models</strong> (<em>list</em><em>(</em><em>pydsm.seismicmodel</em><em>)</em>) – seismic models. The order
-is the same as for axis 0 of misfit_dict.</p></li>
-<li><p><strong>windows</strong> (<em>list</em><em>(</em><em>pydsm.window</em><em>)</em>) – time windows. The order
-is the same as for axis 1 of misfit_dict.</p></li>
-<li><p><strong>misfit_dict</strong> (<em>dict</em>) – values are ndarray((n_models, n_windows))
-containing misfit values (corr, variance)</p></li>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Inversion/index.html">Inversion</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Inversion/index.html#uniformmontecarlo">UniformMonteCarlo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Inversion/index.html#neighbourhoodalgorithm">NeighbourhoodAlgorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Inversion/index.html#module-pytomo.inversion.inversionresult">InversionResult</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Inversion/index.html#module-pytomo.inversion.voronoi">Voronoi</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Inversion/index.html#module-pytomo.inversion.modelutils">Utilities</a></li>
 </ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.add_result">
-<code class="sig-name descname">add_result</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">models</span></em>, <em class="sig-param"><span class="n">misfit_dict</span></em>, <em class="sig-param"><span class="n">perturbations</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.add_result" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add misfit_dict for new models to current inversion result.
-The dataset and windows must be the same.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>models</strong> (<em>list</em><em>(</em><em>pydsm.seismicmodel</em><em>)</em>) – seismic models. The order</p></li>
-<li><p><strong>the same as for axis 0 of misfit_dict.</strong> (<em>is</em>) – </p></li>
-<li><p><strong>misfit_dict</strong> (<em>dict</em>) – values are
-ndarray((n_models, n_windows)) containing misfit
-values (corr, variance)</p></li>
+</li>
 </ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.get_model_perturbations">
-<code class="sig-name descname">get_model_perturbations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">smooth</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">n_s</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">in_percent</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.get_model_perturbations" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get perturbations from model_ref.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>model_ref</strong> (<em>SeismicModel</em>) – reference model</p></li>
-<li><p><strong>types</strong> (<em>list of ParameterType</em>) – parameter types
-(e.g., ParameterType.VSH)</p></li>
-<li><p><strong>smooth</strong> (<em>bool</em>) – smooth over n_s (default is True)</p></li>
-<li><p><strong>n_s</strong> (<em>int</em>) – number of models computed at each iteration</p></li>
-<li><p><strong>in_percent</strong> (<em>bool</em>) – returns perturbations as percent
-(default is False)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>array of perturbations.</dt><dd><p>If smooth, shape is (n_iteration,),
-else shape is (n_models,)</p>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>perturbations (ndarray)</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.load">
-<em class="property">static </em><code class="sig-name descname">load</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read file into self using pickle.load().</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – name of the file that contains self.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.plot_models">
-<code class="sig-name descname">plot_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">types</span></em>, <em class="sig-param"><span class="n">n_best</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">n_mod</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'variance'</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.plot_models" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot models colored by misfit value.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>types</strong> (<em>list of ParameterType</em>) – parameter types (e.g., ParameterType.RHO)</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.save">
-<code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.save" title="Permalink to this definition">¶</a></dt>
-<dd><p>Save self using pickle.dump().</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – name of the output file.</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
 </div>
 </div>
 
@@ -160,7 +69,7 @@ else shape is (n_models,)</p>
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#module-pytomo.inversion.inversionresult">InversionResult</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Inversion/index.html">Inversion</a></li>
 </ul>
 </li>
 </ul>
@@ -170,6 +79,7 @@ else shape is (n_models,)</p>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
       <li>Previous: <a href="../index.html" title="previous chapter">Welcome to pytomo’s documentation!</a></li>
+      <li>Next: <a href="Inversion/index.html" title="next chapter">Inversion</a></li>
   </ul></li>
 </ul>
 </div>

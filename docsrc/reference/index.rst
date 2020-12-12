@@ -1,7 +1,7 @@
 API reference
 **************
 
-InversionResult
-~~~~~~~~~~~~~~~
-.. automodule:: pytomo.inversion.inversionresult
-    :members:
+.. toctree::
+    :maxdepth: 2
+
+    Inversion/index

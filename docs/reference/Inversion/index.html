@@ -1,0 +1,343 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inversion &#8212; pytomo 1.0a0 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="prev" title="API reference" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="inversion">
+<h1>Inversion<a class="headerlink" href="#inversion" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="uniformmontecarlo">
+<h2>UniformMonteCarlo<a class="headerlink" href="#uniformmontecarlo" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="neighbourhoodalgorithm">
+<h2>NeighbourhoodAlgorithm<a class="headerlink" href="#neighbourhoodalgorithm" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pytomo.inversion.inversionresult">
+<span id="inversionresult"></span><h2>InversionResult<a class="headerlink" href="#module-pytomo.inversion.inversionresult" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="pytomo.inversion.inversionresult.InversionResult">
+<em class="property">class </em><code class="sig-prename descclassname">pytomo.inversion.inversionresult.</code><code class="sig-name descname">InversionResult</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">windows</span></em>, <em class="sig-param"><span class="n">meta</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pack the inversion results, models and dataset needed to
+reproduce the results</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> (<em>pydsm.dataset</em>) – dataset</p></li>
+<li><p><strong>models</strong> (<em>list</em><em>(</em><em>pydsm.seismicmodel</em><em>)</em>) – seismic models. The order
+is the same as for axis 0 of misfit_dict.</p></li>
+<li><p><strong>windows</strong> (<em>list</em><em>(</em><em>pydsm.window</em><em>)</em>) – time windows. The order
+is the same as for axis 1 of misfit_dict.</p></li>
+<li><p><strong>misfit_dict</strong> (<em>dict</em>) – values are ndarray((n_models, n_windows))
+containing misfit values (corr, variance)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="pytomo.inversion.inversionresult.InversionResult.add_result">
+<code class="sig-name descname">add_result</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">models</span></em>, <em class="sig-param"><span class="n">misfit_dict</span></em>, <em class="sig-param"><span class="n">perturbations</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.add_result" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add misfit_dict for new models to current inversion result.
+The dataset and windows must be the same.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>models</strong> (<em>list</em><em>(</em><em>pydsm.seismicmodel</em><em>)</em>) – seismic models. The order</p></li>
+<li><p><strong>the same as for axis 0 of misfit_dict.</strong> (<em>is</em>) – </p></li>
+<li><p><strong>misfit_dict</strong> (<em>dict</em>) – values are
+ndarray((n_models, n_windows)) containing misfit
+values (corr, variance)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pytomo.inversion.inversionresult.InversionResult.get_model_perturbations">
+<code class="sig-name descname">get_model_perturbations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">smooth</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">n_s</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">in_percent</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.get_model_perturbations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get perturbations from model_ref.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_ref</strong> (<em>SeismicModel</em>) – reference model</p></li>
+<li><p><strong>types</strong> (<em>list of ParameterType</em>) – parameter types
+(e.g., ParameterType.VSH)</p></li>
+<li><p><strong>smooth</strong> (<em>bool</em>) – smooth over n_s (default is True)</p></li>
+<li><p><strong>n_s</strong> (<em>int</em>) – number of models computed at each iteration</p></li>
+<li><p><strong>in_percent</strong> (<em>bool</em>) – returns perturbations as percent
+(default is False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>array of perturbations.</dt><dd><p>If smooth, shape is (n_iteration,),
+else shape is (n_models,)</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>perturbations (ndarray)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pytomo.inversion.inversionresult.InversionResult.load">
+<em class="property">static </em><code class="sig-name descname">load</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read file into self using pickle.load().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – name of the file that contains self.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pytomo.inversion.inversionresult.InversionResult.plot_models">
+<code class="sig-name descname">plot_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">types</span></em>, <em class="sig-param"><span class="n">n_best</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">n_mod</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'variance'</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.plot_models" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot models colored by misfit value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>types</strong> (<em>list of ParameterType</em>) – parameter types (e.g., ParameterType.RHO)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pytomo.inversion.inversionresult.InversionResult.save">
+<code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save self using pickle.dump().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – name of the output file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-pytomo.inversion.voronoi">
+<span id="voronoi"></span><h2>Voronoi<a class="headerlink" href="#module-pytomo.inversion.voronoi" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="pytomo.inversion.voronoi.compute_distances_to_points">
+<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">compute_distances_to_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">p_arr</span></em>, <em class="sig-param"><span class="n">ips</span><span class="o">=</span><span class="default_value">slice(None, None, None)</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.compute_distances_to_points" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vor</strong> (<em>Voronoi</em>) – </p></li>
+<li><p><strong>p_arr</strong> (<em>ndarray</em>) – coordinates of anchor point</p></li>
+<li><p><strong>ips</strong> (<em>list</em><em>(</em><em>int</em><em>)</em>) – indices of target points</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>square of distances</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pytomo.inversion.voronoi.find_bound_for_dim">
+<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">find_bound_for_dim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vor</span></em>, <em class="sig-param"><span class="n">ip</span></em>, <em class="sig-param"><span class="n">idim</span></em>, <em class="sig-param"><span class="n">min_bound</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">max_bound</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">step_size</span><span class="o">=</span><span class="default_value">0.01</span></em>, <em class="sig-param"><span class="n">n_step_max</span><span class="o">=</span><span class="default_value">1000</span></em>, <em class="sig-param"><span class="n">log</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.find_bound_for_dim" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Find the lower and upper boundaries of region of point ip</dt><dd><p>along dimension idim</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vor</strong> (<em>Voronoi</em>) – </p></li>
+<li><p><strong>ip</strong> (<em>int</em>) – index of point within region of interest</p></li>
+<li><p><strong>idim</strong> (<em>int</em>) – the dimension along which to find the boundaries</p></li>
+<li><p><strong>step_size</strong> (<em>float</em>) – size of the increment to find
+the intersection</p></li>
+<li><p><strong>n_step_max</strong> (<em>int</em>) – maximum number of steps</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>distance to lower boundary
+upper (float): distance to upper boundary</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>lower (float)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pytomo.inversion.voronoi.find_neighbour_regions">
+<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">find_neighbour_regions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vor</span></em>, <em class="sig-param"><span class="n">ip</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.find_neighbour_regions" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Find indices of voronoi cells (regions) neighbour to region</dt><dd><p>of point ip</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vor</strong> (<em>Voronoi</em>) – </p></li>
+<li><p><strong>ip</strong> (<em>int</em>) – index of point within the target region</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>indices of neighbour regions</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>iregs_neighbour (list(int))</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pytomo.inversion.voronoi.find_point_of_region">
+<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">find_point_of_region</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vor</span></em>, <em class="sig-param"><span class="n">ireg</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.find_point_of_region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the index of point within region ireg</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pytomo.inversion.voronoi.get_point_bounds">
+<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">get_point_bounds</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">min_bounds</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">max_bounds</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.get_point_bounds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the [min, max] boundaries for each voronoi cells
+:param points: points
+:type points: ndarray(np,ndim)
+:param min_bounds: optional. minimum value</p>
+<blockquote>
+<div><p>for each dimension</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>max_bounds</strong> (<em>ndarray</em><em>(</em><em>ndim</em><em>)</em>) – optional. maximum value
+for each dimension</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>[min, max] boundaries for</dt><dd><p>each dimension for each point (or voronoi cell)</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>point_bounds (ndarray(np,ndim,2))</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pytomo.inversion.voronoi.implicit_find_bound_for_dim">
+<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">implicit_find_bound_for_dim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">anchor_point</span></em>, <em class="sig-param"><span class="n">current_point</span></em>, <em class="sig-param"><span class="n">idim</span></em>, <em class="sig-param"><span class="n">n_nearest</span><span class="o">=</span><span class="default_value">10</span></em>, <em class="sig-param"><span class="n">min_bound</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">max_bound</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">step_size</span><span class="o">=</span><span class="default_value">0.01</span></em>, <em class="sig-param"><span class="n">n_step_max</span><span class="o">=</span><span class="default_value">1000</span></em>, <em class="sig-param"><span class="n">log</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.implicit_find_bound_for_dim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Without explicitely computing the voronoi diagram</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pytomo.inversion.modelutils">
+<span id="utilities"></span><h2>Utilities<a class="headerlink" href="#module-pytomo.inversion.modelutils" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="pytomo.inversion.modelutils.std_boxcar_mesh">
+<code class="sig-prename descclassname">pytomo.inversion.modelutils.</code><code class="sig-name descname">std_boxcar_mesh</code><span class="sig-paren">(</span><em class="sig-param">n_upper_mantle=20, n_mtz=10, n_lower_mantle=12, n_dpp=6, types=[&lt;ParameterType.VSH: 4&gt;], verbose=0</em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.modelutils.std_boxcar_mesh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Boxcar mesh using ak135 as reference model for the structure of
+the upper mantle and transition zone down to 1000 km depth.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">pytomo</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Inversion</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">API reference</a><ul>
+      <li>Previous: <a href="../index.html" title="previous chapter">API reference</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Anselme Borgeaud.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/reference/Inversion/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

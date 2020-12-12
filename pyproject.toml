@@ -2,6 +2,12 @@
 requires = [
     "setuptools",
     "wheel",
+    "dsmpy",
+    'obspy',
+    'mpi4py',
+    'pandas',
+    'matplotlib',
+    'geographiclib',
     "numpy",
 ]
 build-backend = 'setuptools.build_meta'

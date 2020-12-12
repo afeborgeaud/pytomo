@@ -53,35 +53,27 @@ class InversionResult:
                     (self.misfit_dict[misfit_name],
                     misfit_dict[misfit_name]))
     
-    # TODO delete
-    # def get_model_perturbations(
-    #         self, model_ref, types, smooth=True, n_s=None,
-    #         in_percent=False):
+
     def get_model_perturbations(
             self, smooth=True, n_s=None,
             in_percent=False):
-        '''Get the model perturbations w.r.t. model_ref to use as
-        a convergence criteria
+        '''Get perturbations from model_ref.
+
         Args:
-            model_ref (pydsm.SeismicModel): reference model
-            types (list(pydsm.ParameterType)): parameter types
+            model_ref (SeismicModel): reference model
+            types (list of ParameterType): parameter types
                 (e.g., ParameterType.VSH)
-            smooth (bool): smooth over n_s (True)
+            smooth (bool): smooth over n_s (default is True)
             n_s (int): number of models computed at each iteration
-            in_percent (bool): returns perturbations as percent (False)
+            in_percent (bool): returns perturbations as percent
+                (default is False)
+
         Returns:
             perturbations (ndarray): array of perturbations.
-                If smooth, shape=(n_iteration,), else shape=(n_models,)
-        '''
-        # TODO delete
-        # pert_list = []
-        # for i in range(len(self.models)):
-        #     per_arr = self.models[i].get_perturbations_to(
-        #         model_ref, types, in_percent)
-        #     pert_list.append(per_arr)
-        
-        # perturbations = np.array(pert_list)
+                If smooth, shape is (n_iteration,),
+                else shape is (n_models,)
 
+        '''
         perturbations = np.array(self.perturbations)
 
         if smooth:
@@ -94,14 +86,6 @@ class InversionResult:
                 e = s + n_s
                 perturbations_[i] = perturbations[s:e].mean(axis=0)
             perturbations = perturbations_
-
-            # if len(self.models) % n_s != 0:
-            #     n = int(len(self.models)//n_s * n_s + n_s)
-            #     perturbations = np.pad(
-            #         perturbations, (0,n), 'constant',
-            #         constant_values=(0,0))
-            # perturbations = perturbations.reshape(
-            #     (n_s, -1, perturbations.shape[1])).mean(axis=0)
 
         return perturbations
 
@@ -145,8 +129,10 @@ class InversionResult:
     
     def save(self, path):
         '''Save self using pickle.dump().
+
         Args:
-            path (str): name of the output file
+            path (str): name of the output file.
+
         '''
         with open(path, 'wb') as f:
             pickle.dump(self, f)
@@ -154,8 +140,10 @@ class InversionResult:
     @staticmethod
     def load(path):
         '''Read file into self using pickle.load().
+
         Args:
-            path (str): name of the file that contains self
+            path (str): name of the file that contains self.
+
         '''
         with open(path, 'rb') as f:
             output = pickle.load(f)
@@ -167,8 +155,9 @@ class InversionResult:
         '''Plot models colored by misfit value.
 
         Args:
-            types (list(pydsm.modelparameter.ParameterType)):
-                types e.g., RHO
+            types (list of ParameterType):
+                parameter types (e.g., ParameterType.RHO)
+
         '''
         assert key in {'variance', 'misfit'}
         avg_misfit = self.misfit_dict[key].mean(axis=1)

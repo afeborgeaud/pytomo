@@ -1,11 +1,8 @@
 from dsmpy.seismicmodel import SeismicModel
 from dsmpy.modelparameters import ModelParameters, ParameterType
-from pytomo.work.ca import params as work_params
 import numpy as np
 import matplotlib.pyplot as plt
-import time
-import copy
-import sys
+
 
 class UniformMonteCarlo:
     """Implements the Uniform Monte Carlo method.
@@ -52,7 +49,7 @@ class UniformMonteCarlo:
         '''
         perturbations = []
         models = []
-        
+
         free_indices = set(self.model_params.get_free_indices())
         for imod in range(ns):
             model_id = 'model_{}'.format(imod)
@@ -121,13 +118,13 @@ class UniformMonteCarlo:
                 event = dataset.events[iev]
                 output = outputs[imod][iev]
                 start, end = dataset.get_bounds_from_event_index(iev)
-                
+
                 # TODO using to_time_domain() erase the effect of filtering
                 # output.to_time_domain()
 
                 for ista in range(start, end):
                     station = dataset.stations[ista]
-                    jsta = np.argwhere(output.stations==station)[0][0]
+                    jsta = np.argwhere(output.stations == station)[0][0]
                     windows_filt = [
                         window for window in windows
                         if (window.station == station
@@ -139,10 +136,10 @@ class UniformMonteCarlo:
                         i_end = int(window_arr[1] * dataset.sampling_hz)
                         u_cut = output.us[icomp, jsta, i_start:i_end]
                         data_cut = dataset.data[
-                            iwin, icomp, ista, :]
+                                   iwin, icomp, ista, :]
                         noise = dataset.noise[iwin, icomp, ista]
 
-                        if np.all(u_cut==0):
+                        if np.all(u_cut == 0):
                             print('{} {} is zero'.format(imod, window))
 
                         weight = 1. / np.max(np.abs(data_cut))
@@ -150,17 +147,18 @@ class UniformMonteCarlo:
                         data_cut_w = data_cut * weight
                         noise_w = noise * weight
                         corr = 0.5 * (
-                            1. - np.corrcoef(u_cut_w, data_cut_w)[0, 1])
+                                1. - np.corrcoef(u_cut_w, data_cut_w)[0, 1])
                         variance = (
-                            np.dot(u_cut_w-data_cut_w, u_cut_w-data_cut_w)
+                                np.dot(u_cut_w - data_cut_w,
+                                       u_cut_w - data_cut_w)
                                 / len(data_cut_w))
-                            # / np.dot(data_cut_w, data_cut_w))
+                        # / np.dot(data_cut_w, data_cut_w))
                         # rolling window variance
                         size = int(10 * dataset.sampling_hz)
                         stride = int(2 * dataset.sampling_hz)
                         rolling_variance = (UniformMonteCarlo
                             ._rolling_variance_misfit(
-                                u_cut, data_cut, size, stride))
+                            u_cut, data_cut, size, stride))
                         corrs[imod, win_count] = corr
                         variances[imod, win_count] = variance
                         rolling_variances[imod, win_count] = rolling_variance
@@ -168,7 +166,7 @@ class UniformMonteCarlo:
                         data_norms[imod, win_count] = np.dot(
                             data_cut_w, data_cut_w)
                         win_count += 1
-                    
+
         misfit_dict = {
             'corr': corrs,
             'variance': variances,
@@ -180,22 +178,23 @@ class UniformMonteCarlo:
     @staticmethod
     def _rolling_variance_misfit(arr1, arr2, size, stride):
         assert len(arr1) == len(arr2)
-        n = int((len(arr1)-size+1) // stride)
+        n = int((len(arr1) - size + 1) // stride)
         indices = np.array(
-            [np.arange(size)+stride*i 
-            for i in range(n)]
+            [np.arange(size) + stride * i
+             for i in range(n)]
         )
         residuals = arr1[indices] - arr2[indices]
         residuals /= np.max(residuals, axis=1).reshape(-1, 1)
-        return np.sum(np.sum(residuals**2, axis=1))
+        return np.sum(np.sum(residuals ** 2, axis=1))
+
 
 if __name__ == '__main__':
     types = [ParameterType.VSH, ParameterType.VPH]
     radii = np.array([5701., 5971.])
     model_params = ModelParameters(types, radii)
     model = SeismicModel.prem()
-    range_dict = {ParameterType.VSH:[-0.15,0.15],
-                 ParameterType.VPH:[-0.1,0.1]}
+    range_dict = {ParameterType.VSH: [-0.15, 0.15],
+                  ParameterType.VPH: [-0.1, 0.1]}
 
     umc = UniformMonteCarlo(
         model, model_params, range_dict,

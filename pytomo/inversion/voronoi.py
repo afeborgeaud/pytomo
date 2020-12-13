@@ -39,15 +39,19 @@ def find_bounds(vor, ivers, min_bounds=None, max_bounds=None):
 
 def get_point_bounds(points, min_bounds=None, max_bounds=None):
     '''Get the [min, max] boundaries for each voronoi cells
+
     Args:
-        points (ndarray(np,ndim)): points
-        min_bounds (ndarray(ndim)): optional. minimum value 
-            for each dimension
-        max_bounds (ndarray(ndim)): optional. maximum value
-            for each dimension
+        points (ndarray): points. (np, ndim).
+        min_bounds (ndarray): minimum value
+            for each dimension (ndim,).
+        max_bounds (ndarray): optional. maximum value
+            for each dimension (ndim,).
+
     Returns:
-        point_bounds (ndarray(np,ndim,2)): [min, max] boundaries for
-            each dimension for each point (or voronoi cell)
+        point_bounds (ndarray): [min, max] boundaries for
+            each dimension for each point (i.e. voronoi cell)
+            (np, ndim, 2).
+
     '''
     vor = Voronoi(points)
     ndim = vor.points.shape[1]
@@ -61,12 +65,15 @@ def get_point_bounds(points, min_bounds=None, max_bounds=None):
 
 def find_neighbour_regions(vor, ip):
     '''Find indices of voronoi cells (regions) neighbour to region
-        of point ip
+        of point ip.
+
     Args:
         vor (Voronoi):
         ip (int): index of point within the target region
+
     Returns:
         iregs_neighbour (list(int)): indices of neighbour regions
+
     '''
     ireg_target = vor.point_region[ip]
     iverts_target = vor.regions[ireg_target]
@@ -117,14 +124,16 @@ def find_bound_for_dim(
         vor, ip, idim, min_bound=None, max_bound=None,
         step_size=0.01, n_step_max=1000, log=None):
     '''Find the lower and upper boundaries of region of point ip
-        along dimension idim
+    along dimension idim.
+
     Args:
         vor (Voronoi):
         ip (int): index of point within region of interest
         idim (int): the dimension along which to find the boundaries
         step_size (float): size of the increment to find
-            the intersection
+            the intersection.
         n_step_max (int): maximum number of steps
+
     Returns:
         lower (float): distance to lower boundary
         upper (float): distance to upper boundary
@@ -138,7 +147,7 @@ def find_bound_for_dim(
             .format((end_time-start_time)*1e-9))
 
     ips_neigh = [find_point_of_region(vor, ireg) for ireg in iregs_neigh]
-    
+
     # corrs_dim_neigh = np.array([vor.points[i,idim] for i in ips_neigh])
 
     # find distance to upper boundary
@@ -183,7 +192,34 @@ def implicit_find_bound_for_dim(
         points, anchor_point, current_point,
         idim, n_nearest=10, min_bound=None,
         max_bound=None, step_size=0.01, n_step_max=1000, log=None):
-    '''Without explicitely computing the voronoi diagram'''
+    '''Find the lower and upper boundaries of region of current_point
+    along dimension idim, without explicitely computing
+    the voronoi diagram, by performing a linear grid search.
+
+    Args:
+        points (ndarray): voronoi points
+        anchor_point (ndarray): center of the voronoi cell
+            of current_point.
+        current_point (ndarray): point from which to compute distances
+            to voronoi cell boundaries.
+        idim (int): index of the dimension along which to compute the
+            distance to boundaries.
+        n_nearest (int): number of voronoi points used to compute the
+            distance to boundaries.
+        min_bound (float): minimum acceptable distance to boundaries.
+            Used to avoid distances larger than largest perturbations
+            defined in range_dict.
+        max_bound (float): maximum acceptable distance.
+        step_size (float): step size for the grid search
+            (default is 0.01).
+        n_step_max (int): maximum number of steps in the grid search
+            (default is 1000).
+        log (file): log file (default is None).
+
+    Returns:
+        bounds (ndarray): [lower, upper] bounds
+
+    '''
     mask = ~(points == anchor_point).all(axis=1)
     points_ = points[mask]
 

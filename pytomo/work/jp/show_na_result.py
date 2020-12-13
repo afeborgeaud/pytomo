@@ -2,8 +2,8 @@ import pytomo.work.jp.params as work_parameters
 from pytomo.inversion.na import NeighbouhoodAlgorithm, InputFile
 from pytomo.inversion.inversionresult import InversionResult
 from pytomo import utilities
-from pydsm.modelparameters import ModelParameters, ParameterType
-from pydsm.seismicmodel import SeismicModel
+from dsmpy.modelparameters import ModelParameters, ParameterType
+from dsmpy.seismicmodel import SeismicModel
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np

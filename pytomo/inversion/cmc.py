@@ -1,4 +1,4 @@
-from pytomo.inversion.cmc import ConstrainedMonteCarlo, InputFile
+from pytomo.inversion.cmcutils import ConstrainedMonteCarloUtils, InputFile
 from pytomo.work.jp import params as work_parameters
 from pytomo.inversion.inversionresult import InversionResult
 from dsmpy.seismicmodel import SeismicModel

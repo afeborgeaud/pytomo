@@ -1,4 +1,4 @@
-from pydsm.utils import cmtcatalog
+from dsmpy.utils import cmtcatalog
 from pytomo.dataset.sourceselection import SourceSelection
 import numpy as np
 from datetime import datetime

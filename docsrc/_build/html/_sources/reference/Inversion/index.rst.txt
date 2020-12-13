@@ -1,27 +1,27 @@
 Inversion
 **********
 
-UniformMonteCarlo
+cmcutils
 ~~~~~~~~~~~~~~~~~
 .. automodule:: pytomo.inversion.cmcutils
     :members:
 
-NeighbourhoodAlgorithm
+na
 ~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: pytomo.inversion.na
     :members:
 
-InversionResult
+inversionresult
 ~~~~~~~~~~~~~~~
 .. automodule:: pytomo.inversion.inversionresult
     :members:
 
-Voronoi
+voronoi
 ~~~~~~~
 .. automodule:: pytomo.inversion.voronoi
     :members:
 
-Utilities
+modeutils
 ~~~~~~~~~
 .. automodule:: pytomo.inversion.modelutils
     :members:

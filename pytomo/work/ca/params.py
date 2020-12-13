@@ -1,10 +1,10 @@
-from pydsm.modelparameters import ModelParameters, ParameterType
-from pydsm.seismicmodel import SeismicModel
-from pydsm.station import Station
-from pydsm.event import Event
-from pydsm.utils.cmtcatalog import read_catalog
-from pydsm.dataset import Dataset
-from pydsm.dsm import PyDSMInput, compute
+from dsmpy.modelparameters import ModelParameters, ParameterType
+from dsmpy.seismicmodel import SeismicModel
+from dsmpy.station import Station
+from dsmpy.event import Event
+from dsmpy.utils.cmtcatalog import read_catalog
+from dsmpy.dataset import Dataset
+from dsmpy.dsm import PyDSMInput, compute
 from pytomo.utilities import white_noise
 import numpy as np
 import matplotlib.pyplot as plt

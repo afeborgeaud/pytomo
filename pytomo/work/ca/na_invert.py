@@ -1,6 +1,6 @@
 import params as work_parameters
 from pytomo.inversion.na import NeighbouhoodAlgorithm, InputFile
-from pydsm.modelparameters import ModelParameters, ParameterType
+from dsmpy.modelparameters import ModelParameters, ParameterType
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np

@@ -20,8 +20,6 @@ import numpy as np
 from mpi4py import MPI
 from scipy.spatial import voronoi_plot_2d, Voronoi
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
 import time
 import sys
 import os
@@ -29,15 +27,18 @@ import glob
 import warnings
 import copy
 
+
 class InputFile:
     """Input file for NeighbourAlgorithm (NA) inversion.
 
     Args:
         input_file (str): path of NA input file
+
     """
+
     def __init__(self, input_file):
         self.input_file = input_file
-    
+
     def read(self):
         params = dict()
         params['verbose'] = 0
@@ -117,8 +118,9 @@ class InputFile:
             return None, None
         return key, value_parsed
 
+
 class NeighbouhoodAlgorithm:
-    '''Implements a neighbourhood algorithm
+    """Implements a neighbourhood algorithm
 
     Args:
         dataset (Dataset): dataset.
@@ -158,7 +160,8 @@ class NeighbouhoodAlgorithm:
         verbose (int): verbosity level.
         comm (MPI_COMM_WORLD): MPI communicator.
 
-    '''
+    """
+
     def __init__(
             self, dataset, model_ref, model_params, range_dict, tlen, nspc,
             sampling_hz, mode, n_mod, n_s, n_r,
@@ -206,9 +209,9 @@ class NeighbouhoodAlgorithm:
 
     @classmethod
     def from_file(
-        cls, input_file, model_ref, model_params,
-        range_dict, dataset, comm):
-        '''Build a NeighbourhoodAlgorithm object from an input file and
+            cls, input_file, model_ref, model_params,
+            range_dict, dataset, comm):
+        """Build a NeighbourhoodAlgorithm object from an input file and
         key inputs.
 
         Args:
@@ -220,9 +223,9 @@ class NeighbouhoodAlgorithm:
                 (n_nodes, 2).
 
         Returns:
-            na (NeighbourhoodAlgorithm): NeighbourhoodAlgorithm object
+            NeighbourhoodAlgorithm: NeighbourhoodAlgorithm object
 
-        '''
+        """
         params = InputFile(input_file).read()
 
         tlen = params['tlen']
@@ -261,13 +264,13 @@ class NeighbouhoodAlgorithm:
             stf_catalog, result_path, seed, verbose, comm)
 
     def get_meta(self):
-        '''Return the meta parameters of the NeighbourhoodAlgorithm
+        """Return the meta parameters of the NeighbourhoodAlgorithm
         object.
 
             Returns:
-                meta (dict):
+                dict: dict with meta parameters
 
-        '''
+        """
         return dict(
             range_dict=self.range_dict, tlen=self.tlen, nspc=self.nspc,
             sampling_hz=self.sampling_hz, mode=self.mode, n_mod=self.n_mod,
@@ -282,7 +285,7 @@ class NeighbouhoodAlgorithm:
 
     @classmethod
     def from_file_with_default(cls, input_file_path, comm):
-        '''Build a NeighbourhoodAlgorithm from an input file and
+        """Build a NeighbourhoodAlgorithm from an input file and
         default values.
 
         Args:
@@ -290,9 +293,9 @@ class NeighbouhoodAlgorithm:
             comm (COMM_WORLD): MPI communicator
 
         Returns:
-            na (NeighbourhoodAlgorithm): NeighbourhoodAlgorithm object
+            NeighbourhoodAlgorithm: NeighbourhoodAlgorithm object
 
-        '''
+        """
         params = InputFile(input_file_path).read()
 
         # define default model parameters
@@ -323,12 +326,12 @@ class NeighbouhoodAlgorithm:
             range_dict, dataset, comm)
 
     def _get_windows(self):
-        '''Compute the time windows.
+        """Compute the time windows.
 
             Returns:
-                windows (list of Window): time windows
+                list of Window: time windows
 
-        '''
+        """
         windows = []
         for i in range(len(self.phases)):
             windows_tmp = WindowMaker.windows_from_dataset(
@@ -339,7 +342,7 @@ class NeighbouhoodAlgorithm:
         windows = [
             w for w in windows
             if w.get_epicentral_distance() >= self.distance_min
-            and w.get_epicentral_distance() <= self.distance_max]
+               and w.get_epicentral_distance() <= self.distance_max]
         return windows
 
     def _filter_outputs(self, outputs):
@@ -362,22 +365,22 @@ class NeighbouhoodAlgorithm:
 
         '''
         scale_arr = np.hstack(
-            [range_dict[p][:,1] - range_dict[p][:,0]
-            for p in types])
+            [range_dict[p][:, 1] - range_dict[p][:, 0]
+             for p in types])
 
         points = np.array(perturbations)
         points = np.true_divide(
             points, scale_arr, out=np.zeros_like(points),
-            where=(scale_arr!=0))
+            where=(scale_arr != 0))
 
         return points
 
     def _get_bounds_for_voronoi(self):
         min_bounds = np.zeros(
-            self.model_params._n_grd_params*len(self.model_params._types),
+            self.model_params._n_grd_params * len(self.model_params._types),
             dtype='float')
         max_bounds = np.zeros(
-            self.model_params._n_grd_params*len(self.model_params._types),
+            self.model_params._n_grd_params * len(self.model_params._types),
             dtype='float')
         for itype in range(len(self.model_params._types)):
             for igrd in range(self.model_params._n_grd_params):
@@ -395,7 +398,7 @@ class NeighbouhoodAlgorithm:
     def _compute_one_step(
             self, umcutils, dataset, models, perturbations,
             result, windows, comm):
-        #TODO URGENT fix zero output when n_model % n_core != 0
+        # TODO URGENT fix zero output when n_model % n_core != 0
         rank = comm.Get_rank()
 
         outputs = compute_models_parallel(
@@ -436,8 +439,8 @@ class NeighbouhoodAlgorithm:
 
         if rank == 0:
             scale_arr = np.hstack(
-                [self.range_dict[p][:,1] - self.range_dict[p][:,0] 
-                for p in self.model_params._types])
+                [self.range_dict[p][:, 1] - self.range_dict[p][:, 0]
+                 for p in self.model_params._types])
 
             umcutils = UniformMonteCarlo(
                 self.model_ref, self.model_params, self.range_dict,
@@ -449,14 +452,14 @@ class NeighbouhoodAlgorithm:
             umcutils = None
 
         self.range_dict = comm.bcast(self.range_dict, root=0)
-        
+
         if rank == 0:
             if self.filter_type is not None:
                 self.dataset.filter(self.freq, self.freq2, self.filter_type)
 
             windows = self.get_windows()
 
-            npts_max = int((self.t_before+self.t_after) * self.sampling_hz)
+            npts_max = int((self.t_before + self.t_after) * self.sampling_hz)
             self.dataset.apply_windows(
                 windows, n_distinct_comp_phase, npts_max, buffer=0.)
         else:
@@ -503,13 +506,15 @@ class NeighbouhoodAlgorithm:
                     value_dict = dict()
                     for i, param_type in enumerate(self.model_params._types):
                         value_dict[param_type] = current_perturbations[
-                            (i*self.model_params._n_grd_params)
-                            :((i+1)*self.model_params._n_grd_params)]
+                                                 (
+                                                             i * self.model_params._n_grd_params)
+                                                 :((
+                                                               i + 1) * self.model_params._n_grd_params)]
 
-                    n_step = int(self.n_s//self.n_r)
+                    n_step = int(self.n_s // self.n_r)
 
                     current_point = np.array(points[ip])
-                    self.model_params.it = 0 # just to be sure
+                    self.model_params.it = 0  # just to be sure
                     counter = 0
                     istep = 0
                     max_count = 3000
@@ -526,7 +531,7 @@ class NeighbouhoodAlgorithm:
                         points_free = points[:, free_indices]
                         current_point_free = np.array(
                             current_point[free_indices])
-                        idim_free = np.where(free_indices==idim)[0][0]
+                        idim_free = np.where(free_indices == idim)[0][0]
 
                         tmp_bounds1 = voronoi.implicit_find_bound_for_dim(
                             points_free, points_free[ip],
@@ -552,33 +557,33 @@ class NeighbouhoodAlgorithm:
                         lo, up = bounds
 
                         max_per = self.range_dict[
-                                self.model_params._types[itype]][igrd, 1]
+                            self.model_params._types[itype]][igrd, 1]
                         min_per = self.range_dict[
-                                self.model_params._types[itype]][igrd, 0]
+                            self.model_params._types[itype]][igrd, 0]
                         scale = max_per - min_per
 
                         # correct the Voronoi cell bounds to avoid 
                         # sampling outsitde of the user-defined bounds
                         max_per_i = current_point[idim] + up
                         min_per_i = current_point[idim] + lo
-                        if max_per_i > max_per/scale:
-                            up = max_per/scale - current_point[idim]
-                        if min_per_i < min_per/scale:
-                            lo = min_per/scale - current_point[idim]
+                        if max_per_i > max_per / scale:
+                            up = max_per / scale - current_point[idim]
+                        if min_per_i < min_per / scale:
+                            lo = min_per / scale - current_point[idim]
 
                         if (up - lo) > self.convergence_threshold:
                             per = self.rng_gibbs.uniform(lo, up, 1)[0]
                             # per = self._bi_triangle(lo, up)
-                            
+
                             value_dict[
                                 self.model_params._types[itype]
-                            ][igrd] += per*scale
+                            ][igrd] += per * scale
 
                             per_arr = np.hstack(
-                                [value_dict[p] 
-                                for p in self.model_params._types]
+                                [value_dict[p]
+                                 for p in self.model_params._types]
                             )
-                            
+
                             log.write('{}\n'.format(per_arr))
 
                             new_model = self.model_ref.build_model(
@@ -590,13 +595,13 @@ class NeighbouhoodAlgorithm:
                                 log.write(
                                     '{} {} {} {} {} {} {:.3f} '
                                     '{:.3f} {:.3f} {}\n'
-                                    .format(rank, ipass, imod, istep, idim,
-                                            per_arr, lo, up, per, scale))
+                                        .format(rank, ipass, imod, istep, idim,
+                                                per_arr, lo, up, per, scale))
 
                             current_point = np.true_divide(
                                 per_arr, scale_arr,
                                 out=np.zeros_like(per_arr),
-                                where=(scale_arr!=0))
+                                where=(scale_arr != 0))
 
                             perturbations.append(per_arr)
 
@@ -623,12 +628,12 @@ class NeighbouhoodAlgorithm:
                     perturbations_diff = result.get_model_perturbations_diff(
                         self.n_r, scale=scale_arr, smooth=False, n_s=self.n_s)
                     perturbations_diff_free = perturbations_diff[
-                        :, free_indices]
+                                              :, free_indices]
 
                     converged = (
                         # (perturbations_diff_free[-2:]
-                        (perturbations_diff_free[-2*self.n_s:] 
-                        <= self.convergence_threshold).all())
+                        (perturbations_diff_free[-2 * self.n_s:]
+                         <= self.convergence_threshold).all())
 
             converged = comm.bcast(converged, root=0)
 
@@ -641,12 +646,12 @@ class NeighbouhoodAlgorithm:
             if self.verbose > 0:
                 if log is not None:
                     log.write('Models and misfits computation done in {} s\n'
-                        .format((end_time-start_time) * 1e-9))
+                              .format((end_time - start_time) * 1e-9))
                     log.write(
                         'Results saved to \'{}\''.format(self.result_path))
                 else:
                     print('Models and misfits computation done in {} s'
-                        .format((end_time-start_time) * 1e-9))
+                          .format((end_time - start_time) * 1e-9))
                     print('Results saved to \'{}\''.format(self.result_path))
 
             conv_curve_path = os.path.join(
@@ -663,177 +668,23 @@ class NeighbouhoodAlgorithm:
     def _bi_triangle_cfd_inv(self, x, a, b):
         aa = np.abs(a)
         h = 2. / (aa + b)
-        if x < h*aa/4.:
-            y = np.sqrt(x*aa/h) - aa
-        elif x < h*aa/2.:
-            y = -np.sqrt(aa*aa/2. - x*aa/h)
-        elif x < (h*aa/2. + h*b/4.):
-            y = np.sqrt(x*b/h - aa*b/2.)
+        if x < h * aa / 4.:
+            y = np.sqrt(x * aa / h) - aa
+        elif x < h * aa / 2.:
+            y = -np.sqrt(aa * aa / 2. - x * aa / h)
+        elif x < (h * aa / 2. + h * b / 4.):
+            y = np.sqrt(x * b / h - aa * b / 2.)
         else:
-            y = -np.sqrt(b/h * (1-x)) + b
+            y = -np.sqrt(b / h * (1 - x)) + b
         return y
 
     def _bi_triangle(self, a, b):
-        if a==b==0:
+        if a == b == 0:
             return 0.
         assert (a < b) and (a <= 0) and (b >= 0)
         x_unif = self.rng_gibbs.uniform(0, 1, 1)[0]
         x = self._bi_triangle_cfd_inv(x_unif, a, b)
         return x
-
-    @staticmethod
-    def plot_voronoi_2d(
-            points, misfits,
-            xlim=None, ylim=None,
-            ax=None, **kwargs):
-        '''Plot a voronoi diagram (only for 2-D points).
-
-        Args:
-            points (ndarray): voronoi points. (npoint, 2).
-            misfits (ndarray): array of misfits for each voronoi point.
-                (npoint,).
-            xlim (list of float): x-axis range (default is None).
-            ylim (list of float): y-axis range (default is None).
-            ax (Axes): matplotlib Axes object (default is None).
-
-        Returns:
-            fig (figure): matplotlib figure object
-            ax (Axes): matplotlib ax object
-            scalar_map (): color map
-
-        '''
-        # add dummy points
-        # stackoverflow.com/questions/20515554/
-        # colorize-voronoi-diagram?lq=1
-        x_max = points[:, 0].max()
-        x_min = points[:, 0].min()
-        y_max = points[:, 1].max()
-        y_min = points[:, 1].min()
-        points_ = np.append(
-            points,
-            # [[x_min*10, y_min*10], [x_min*10, y_max*10],
-            #  [x_max*10, y_min*10], [x_max*10, y_max*10]],
-            [[-9999, -9999], [-9999, 9999], [9999, -9999], [9999, 9999]],
-            axis = 0)
-        vor = Voronoi(points_)
-
-        # color map
-        # log_misfits = np.log(misfits)
-        log_misfits = np.array(misfits)
-        cm = plt.get_cmap('hot')
-        c_norm  = colors.Normalize(
-            vmin=log_misfits.min(), vmax=log_misfits.max())
-        c_norm = colors.Normalize(vmin=0., vmax=0.3)
-        scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
-
-        if ax is None:
-            fig, ax = plt.subplots(1, 1)
-        else:
-            fig = None
-
-        voronoi_plot_2d(
-            vor,
-            show_vertices=False,
-            line_colors='green',
-            line_width=.5,
-            show_points=False,
-            ax=ax)
-        
-        ax.plot(
-            points[:,0], points[:,1],
-            '+g', markersize=5.)
-
-        # colorize
-        for ireg, reg in enumerate(vor.regions):
-            if not -1 in reg:
-                ip_ = voronoi.find_point_of_region(vor, ireg)
-                if ip_ == None:
-                    continue
-                point = vor.points[ip_]
-                ips = np.where(
-                    (points[:,0]==point[0])
-                    & (points[:,1]==point[1]))
-                if ips[0].shape[0] > 0:
-                    ip = ips[0][0]
-                    color = scalar_map.to_rgba(log_misfits[ip])
-
-                    poly = [vor.vertices[i] for i in reg]
-                    ax.fill(*zip(*poly), color=color)
-
-        ax.plot(0.2, 0., '*c', markersize=12)
-        # ax.plot(0.2, -8./30., '*c', markersize=12)
-        ax.set_aspect('equal')
-
-        if xlim is None:
-            xlim = [x_min, x_max]
-            ylim = [y_min, y_max]
-        ax.set(xlim=xlim, ylim=ylim)
-
-        if ('title' in kwargs) and (fig is not None):
-            fig.suptitle(kwargs['title'])
-        
-        return fig, ax, scalar_map
-
-    def save_convergence_curve(
-            self, path, result, scale_arr, free_indices, smooth=True):
-        '''Save the convergence curve to path.
-
-        Args:
-             path (str): path of the output figure.
-             result (InversionResult): inverion result.
-             scale_arr (ndarray):
-             free_indices (list of int):
-             smooth (bool): average the variance points over each
-                iteration of the NA algorithm (n_s points)
-                (default is True).
-
-        '''
-        perturbations_diff = result.get_model_perturbations_diff(
-                        self.n_r, scale=scale_arr, smooth=True, n_s=self.n_s)
-        perturbations_diff_free = perturbations_diff[
-            :, free_indices].max(axis=1)
-
-        x = np.arange(1, perturbations_diff_free.shape[0]+1)
-        
-        fig, ax = plt.subplots(1)
-        ax.plot(x, perturbations_diff_free, '-xk')
-        if smooth:
-            ax.set(
-                xlabel='Iteration #',
-                ylabel='Mean model perturbation (km/s)')
-        else:
-            ax.set(
-                xlabel='Model #',
-                ylabel='Model perturbation (km/s)')
-        plt.savefig(path, bbox_inches='tight')
-        plt.close(fig)
-    
-    def save_variance_curve(self, path, result, smooth=True):
-        '''Save the variance curve to path.
-
-        Args:
-            path (str): path to the output figure.
-            result (InversionResult): inversion result.
-            smooth (bool): average the variance points over each
-                iteration of the NA algorithm (n_s points)
-                (default is True).
-
-        '''
-        variances = result.get_variances(smooth=smooth, n_s=self.n_s)
-        x = np.arange(1, variances.shape[0]+1)
-
-        fig, ax = plt.subplots(1)
-        ax.plot(x, variances, '-xk')
-        if smooth:
-            ax.set(
-                xlabel='Iteration #',
-                ylabel='Mean variance')
-        else:
-            ax.set(
-                xlabel='Model #',
-                ylabel='Variance')
-        plt.savefig(path, bbox_inches='tight')
-        plt.close(fig)
 
 if __name__ == '__main__':
     comm = MPI.COMM_WORLD
@@ -855,7 +706,7 @@ if __name__ == '__main__':
         end_time = time.time_ns()
         print(
             'NA finished in {} s'
-            .format((end_time-start_time)*1e-9))
+                .format((end_time - start_time) * 1e-9))
 
     log.close()
 

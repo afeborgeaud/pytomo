@@ -28,7 +28,7 @@ mask_dict[ParameterType.RADIUS] = np.zeros(
     model_params._n_grd_params//2, dtype='bool')
 mask_dict[ParameterType.VSH][0] = False
 mask_dict[ParameterType.VSH][-1] = False
-for i in range(2,5):
+for i in range(2, 5):
     mask_dict[ParameterType.RADIUS][i] = True
 
 discon_arr = np.zeros(

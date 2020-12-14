@@ -46,6 +46,7 @@ class InputFile:
         params['sac_files'] = None
         params['seed'] = 42
         params['stf_catalog'] = None
+        params['misfit_type'] = 'variance'
         with open(self.input_file, 'r') as f:
             for line in f:
                 if line.strip().startswith('#'):
@@ -113,6 +114,8 @@ class InputFile:
             value_parsed = int(value)
         elif key == 'convergence_threshold':
             value_parsed = float(value)
+        elif key == 'misfit_type':
+            value_parsed = value.strip()
         else:
             print('Warning: key {} undefined. Ignoring.'.format(key))
             return None, None
@@ -156,6 +159,9 @@ class NeighbouhoodAlgorithm:
         convergence_threshold (float): convergence threshold
         stf_catalog (str): path to a source time function catalog.
         result_path (str): path to the output folder.
+        misfit_type (str): misfit used to select the best models.
+            ('variance', 'corr', 'rolling_variance'),
+            (default is 'variance')
         seed (int): seed for the random generator.
         verbose (int): verbosity level.
         comm (MPI_COMM_WORLD): MPI communicator.
@@ -168,7 +174,7 @@ class NeighbouhoodAlgorithm:
             phases, components, t_before, t_after, filter_type,
             freq, freq2, sac_files, distance_min, distance_max,
             convergence_threshold,
-            stf_catalog, result_path, seed, verbose, comm):
+            stf_catalog, result_path, misfit_type, seed, verbose, comm):
         self.dataset = dataset
         self.model_ref = model_ref
         self.model_params = model_params
@@ -192,6 +198,7 @@ class NeighbouhoodAlgorithm:
         self.distance_max = distance_max
         self.convergence_threshold = convergence_threshold
         self.stf_catalog = stf_catalog
+        self.misfit_type = misfit_type
         self.seed = seed
         self.verbose = verbose
         self.comm = comm
@@ -206,6 +213,8 @@ class NeighbouhoodAlgorithm:
 
         self.out_dir = comm.bcast(out_dir, root=0)
         self.result_path = os.path.join(self.out_dir, result_path)
+
+        assert misfit_type in {'corr', 'variance', 'rolling_variance'}
 
     @classmethod
     def from_file(
@@ -250,6 +259,7 @@ class NeighbouhoodAlgorithm:
         seed = params['seed']
         verbose = params['verbose']
         convergence_threshold = params['convergence_threshold']
+        misfit_type = params['misfit_type']
 
         # fix 
         dataset.tlen = tlen
@@ -261,7 +271,7 @@ class NeighbouhoodAlgorithm:
             phases, components, t_before, t_after, filter_type,
             freq, freq2, sac_files, distance_min, distance_max,
             convergence_threshold,
-            stf_catalog, result_path, seed, verbose, comm)
+            stf_catalog, result_path, misfit_type, seed, verbose, comm)
 
     def get_meta(self):
         """Return the meta parameters of the NeighbourhoodAlgorithm
@@ -281,7 +291,9 @@ class NeighbouhoodAlgorithm:
             distance_min=self.distance_min, distance_max=self.distance_max,
             convergence_threshold=self.convergence_threshold,
             stf_catalog=self.stf_catalog, result_path=self.result_path,
-            seed=self.seed, verbose=self.verbose, out_dir=self.out_dir)
+            seed=self.seed, verbose=self.verbose, out_dir=self.out_dir,
+            misfit_type=self.misfit_type
+        )
 
     @classmethod
     def from_file_with_default(cls, input_file_path, comm):
@@ -457,7 +469,7 @@ class NeighbouhoodAlgorithm:
             if self.filter_type is not None:
                 self.dataset.filter(self.freq, self.freq2, self.filter_type)
 
-            windows = self.get_windows()
+            windows = self._get_windows()
 
             npts_max = int((self.t_before + self.t_after) * self.sampling_hz)
             self.dataset.apply_windows(
@@ -493,11 +505,10 @@ class NeighbouhoodAlgorithm:
 
                 min_bounds, max_bounds = self._get_bounds_for_voronoi()
                 indices_best = umcutils.get_best_models(
-                    result.misfit_dict, self.n_r)
+                    result.misfit_dict, self.n_r, self.misfit_type)
 
                 models = []
                 perturbations = []
-                imod = 0
                 for imod in range(self.n_r):
                     ip = indices_best[imod]
                     # current_model = result.models[ip]
@@ -506,10 +517,8 @@ class NeighbouhoodAlgorithm:
                     value_dict = dict()
                     for i, param_type in enumerate(self.model_params._types):
                         value_dict[param_type] = current_perturbations[
-                                                 (
-                                                             i * self.model_params._n_grd_params)
-                                                 :((
-                                                               i + 1) * self.model_params._n_grd_params)]
+                            (i * self.model_params._n_grd_params)
+                            :((i + 1) * self.model_params._n_grd_params)]
 
                     n_step = int(self.n_s // self.n_r)
 
@@ -656,12 +665,12 @@ class NeighbouhoodAlgorithm:
 
             conv_curve_path = os.path.join(
                 self.out_dir, 'convergence_curve.pdf')
-            self.save_convergence_curve(
-                conv_curve_path, result, scale_arr, free_indices, smooth=True)
+            result.save_convergence_curve(
+                conv_curve_path, scale_arr, free_indices, smooth=False)
 
             var_curve_path = os.path.join(
                 self.out_dir, 'variance_curve.pdf')
-            self.save_variance_curve(var_curve_path, result, smooth=True)
+            result.save_variance_curve(var_curve_path, smooth=False)
 
         return result
 

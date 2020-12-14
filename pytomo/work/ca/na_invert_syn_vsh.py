@@ -1,5 +1,6 @@
 import params as work_parameters
 from pytomo.inversion.na import NeighbouhoodAlgorithm, InputFile
+from pytomo.inversion.voronoi import plot_voronoi_2d
 from pytomo.inversion.inversionresult import InversionResult
 from dsmpy.modelparameters import ModelParameters, ParameterType
 import matplotlib.pyplot as plt
@@ -31,14 +32,22 @@ mask_dict[ParameterType.VSH] = np.ones(
     model_params._n_grd_params, dtype='bool')
 mask_dict[ParameterType.RADIUS] = np.ones(
     model_params._n_grd_params, dtype='bool')
-mask_dict[ParameterType.RADIUS][0] = False
-# mask_dict[ParameterType.VSH][0] = False
+mask_dict[ParameterType.RADIUS][[0, 1]] = False
 
 equal_dict = dict()
 equal_dict[ParameterType.VSH] = np.arange(
     model_params._n_grd_params, dtype='int')
-equal_dict[ParameterType.VSH][1] = 0
-model_params.set_constraints(mask_dict, equal_dict)
+equal_dict[ParameterType.VSH][2] = 0
+equal_dict[ParameterType.VSH][3] = 1
+
+discon_arr = np.zeros(
+    model_params._n_nodes, dtype='bool')
+discon_arr[1] = True
+
+model_params.set_constraints(
+    mask_dict=mask_dict,
+    equal_dict=equal_dict,
+    discon_arr=discon_arr)
 
 # parameter ranges
 range_dict = dict()
@@ -58,7 +67,7 @@ input_params = input.read()
 tlen = input_params['tlen']
 nspc = input_params['nspc']
 dataset, _ = work_parameters.get_dataset_syntest2(tlen=tlen, nspc=nspc,
-    mode=2, add_noise=True, noise_normalized_std=2.)
+    mode=2, add_noise=False, noise_normalized_std=1.)
 
 na = NeighbouhoodAlgorithm.from_file(
     input_file, model_ref, model_params, range_dict,
@@ -109,13 +118,15 @@ outputs = result.compute_models(models, comm)
 
 # plot results
 if rank == 0:
+    free_indices = model_params.get_free_indices()
+    print('Free indices: {}'.format(free_indices))
     out_dir = result.meta['out_dir']
-    points = NeighbouhoodAlgorithm.get_points_for_voronoi(
+    points = NeighbouhoodAlgorithm._get_points_for_voronoi(
                 result.perturbations, range_dict, model_params._types)
     points = points[:, model_params.get_free_indices()]
     # points = np.array(result.perturbations)[
     # :, model_params.get_free_indices()]
-    misfits = result.misfit_dict['variance'].mean(axis=1)
+    misfits = result.misfit_dict[result.meta['misfit_type']].mean(axis=1)
     n_r = result.meta['n_r']
     n_s = result.meta['n_s']
     n_mod = points.shape[0]
@@ -123,11 +134,11 @@ if rank == 0:
     for imod in range(n_mod):
         figpath = os.path.join(
             out_dir, 'voronoi_{:05d}.png'.format(imod))
-        fig = plt.figure(figsize=(13,5))
-        gs = gridspec.GridSpec(1, 3, width_ratios=[2,1,1])
+        fig = plt.figure(figsize=(13, 5))
+        gs = gridspec.GridSpec(1, 3, width_ratios=[2, 1, 1])
         # plot voronoi cells
         ax0 = fig.add_subplot(gs[0])
-        _, _, colormap = NeighbouhoodAlgorithm.plot_voronoi_2d(
+        _, _, colormap = plot_voronoi_2d(
             points[:imod+1], misfits[:imod+1],
             xlim=[-0.5,0.5], ylim=[-0.5,0.5], ax=ax0)
         ax0.set(

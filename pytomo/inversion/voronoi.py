@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 
-
 def compute_distances_to_points(points, p_arr, ips=slice(None)):
     """
 
@@ -77,7 +76,6 @@ def implicit_find_bound_for_dim(
         p_arr - anchor_point, p_arr - anchor_point)
     i = 0
     dist2 = np.array(dist2_0)
-    start_time = time.time_ns()
     while (
             dist2.min() > dist_to_anch
             and i < n_step_max
@@ -92,11 +90,6 @@ def implicit_find_bound_for_dim(
         p_arr[idim] -= step_size
     dist_to_current = np.dot(p_arr - current_point, p_arr - current_point)
     dist_up_bound = np.sqrt(dist_to_current)
-    if log:
-        end_time = time.time_ns()
-        log.write(
-            'upper bound found in {} s\n'
-                .format((end_time - start_time) * 1e-9))
 
     # find distance to lower boundary
     p_arr = np.array(current_point)
@@ -142,6 +135,7 @@ def plot_voronoi_2d(
         scalar_map (): color map
 
     """
+    assert points.shape[1] == 2
     # add dummy points
     # stackoverflow.com/questions/20515554/
     # colorize-voronoi-diagram?lq=1
@@ -163,7 +157,7 @@ def plot_voronoi_2d(
     cm = plt.get_cmap('hot')
     c_norm = colors.Normalize(
         vmin=log_misfits.min(), vmax=log_misfits.max())
-    c_norm = colors.Normalize(vmin=0., vmax=0.3)
+    # c_norm = colors.Normalize(vmin=0., vmax=0.3)
     scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
 
     if ax is None:

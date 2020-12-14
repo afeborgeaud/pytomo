@@ -13,9 +13,9 @@ import sys
 def get_model(
         n_upper_mantle=20, n_mtz=10, n_lower_mantle=12, n_dpp=8,
         types=[ParameterType.VSH], verbose=0):
-    '''Boxcar mesh using ak135 as reference model for the structure of
-        the upper mantle and transition zone down to 1000 km depth.
-    '''
+    """Boxcar mesh using ak135 as reference model for the structure of
+    the upper mantle and transition zone down to 1000 km depth.
+    """
     ak135 = SeismicModel.ak135()
     # model parameters
     depth_moho = 6371. - 6336.6
@@ -48,9 +48,9 @@ def get_model(
 def get_model_lininterp(
         n_upper_mantle=20, n_mtz=10, n_lower_mantle=12, n_dpp=8,
         types=[ParameterType.VSH], discontinuous=False, verbose=0):
-    '''Boxcar mesh using ak135 as reference model for the structure of
-        the upper mantle and transition zone down to 1000 km depth.
-    '''
+    """Boxcar mesh using ak135 as reference model for the structure of
+    the upper mantle and transition zone down to 1000 km depth.
+    """
     ak135 = SeismicModel.ak135()
 
     # model parameters
@@ -107,8 +107,8 @@ def get_dataset(
     stations = [
         Station(
             '{:03d}'.format(i), 'DSM',
-            event.latitude+5+0.5*i, event.longitude+0.1)
-        for i in range(201)]
+            event.latitude+70+0.5*i, event.longitude+0.1)
+        for i in range(61)]
     dataset = Dataset.dataset_from_arrays(
         events, [stations], sampling_hz=sampling_hz)
     
@@ -204,7 +204,7 @@ def get_model_syntest2():
         model.set_value(
             idpp, p_type, np.array([v_dpp, 0., 0., 0.]))
 
-    values = np.array([0.2, 0.2])
+    values = np.array([0.2, 0.2, 0.2, 0.2])
     values_dict = {param_type: values for param_type in types}
     model_mul = model.build_model(model, model_params, values_dict)
 
@@ -302,7 +302,7 @@ def get_model_syntest_cmb_topo():
 
 
 if __name__ == '__main__':
-    model_syntest2 = get_model_syntest_cmb_topo()
+    model_syntest2 = get_model_syntest2()
     fig, ax = model_syntest2.plot()
     SeismicModel.ak135().plot(ax=ax, label='ak135')
     plt.show()

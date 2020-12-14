@@ -81,14 +81,28 @@ class UniformMonteCarlo:
 
         return models, perturbations
 
-    def get_best_models(self, misfit_dict, n_best):
-        '''Get the n_best best models'''
-        avg_var = misfit_dict['variance'].mean(axis=1)
+    def get_best_models(self, misfit_dict, n_best, key='variance'):
+        """Get the n_best best models. Should be used together with
+        an InversionResult object.
+
+        Args:
+            misfit_dict (dict): a dict with misfit values for each
+                model, as given by InversionResult.misfit_dict.
+            n_best (int): number of best models to return.
+            key (str): misfit type.
+                ('variance', 'corr', 'rolling_variance'),
+                (default is 'variance').
+
+        Returns:
+            list of int: list of the indices of the n_best models in
+                InversionResult.models
+        """
+        avg_var = misfit_dict[key].mean(axis=1)
         indices_best = np.argsort(avg_var)[:n_best]
         return indices_best
 
     def process_outputs(self, outputs, dataset, models, windows):
-        '''Process the output of compute_models_parallel().
+        """Process the output of compute_models_parallel().
 
         Args:
             outputs (list of list of PyDSMOutput): (n_models, n_events)
@@ -97,11 +111,12 @@ class UniformMonteCarlo:
             models (list of SeismicModel): seismic models
             windows (list of Window): time windows. See
                 windows_from_dataset()
+
         Returns:
-            misfit_dict (dict): values are 
+            dict: values are
                 ndarray((n_models, n_windows))
                 containing misfit values (corr, variance)
-        '''
+        """
         n_mod = len(models)
         n_ev = len(dataset.events)
         n_window = len(windows)

@@ -6,6 +6,7 @@ import matplotlib.colors as colors
 import matplotlib.cm as cmx
 import pickle
 
+
 class InversionResult:
     """Pack the inversion results, models and dataset needed to
     reproduce the results.
@@ -25,7 +26,7 @@ class InversionResult:
         self.misfit_dict = dict()
         self.models = []
         self.perturbations = []
-    
+
     def add_result(self, models, misfit_dict, perturbations):
         """Add misfit_dict for new models to current inversion result.
         The dataset and windows must be the same.
@@ -41,7 +42,7 @@ class InversionResult:
         """
         for key in misfit_dict.keys():
             assert len(models) == misfit_dict[key].shape[0]
-            
+
         self.models += models
         self.perturbations += perturbations
 
@@ -51,24 +52,22 @@ class InversionResult:
             else:
                 self.misfit_dict[misfit_name] = np.vstack(
                     (self.misfit_dict[misfit_name],
-                    misfit_dict[misfit_name]))
-    
+                     misfit_dict[misfit_name]))
+
     def get_model_perturbations(
             self, smooth=True, n_s=None,
             in_percent=False):
         """Get perturbations from model_ref.
 
         Args:
-            model_ref (SeismicModel): reference model
-            types (list of ParameterType): parameter types
-                (e.g., ParameterType.VSH)
-            smooth (bool): smooth over n_s (default is True)
+            smooth (bool): smooth over n_s (default is True).
             n_s (int): number of models computed at each iteration
+                (default is None).
             in_percent (bool): returns perturbations as percent
-                (default is False)
+                (default is False).
 
         Returns:
-            perturbations (ndarray): array of perturbations.
+            ndarray: array of perturbations.
                 If smooth, shape is (n_iteration,),
                 else shape is (n_models,)
 
@@ -76,7 +75,7 @@ class InversionResult:
         perturbations = np.array(self.perturbations)
 
         if smooth:
-            n_it = int(len(self.models)//n_s)
+            n_it = int(len(self.models) // n_s)
             if len(self.models) % n_s != 0:
                 n_it += 1
             perturbations_ = np.zeros((n_it, perturbations.shape[1]))
@@ -95,13 +94,13 @@ class InversionResult:
             perturbations = np.true_divide(
                 perturbations, scale,
                 out=np.zeros_like(perturbations),
-                where=(scale!=0))
+                where=(scale != 0))
         perturbations_diff = np.abs(np.diff(perturbations, axis=0))
-        mask = [(i+1)%n_r == 0 for i in range(perturbations_diff.shape[0])]
+        mask = [(i + 1) % n_r == 0 for i in range(perturbations_diff.shape[0])]
         perturbations_diff[mask, :] = 0.
 
         if smooth:
-            n_it = int(len(self.models)//n_s)
+            n_it = int(len(self.models) // n_s)
             if len(self.models) % n_s != 0:
                 n_it += 1
             perturbations_diff_smooth = np.zeros(
@@ -112,7 +111,7 @@ class InversionResult:
                 perturbations_diff_smooth[i] = (
                     perturbations_diff[s:e].mean(axis=0))
             perturbations_diff = perturbations_diff_smooth
-        
+
         return perturbations_diff
 
     def get_variances(self, key='variance', smooth=True, n_s=None):
@@ -129,16 +128,16 @@ class InversionResult:
             ndarray: misfit values
 
         """
-        variances = self.misfit_dict['variance'].mean(axis=1)
+        variances = self.misfit_dict[key].mean(axis=1)
         if smooth:
             if len(variances) % n_s != 0:
-                n = int(len(variances)//n_s * n_s + n_s)
+                n = int(len(variances) // n_s * n_s + n_s)
                 perturbations = np.pad(
                     self.perturbations, (0, n), 'constant',
                     constant_values=(0, 0))
             variances = variances.reshape((-1, n_s)).mean(axis=1)
         return variances
-    
+
     def save(self, path):
         """Save self using pickle.dump().
 
@@ -160,7 +159,7 @@ class InversionResult:
         with open(path, 'rb') as f:
             output = pickle.load(f)
         return output
-    
+
     def plot_models(
             self, types, n_best=-1, n_mod=-1, ax=None,
             key='variance', **kwargs):
@@ -176,27 +175,27 @@ class InversionResult:
                 (default is 'variance').
 
         Returns:
-            fig (figures): matplotlib figure object.
-            ax (Axes): matplotlib Axes object.
+            figures: matplotlib figure object.
+            Axes: matplotlib Axes object.
 
         """
         assert key in {'variance', 'misfit', 'rolling_variance'}
         avg_misfit = self.misfit_dict[key].mean(axis=1)
         indices_best = np.arange(len(avg_misfit), dtype=int)
-        if type(n_best)==int and n_best > 0:
+        if type(n_best) == int and n_best > 0:
             indices_best = self.get_indices_best_models(n_best, n_mod, key)
             print(avg_misfit[indices_best])
             print(avg_misfit.max())
             print(indices_best)
-        elif type(n_best)==float:
+        elif type(n_best) == float:
             if n_best <= 1:
                 # TODO make it a percentage of the number of models
-                indices_best = (np.where(avg_misfit 
-                    <= (1+n_best)*avg_misfit.min()))
+                indices_best = (np.where(avg_misfit
+                                         <= (1 + n_best) * avg_misfit.min()))
 
         cm = plt.get_cmap('Greys_r')
-        c_norm  = colors.Normalize(vmin=avg_misfit.min(),
-                                   vmax=avg_misfit.max()*1.1)
+        c_norm = colors.Normalize(vmin=avg_misfit.min(),
+                                  vmax=avg_misfit.max() * 1.1)
         scalar_map = cmx.ScalarMappable(norm=c_norm, cmap=cm)
 
         if 'color' not in kwargs:
@@ -204,7 +203,7 @@ class InversionResult:
         else:
             color = kwargs['color']
             kwargs.pop('color', None)
-        
+
         if ax is None:
             fig, ax = self.models[indices_best[0]].plot(
                 types=types, color=color, **kwargs)
@@ -219,11 +218,11 @@ class InversionResult:
 
         # model_ref.plot(ax=ax, types=[ParameterType.VPV], color='red')
         ax.get_legend().remove()
-        
+
         return fig, ax
 
     def get_indices_best_models(self, n_best=-1, n_mod=-1, key='variance'):
-        assert key in {'corr', 'variance'}
+        assert key in {'corr', 'variance', 'rolling_variance'}
         avg_misfit = self.misfit_dict[key].mean(axis=1)
         n_best = min(n_best, len(avg_misfit))
         n_mod = len(avg_misfit) if n_mod == -1 else n_mod
@@ -253,7 +252,7 @@ class InversionResult:
             component, self.windows, ax=ax,
             align_zero=True, color='black')
         if ('distance_min' in self.meta.keys()
-            and 'distance_max' in self.meta.keys()):
+                and 'distance_max' in self.meta.keys()):
             self.dataset.plot_event(
                 iev, self.windows, align_zero=True,
                 component=component, ax=ax,
@@ -267,18 +266,17 @@ class InversionResult:
 
     def save_convergence_curve(
             self, path, scale_arr, free_indices, smooth=True):
-        '''Save the convergence curve to path.
+        """Save the convergence curve to path.
 
         Args:
              path (str): path of the output figure.
-             result (InversionResult): inverion result.
              scale_arr (ndarray):
              free_indices (list of int):
              smooth (bool): average the variance points over each
                 iteration of the NA algorithm (n_s points)
                 (default is True).
 
-        '''
+        """
         perturbations_diff = self.get_model_perturbations_diff(
             self.meta['n_r'], scale=scale_arr,
             smooth=True, n_s=self.meta['n_s'])
@@ -300,18 +298,19 @@ class InversionResult:
         plt.savefig(path, bbox_inches='tight')
         plt.close(fig)
 
-    def save_variance_curve(self, path, result, smooth=True):
-        '''Save the variance curve to path.
+    def save_variance_curve(self, path, smooth=True):
+        """Save the variance curve to path.
 
         Args:
             path (str): path to the output figure.
-            result (InversionResult): inversion result.
             smooth (bool): average the variance points over each
                 iteration of the NA algorithm (n_s points)
                 (default is True).
 
-        '''
-        variances = result.get_variances(smooth=smooth, n_s=self.n_s)
+        """
+        variances = self.get_variances(
+            smooth=smooth, n_s=self.meta['n_s'],
+            key=self.meta['misfit_type'])
         x = np.arange(1, variances.shape[0] + 1)
 
         fig, ax = plt.subplots(1)

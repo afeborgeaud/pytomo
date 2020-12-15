@@ -191,19 +191,43 @@ class UniformMonteCarlo:
         return misfit_dict
 
     @staticmethod
-    def _rolling_variance_misfit(arr1, arr2, size, stride):
-        assert len(arr1) == len(arr2)
-        n = int((len(arr1) - size + 1) // stride)
+    def _rolling_variance_misfit(obs, syn, size, stride):
+        assert len(obs) == len(syn)
+        n = int((len(obs) - size + 1) // stride)
         indices = np.array(
             [np.arange(size) + stride * i
              for i in range(n)]
         )
-        residuals = arr1[indices] - arr2[indices]
-        residuals /= np.max(residuals, axis=1).reshape(-1, 1)
-        return np.sum(np.sum(residuals ** 2, axis=1))
+        residuals = np.abs(obs[indices] - syn[indices])
+        norm = np.max(obs[indices], axis=1).reshape(-1, 1)
+        residuals = np.true_divide(residuals, norm,
+                                     where=norm!=0,
+                                     out=np.zeros_like(residuals))
+        return np.sum(np.sum(residuals**2, axis=1)) / (n * size)
 
+    @staticmethod
+    def _variance(obs, syn):
+        assert len(obs) == len(syn)
+        return (np.dot(obs - syn,
+                      obs - syn)
+                / len(obs))
 
 if __name__ == '__main__':
+    import sys
+    x = np.linspace(0, 10 * np.pi, 10000)
+    arr1 = np.sin(x)
+    shifts = [i * np.pi / 10 for i in range(11)]
+    arrs = [np.sin(x + s) for s in shifts]
+    roll_vars = [
+        UniformMonteCarlo._rolling_variance_misfit(arr1, arrs[i], 500,
+                                                   250) for
+        i in range(len(arrs))]
+    vars = [UniformMonteCarlo._variance(arr1, arrs[i]) for
+        i in range(len(arrs))]
+    plt.plot(shifts, roll_vars)
+    plt.plot(shifts, vars)
+    plt.show()
+
     types = [ParameterType.VSH, ParameterType.VPH]
     radii = np.array([5701., 5971.])
     model_params = ModelParameters(types, radii)

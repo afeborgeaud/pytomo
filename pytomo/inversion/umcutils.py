@@ -101,7 +101,8 @@ class UniformMonteCarlo:
         indices_best = np.argsort(avg_var)[:n_best]
         return indices_best
 
-    def process_outputs(self, outputs, dataset, models, windows):
+    def process_outputs(
+            self, outputs, dataset, models, windows, **kwargs):
         """Process the output of compute_models_parallel().
 
         Args:
@@ -111,6 +112,7 @@ class UniformMonteCarlo:
             models (list of SeismicModel): seismic models
             windows (list of Window): time windows. See
                 windows_from_dataset()
+            kwargs (**dict): kwargs for the misfit functions.
 
         Returns:
             dict: values are
@@ -161,26 +163,24 @@ class UniformMonteCarlo:
                         u_cut_w = u_cut * weight
                         data_cut_w = data_cut * weight
                         noise_w = noise * weight
-                        corr = 0.5 * (
-                                1. - np.corrcoef(u_cut_w, data_cut_w)[0, 1])
-                        variance = (
-                                np.dot(u_cut_w - data_cut_w,
-                                       u_cut_w - data_cut_w)
-                                / len(data_cut_w))
-                        # / np.dot(data_cut_w, data_cut_w))
+                        corr = correlation(data_cut_w, u_cut_w)
+                        var = variance(data_cut_w, u_cut_w)
                         # rolling window variance
-                        size = int(10 * dataset.sampling_hz)
-                        stride = int(2 * dataset.sampling_hz)
-                        rolling_variance = (UniformMonteCarlo
-                            ._rolling_variance_misfit(
-                            u_cut, data_cut, size, stride))
+                        rolling_var = rolling_variance(
+                            u_cut, data_cut,
+                            kwargs['size'], kwargs['stride'])
                         corrs[imod, win_count] = corr
-                        variances[imod, win_count] = variance
-                        rolling_variances[imod, win_count] = rolling_variance
+                        variances[imod, win_count] = var
+                        rolling_variances[imod, win_count] = rolling_var
                         noises[imod, win_count] = noise_w
                         data_norms[imod, win_count] = np.dot(
                             data_cut_w, data_cut_w)
                         win_count += 1
+
+                        if rolling_var > 10000:
+                            plt.plot(data_cut)
+                            plt.plot(u_cut)
+                            plt.show()
 
         misfit_dict = {
             'corr': corrs,
@@ -190,40 +190,81 @@ class UniformMonteCarlo:
             'data_norm': data_norms}
         return misfit_dict
 
-    @staticmethod
-    def _rolling_variance_misfit(obs, syn, size, stride):
-        assert len(obs) == len(syn)
-        n = int((len(obs) - size + 1) // stride)
-        indices = np.array(
-            [np.arange(size) + stride * i
-             for i in range(n)]
-        )
-        residuals = np.abs(obs[indices] - syn[indices])
-        norm = np.max(obs[indices], axis=1).reshape(-1, 1)
-        residuals = np.true_divide(residuals, norm,
-                                     where=norm!=0,
-                                     out=np.zeros_like(residuals))
-        return np.sum(np.sum(residuals**2, axis=1)) / (n * size)
 
-    @staticmethod
-    def _variance(obs, syn):
-        assert len(obs) == len(syn)
-        return (np.dot(obs - syn,
-                      obs - syn)
-                / len(obs))
+def correlation(obs, syn):
+    """Return the zero-lag cross-correlation misfit.
+
+    Args:
+        obs (ndarray): observed waveforms.
+        syn (ndarray): synthetics.
+
+    Returns:
+        float: cross-correlation misfit
+
+    """
+    return 0.5 * (
+            1. - np.corrcoef(obs, syn)[0, 1])
+
+
+def variance(obs, syn):
+    """Return the variance of the obs-syn residual vector.
+
+    Args:
+        obs (ndarray): observed waveforms.
+        syn (ndarra): synthetics.
+
+    Returns:
+        float: variance(obs - syn)
+
+    """
+    assert len(obs) == len(syn)
+    return (np.dot(obs - syn,
+                   obs - syn)
+            / len(obs))
+
+
+def rolling_variance(obs, syn, size, stride):
+    """Return the variances of the obs-syn residual vectors
+    summed over a rolling window. The obs-syn residual is scaled to
+    max(abs(obs)) in each rolling window in order to give the same
+    importance to signals of different amplitudes.
+
+    Args:
+        obs (ndarray): observed waveforms.
+        syn (ndarray): synthetics.
+        size (int): length of the rolling window.
+        stride (int): stride length for the rolling window.
+
+    Returns:
+        float: rolling_variance(obs - syn).
+    """
+    assert len(obs) == len(syn)
+    n = int((len(obs) - size + 1) // stride)
+    indices = np.array(
+        [np.arange(size) + stride * i
+         for i in range(n)]
+    )
+    residuals = np.abs(obs[indices] - syn[indices])
+    norm = np.max(np.abs(obs[indices]), axis=1).reshape(-1, 1)
+    residuals = np.true_divide(residuals, norm,
+                               where=norm != 0,
+                               out=np.zeros_like(residuals))
+    return np.sum(np.sum(residuals ** 2, axis=1)) / (n * size)
+
 
 if __name__ == '__main__':
     import sys
+
     x = np.linspace(0, 10 * np.pi, 10000)
     arr1 = np.sin(x)
     shifts = [i * np.pi / 10 for i in range(11)]
     arrs = [np.sin(x + s) for s in shifts]
     roll_vars = [
-        UniformMonteCarlo._rolling_variance_misfit(arr1, arrs[i], 500,
-                                                   250) for
+        rolling_variance(arr1, arrs[i], 500,
+                         250) for
         i in range(len(arrs))]
-    vars = [UniformMonteCarlo._variance(arr1, arrs[i]) for
-        i in range(len(arrs))]
+    vars = [variance(arr1, arrs[i]) for
+            i in range(len(arrs))]
     plt.plot(shifts, roll_vars)
     plt.plot(shifts, vars)
     plt.show()

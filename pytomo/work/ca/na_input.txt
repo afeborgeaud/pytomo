@@ -1,7 +1,7 @@
 # length of the synthetics (in seconds)
 tlen 1638.4
 # number of frequency points for the synthetics
-nspc 256
+nspc 64
 # sampling frequency for the synthetics
 sampling_hz 20
 # computation mode. 0: p-sv+sh, 1: p-sv, 2: sh
@@ -40,3 +40,5 @@ components T
 convergence_threshold 0.02
 # misfit type
 misfit_type rolling_variance
+# misfit kwargs
+misfit_kwargs size:200 stride:100

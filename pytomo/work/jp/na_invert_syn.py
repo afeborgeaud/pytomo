@@ -23,16 +23,16 @@ model_ref, model_params = work_parameters.get_model_lininterp(
 # constraints to parameters
 mask_dict = dict()
 mask_dict[ParameterType.VSH] = np.ones(
-    model_params._n_grd_params//2, dtype='bool')
+    model_params._n_grd_params, dtype='bool')
 mask_dict[ParameterType.RADIUS] = np.zeros(
-    model_params._n_grd_params//2, dtype='bool')
+    model_params._n_grd_params, dtype='bool')
 mask_dict[ParameterType.VSH][0] = False
 mask_dict[ParameterType.VSH][-1] = False
 for i in range(2, 5):
     mask_dict[ParameterType.RADIUS][i] = True
 
 discon_arr = np.zeros(
-    model_params._n_grd_params//2, dtype='bool')
+    model_params._n_nodes, dtype='bool')
 discon_arr[2] = True
 discon_arr[4] = True
 

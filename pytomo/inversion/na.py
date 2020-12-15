@@ -47,6 +47,7 @@ class InputFile:
         params['seed'] = 42
         params['stf_catalog'] = None
         params['misfit_type'] = 'variance'
+        params['misfit_kwargs'] = None
         with open(self.input_file, 'r') as f:
             for line in f:
                 if line.strip().startswith('#'):
@@ -116,6 +117,10 @@ class InputFile:
             value_parsed = float(value)
         elif key == 'misfit_type':
             value_parsed = value.strip()
+        elif key == 'misfit_kwargs':
+            values = line.strip().split()[1:]
+            value_parsed = {x.split(':')[0]: int(x.split(':')[1])
+                            for x in values}
         else:
             print('Warning: key {} undefined. Ignoring.'.format(key))
             return None, None
@@ -162,6 +167,8 @@ class NeighbouhoodAlgorithm:
         misfit_type (str): misfit used to select the best models.
             ('variance', 'corr', 'rolling_variance'),
             (default is 'variance')
+        misfit_kwargs (dict): kwargs for the misfit function.
+            Used for rolling_variance. See umcutils.rolling_variance.
         seed (int): seed for the random generator.
         verbose (int): verbosity level.
         comm (MPI_COMM_WORLD): MPI communicator.
@@ -174,7 +181,8 @@ class NeighbouhoodAlgorithm:
             phases, components, t_before, t_after, filter_type,
             freq, freq2, sac_files, distance_min, distance_max,
             convergence_threshold,
-            stf_catalog, result_path, misfit_type, seed, verbose, comm):
+            stf_catalog, result_path, misfit_type, misfit_kwargs,
+            seed, verbose, comm):
         self.dataset = dataset
         self.model_ref = model_ref
         self.model_params = model_params
@@ -199,6 +207,7 @@ class NeighbouhoodAlgorithm:
         self.convergence_threshold = convergence_threshold
         self.stf_catalog = stf_catalog
         self.misfit_type = misfit_type
+        self.misfit_kwargs = misfit_kwargs
         self.seed = seed
         self.verbose = verbose
         self.comm = comm
@@ -215,6 +224,8 @@ class NeighbouhoodAlgorithm:
         self.result_path = os.path.join(self.out_dir, result_path)
 
         assert misfit_type in {'corr', 'variance', 'rolling_variance'}
+        if misfit_type == 'rolling_variance':
+            assert 'size' in misfit_kwargs and 'stride' in misfit_kwargs
 
     @classmethod
     def from_file(
@@ -260,6 +271,7 @@ class NeighbouhoodAlgorithm:
         verbose = params['verbose']
         convergence_threshold = params['convergence_threshold']
         misfit_type = params['misfit_type']
+        misfit_kwargs = params['misfit_kwargs']
 
         # fix 
         dataset.tlen = tlen
@@ -271,7 +283,8 @@ class NeighbouhoodAlgorithm:
             phases, components, t_before, t_after, filter_type,
             freq, freq2, sac_files, distance_min, distance_max,
             convergence_threshold,
-            stf_catalog, result_path, misfit_type, seed, verbose, comm)
+            stf_catalog, result_path, misfit_type, misfit_kwargs,
+            seed, verbose, comm)
 
     def get_meta(self):
         """Return the meta parameters of the NeighbourhoodAlgorithm
@@ -366,16 +379,16 @@ class NeighbouhoodAlgorithm:
 
     @staticmethod
     def _get_points_for_voronoi(perturbations, range_dict, types):
-        '''Get the voronoi points. These are the perturbations points
+        """Get the voronoi points. These are the perturbations points
         scaled to their maximum range (range_dict).
 
         Args:
             perturbations (list of ndarray): list of model perturbations.
 
         Return:
-            points (ndarray): voronoi points.
+            ndarray: voronoi points.
 
-        '''
+        """
         scale_arr = np.hstack(
             [range_dict[p][:, 1] - range_dict[p][:, 0]
              for p in types])
@@ -421,20 +434,20 @@ class NeighbouhoodAlgorithm:
         if rank == 0:
             self._filter_outputs(outputs)
             misfit_dict = umcutils.process_outputs(
-                outputs, dataset, models, windows)
+                outputs, dataset, models, windows, **self.misfit_kwargs)
             result.add_result(models, misfit_dict, perturbations)
 
     def compute(self, comm, log=None):
-        '''Run the NA inversion.
+        """Run the NA inversion.
 
         Args:
             comm (COMM_WORLD): MPI Communicator.
             log (str): path to a log file (default is None).
 
         Returns:
-            result (InversionResult): inversion result
+            InversionResult: inversion result object
 
-        '''
+        """
         rank = comm.Get_rank()
         if log is not None:
             log.write('Start running NA...\n')
@@ -517,8 +530,10 @@ class NeighbouhoodAlgorithm:
                     value_dict = dict()
                     for i, param_type in enumerate(self.model_params._types):
                         value_dict[param_type] = current_perturbations[
-                            (i * self.model_params._n_grd_params)
-                            :((i + 1) * self.model_params._n_grd_params)]
+                                                 (
+                                                             i * self.model_params._n_grd_params)
+                                                 :((
+                                                               i + 1) * self.model_params._n_grd_params)]
 
                     n_step = int(self.n_s // self.n_r)
 
@@ -694,6 +709,7 @@ class NeighbouhoodAlgorithm:
         x_unif = self.rng_gibbs.uniform(0, 1, 1)[0]
         x = self._bi_triangle_cfd_inv(x_unif, a, b)
         return x
+
 
 if __name__ == '__main__':
     comm = MPI.COMM_WORLD

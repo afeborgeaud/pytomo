@@ -38,3 +38,7 @@ phases S
 components T
 # convergence threshold
 convergence_threshold 0.02
+# misfit type
+misfit_type rolling_variance
+# misfit kwargs
+misfit_kwargs size:200 stride:100

@@ -1,13 +1,13 @@
 Inversion
 **********
 
-cmcutils
-~~~~~~~~~~~~~~~~~
-.. automodule:: pytomo.inversion.cmcutils
+umcutils
+~~~~~~~~
+.. automodule:: pytomo.inversion.umcutils
     :members:
 
 na
-~~~~~~~~~~~~~~~~~~~~~~
+~~
 .. automodule:: pytomo.inversion.na
     :members:
 
@@ -21,8 +21,8 @@ voronoi
 .. automodule:: pytomo.inversion.voronoi
     :members:
 
-modeutils
-~~~~~~~~~
+modelutils
+~~~~~~~~~~
 .. automodule:: pytomo.inversion.modelutils
     :members:
 

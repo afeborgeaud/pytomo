@@ -6,8 +6,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Index &#8212; pytomo 1.0a0 documentation</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
@@ -50,7 +50,10 @@
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
  | <a href="#P"><strong>P</strong></a>
+ | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
+ | <a href="#U"><strong>U</strong></a>
+ | <a href="#V"><strong>V</strong></a>
  
 </div>
 <h2 id="A">A</h2>
@@ -70,7 +73,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="reference/Inversion/index.html#pytomo.inversion.voronoi.compute_distances_to_points">compute_distances_to_points() (in module pytomo.inversion.voronoi)</a>
 </li>
-      <li><a href="reference/Inversion/index.html#pytomo.inversion.cmcutils.ConstrainedMonteCarloUtils">ConstrainedMonteCarloUtils (class in pytomo.inversion.cmcutils)</a>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.umcutils.correlation">correlation() (in module pytomo.inversion.umcutils)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -92,6 +95,8 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.umcutils.UniformMonteCarlo.get_best_models">get_best_models() (pytomo.inversion.umcutils.UniformMonteCarlo method)</a>
+</li>
       <li><a href="reference/Inversion/index.html#pytomo.inversion.na.NeighbouhoodAlgorithm.get_meta">get_meta() (pytomo.inversion.na.NeighbouhoodAlgorithm method)</a>
 </li>
   </ul></td>
@@ -108,14 +113,10 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="reference/Inversion/index.html#pytomo.inversion.voronoi.implicit_find_bound_for_dim">implicit_find_bound_for_dim() (in module pytomo.inversion.voronoi)</a>
 </li>
-      <li><a href="reference/Inversion/index.html#pytomo.inversion.cmcutils.InputFile">InputFile (class in pytomo.inversion.cmcutils)</a>
-
-      <ul>
-        <li><a href="reference/Inversion/index.html#pytomo.inversion.na.InputFile">(class in pytomo.inversion.na)</a>
-</li>
-      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.na.InputFile">InputFile (class in pytomo.inversion.na)</a>
+</li>
       <li><a href="reference/Inversion/index.html#pytomo.inversion.inversionresult.InversionResult">InversionResult (class in pytomo.inversion.inversionresult)</a>
 </li>
   </ul></td>
@@ -136,13 +137,13 @@
     module
 
       <ul>
-        <li><a href="reference/Inversion/index.html#module-pytomo.inversion.cmcutils">pytomo.inversion.cmcutils</a>
-</li>
         <li><a href="reference/Inversion/index.html#module-pytomo.inversion.inversionresult">pytomo.inversion.inversionresult</a>
 </li>
         <li><a href="reference/Inversion/index.html#module-pytomo.inversion.modelutils">pytomo.inversion.modelutils</a>
 </li>
         <li><a href="reference/Inversion/index.html#module-pytomo.inversion.na">pytomo.inversion.na</a>
+</li>
+        <li><a href="reference/Inversion/index.html#module-pytomo.inversion.umcutils">pytomo.inversion.umcutils</a>
 </li>
         <li><a href="reference/Inversion/index.html#module-pytomo.inversion.voronoi">pytomo.inversion.voronoi</a>
 </li>
@@ -165,15 +166,8 @@
 </li>
       <li><a href="reference/Inversion/index.html#pytomo.inversion.voronoi.plot_voronoi_2d">plot_voronoi_2d() (in module pytomo.inversion.voronoi)</a>
 </li>
-      <li><a href="reference/Inversion/index.html#pytomo.inversion.cmcutils.ConstrainedMonteCarloUtils.process_outputs">process_outputs() (pytomo.inversion.cmcutils.ConstrainedMonteCarloUtils method)</a>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.umcutils.UniformMonteCarlo.process_outputs">process_outputs() (pytomo.inversion.umcutils.UniformMonteCarlo method)</a>
 </li>
-      <li>
-    pytomo.inversion.cmcutils
-
-      <ul>
-        <li><a href="reference/Inversion/index.html#module-pytomo.inversion.cmcutils">module</a>
-</li>
-      </ul></li>
       <li>
     pytomo.inversion.inversionresult
 
@@ -181,8 +175,6 @@
         <li><a href="reference/Inversion/index.html#module-pytomo.inversion.inversionresult">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     pytomo.inversion.modelutils
 
@@ -190,11 +182,20 @@
         <li><a href="reference/Inversion/index.html#module-pytomo.inversion.modelutils">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     pytomo.inversion.na
 
       <ul>
         <li><a href="reference/Inversion/index.html#module-pytomo.inversion.na">module</a>
+</li>
+      </ul></li>
+      <li>
+    pytomo.inversion.umcutils
+
+      <ul>
+        <li><a href="reference/Inversion/index.html#module-pytomo.inversion.umcutils">module</a>
 </li>
       </ul></li>
       <li>
@@ -207,20 +208,44 @@
   </ul></td>
 </tr></table>
 
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.umcutils.rolling_variance">rolling_variance() (in module pytomo.inversion.umcutils)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="reference/Inversion/index.html#pytomo.inversion.inversionresult.InversionResult.save">save() (pytomo.inversion.inversionresult.InversionResult method)</a>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.umcutils.UniformMonteCarlo.sample_models">sample_models() (pytomo.inversion.umcutils.UniformMonteCarlo method)</a>
 </li>
-      <li><a href="reference/Inversion/index.html#pytomo.inversion.inversionresult.InversionResult.save_convergence_curve">save_convergence_curve() (pytomo.inversion.inversionresult.InversionResult method)</a>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.inversionresult.InversionResult.save">save() (pytomo.inversion.inversionresult.InversionResult method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.inversionresult.InversionResult.save_convergence_curve">save_convergence_curve() (pytomo.inversion.inversionresult.InversionResult method)</a>
+</li>
       <li><a href="reference/Inversion/index.html#pytomo.inversion.inversionresult.InversionResult.save_variance_curve">save_variance_curve() (pytomo.inversion.inversionresult.InversionResult method)</a>
 </li>
-      <li><a href="reference/Inversion/index.html#pytomo.inversion.cmcutils.ConstrainedMonteCarloUtils.smooth_damp_cov">smooth_damp_cov() (pytomo.inversion.cmcutils.ConstrainedMonteCarloUtils static method)</a>
-</li>
       <li><a href="reference/Inversion/index.html#pytomo.inversion.modelutils.std_boxcar_mesh">std_boxcar_mesh() (in module pytomo.inversion.modelutils)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.umcutils.UniformMonteCarlo">UniformMonteCarlo (class in pytomo.inversion.umcutils)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="reference/Inversion/index.html#pytomo.inversion.umcutils.variance">variance() (in module pytomo.inversion.umcutils)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -262,7 +287,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, Anselme Borgeaud.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
     </div>
   </body>
 </html>

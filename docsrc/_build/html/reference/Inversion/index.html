@@ -46,6 +46,7 @@
 <h1>Inversion<a class="headerlink" href="#inversion" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="module-pytomo.inversion.umcutils">
 <span id="umcutils"></span><h2>umcutils<a class="headerlink" href="#module-pytomo.inversion.umcutils" title="Permalink to this headline">¶</a></h2>
+<p>Utilities for the UniformMonteCarlo algorithm.</p>
 <dl class="py class">
 <dt id="pytomo.inversion.umcutils.UniformMonteCarlo">
 <em class="property">class </em><code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">UniformMonteCarlo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">model_params</span></em>, <em class="sig-param"><span class="n">range_dict</span></em>, <em class="sig-param"><span class="n">mesh_type</span><span class="o">=</span><span class="default_value">'boxcar'</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.UniformMonteCarlo" title="Permalink to this definition">¶</a></dt>
@@ -64,8 +65,52 @@ ParameterType:ndarray.</p></li>
 </dd>
 </dl>
 <dl class="py method">
-<dt id="pytomo.inversion.umcutils.UniformMonteCarlo.get_best_models">
-<code class="sig-name descname">get_best_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">misfit_dict</span></em>, <em class="sig-param"><span class="n">n_best</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'variance'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.UniformMonteCarlo.get_best_models" title="Permalink to this definition">¶</a></dt>
+<dt id="pytomo.inversion.umcutils.UniformMonteCarlo.sample_models">
+<code class="sig-name descname">sample_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ns</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.UniformMonteCarlo.sample_models" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample ns seismic models using a uniform distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ns</strong> (<em>int</em>) – number of models.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>list of sampled models.
+dict: model perturbations. Entries are of</p>
+<blockquote>
+<div><p>type ParameterType:ndarray of shape (ns, n_grid_params).</p>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list of SeismicModel</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="pytomo.inversion.umcutils.correlation">
+<code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">correlation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obs</span></em>, <em class="sig-param"><span class="n">syn</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.correlation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the zero-lag cross-correlation misfit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obs</strong> (<em>ndarray</em>) – observed waveforms.</p></li>
+<li><p><strong>syn</strong> (<em>ndarray</em>) – synthetics.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>cross-correlation misfit</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pytomo.inversion.umcutils.get_best_models">
+<code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">get_best_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">misfit_dict</span></em>, <em class="sig-param"><span class="n">n_best</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'variance'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.get_best_models" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the n_best best models. Should be used together with
 an InversionResult object.</p>
 <dl class="field-list simple">
@@ -92,9 +137,9 @@ model, as given by InversionResult.misfit_dict.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt id="pytomo.inversion.umcutils.UniformMonteCarlo.process_outputs">
-<code class="sig-name descname">process_outputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outputs</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">models</span></em>, <em class="sig-param"><span class="n">windows</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.UniformMonteCarlo.process_outputs" title="Permalink to this definition">¶</a></dt>
+<dl class="py function">
+<dt id="pytomo.inversion.umcutils.process_outputs">
+<code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">process_outputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outputs</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">models</span></em>, <em class="sig-param"><span class="n">windows</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.process_outputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Process the output of compute_models_parallel().</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -104,64 +149,19 @@ model, as given by InversionResult.misfit_dict.</p></li>
 one used for input to compute_models_parallel()</p></li>
 <li><p><strong>models</strong> (<em>list of SeismicModel</em>) – seismic models</p></li>
 <li><p><strong>windows</strong> (<em>list of Window</em>) – time windows. See
-windows_from_dataset()</p></li>
+windows_from_dataset().</p></li>
 <li><p><strong>kwargs</strong> (<a href="#id1"><span class="problematic" id="id2">**</span></a>dict) – kwargs for the misfit functions.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>values are</dt><dd><p>ndarray((n_models, n_windows))
-containing misfit values (corr, variance)</p>
+<dt>values are ndarray((n_models, n_windows))</dt><dd><p>containing misfit values (corr, variance).</p>
 </dd>
 </dl>
 </p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>dict</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="pytomo.inversion.umcutils.UniformMonteCarlo.sample_models">
-<code class="sig-name descname">sample_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ns</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.UniformMonteCarlo.sample_models" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sample ns seismic models using a uniform distribution.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>ns</strong> (<em>int</em>) – number of models.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>list of sampled models.
-perturbations (dict): model perturbations. Entries are of</p>
-<blockquote>
-<div><p>type ParameterType:ndarray of shape (ns, n_grid_params).</p>
-</div></blockquote>
-</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>models (list of SeismicModel)</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt id="pytomo.inversion.umcutils.correlation">
-<code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">correlation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obs</span></em>, <em class="sig-param"><span class="n">syn</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.correlation" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the zero-lag cross-correlation misfit.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>obs</strong> (<em>ndarray</em>) – observed waveforms.</p></li>
-<li><p><strong>syn</strong> (<em>ndarray</em>) – synthetics.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>cross-correlation misfit</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
@@ -214,7 +214,8 @@ importance to signals of different amplitudes.</p>
 </div>
 <div class="section" id="module-pytomo.inversion.na">
 <span id="na"></span><h2>na<a class="headerlink" href="#module-pytomo.inversion.na" title="Permalink to this headline">¶</a></h2>
-<p>Module for global optimization using the Neighbourhood algorithm.</p>
+<p>Module for global optimization using
+the Neighbourhood algorithm.</p>
 <dl class="py class">
 <dt id="pytomo.inversion.na.InputFile">
 <em class="property">class </em><code class="sig-prename descclassname">pytomo.inversion.na.</code><code class="sig-name descname">InputFile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_file</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.InputFile" title="Permalink to this definition">¶</a></dt>
@@ -311,6 +312,8 @@ key inputs.</p>
 <li><p><strong>range_dict</strong> (<em>dict</em>) – range of sampled perturbations. Entries
 are of type ParameterType:ndarray of shape
 (n_nodes, 2).</p></li>
+<li><p><strong>dataset</strong> (<em>Dataset</em>) – dataset</p></li>
+<li><p><strong>comm</strong> (<em>MPI_COMM_WOLRD</em>) – MPI communicator</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

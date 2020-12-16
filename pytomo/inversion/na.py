@@ -1,31 +1,28 @@
-"""Module for global optimization using the Neighbourhood algorithm.
+"""Module for global optimization using
+the Neighbourhood algorithm.
 
 """
 
 from pytomo.inversion.inversionresult import InversionResult
 from pytomo.inversion import modelutils
 from pytomo.inversion.umcutils import UniformMonteCarlo
+from pytomo.inversion.umcutils import get_best_models, process_outputs
 import pytomo.inversion.voronoi as voronoi
 from pytomo import utilities
 from dsmpy.seismicmodel import SeismicModel
 from dsmpy.modelparameters import ModelParameters, ParameterType
-from dsmpy.event import Event
-from dsmpy.station import Station
-from dsmpy.utils.cmtcatalog import read_catalog
 from dsmpy.dataset import Dataset
-from dsmpy.dsm import PyDSMInput, compute, compute_models_parallel
+from dsmpy.dsm import compute_models_parallel
 from dsmpy.windowmaker import WindowMaker
 from dsmpy.component import Component
 import numpy as np
 from mpi4py import MPI
-from scipy.spatial import voronoi_plot_2d, Voronoi
 import matplotlib.pyplot as plt
 import time
 import sys
 import os
 import glob
 import warnings
-import copy
 
 
 class InputFile:
@@ -241,6 +238,8 @@ class NeighbouhoodAlgorithm:
             range_dict (dict): range of sampled perturbations. Entries
                 are of type ParameterType:ndarray of shape
                 (n_nodes, 2).
+            dataset (Dataset): dataset
+            comm (MPI_COMM_WOLRD): MPI communicator
 
         Returns:
             NeighbourhoodAlgorithm: NeighbourhoodAlgorithm object
@@ -433,7 +432,7 @@ class NeighbouhoodAlgorithm:
 
         if rank == 0:
             self._filter_outputs(outputs)
-            misfit_dict = umcutils.process_outputs(
+            misfit_dict = process_outputs(
                 outputs, dataset, models, windows, **self.misfit_kwargs)
             result.add_result(models, misfit_dict, perturbations)
 
@@ -517,7 +516,7 @@ class NeighbouhoodAlgorithm:
                     self.model_params._types)
 
                 min_bounds, max_bounds = self._get_bounds_for_voronoi()
-                indices_best = umcutils.get_best_models(
+                indices_best = get_best_models(
                     result.misfit_dict, self.n_r, self.misfit_type)
 
                 models = []

@@ -125,7 +125,7 @@ if __name__ == '__main__':
                         outputs[imod][iev].filter(
                             freq, freq2, filter_type)
 
-            misfit_dict = cmc.process_outputs(
+            misfit_dict = process_outputs(
                 outputs, dataset, current_models, windows)
             result.add_result(current_models, misfit_dict)
 

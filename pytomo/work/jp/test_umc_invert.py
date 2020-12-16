@@ -104,7 +104,7 @@ if __name__ == '__main__':
                             freq, freq2, filter_type)
 
             if misfit_dict is None:
-                misfit_dict = cmc.process_outputs(
+                misfit_dict = process_outputs(
                     outputs, dataset, current_models, windows)
                 result = InversionResult(
                     dataset, current_models, windows, misfit_dict)

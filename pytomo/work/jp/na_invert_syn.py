@@ -26,10 +26,9 @@ mask_dict[ParameterType.VSH] = np.ones(
     model_params._n_grd_params, dtype='bool')
 mask_dict[ParameterType.RADIUS] = np.zeros(
     model_params._n_grd_params, dtype='bool')
-mask_dict[ParameterType.VSH][0] = False
-mask_dict[ParameterType.VSH][-1] = False
-for i in range(2, 5):
-    mask_dict[ParameterType.RADIUS][i] = True
+mask_dict[ParameterType.VSH][[0, 1]] = False
+mask_dict[ParameterType.VSH][[-1, -2]] = False
+mask_dict[ParameterType.RADIUS][[i for i in range(4, 10)]] = True
 
 discon_arr = np.zeros(
     model_params._n_nodes, dtype='bool')
@@ -48,7 +47,7 @@ for param_type in model_params._types:
         range_arr[4, 1] = 40.
         range_arr[5, 0] = -40.
         range_arr[5, 1] = 40.
-        range_arr[6, 0] = -65. # (250-2*40)/2 - 20
+        range_arr[6, 0] = -65.  # (250-2*40)/2 - 20
         range_arr[6, 1] = 65.
         range_arr[7, 0] = -65.
         range_arr[7, 1] = 65.
@@ -67,7 +66,8 @@ input_params = input.read()
 tlen = input_params['tlen']
 nspc = input_params['nspc']
 dataset, _ = work_parameters.get_dataset_syntest3(tlen=tlen, nspc=nspc,
-    mode=2, add_noise=False, noise_normalized_std=1.)
+                                                  mode=2, add_noise=False,
+                                                  noise_normalized_std=1.)
 
 na = NeighbouhoodAlgorithm.from_file(
     input_file, model_ref, model_params, range_dict,

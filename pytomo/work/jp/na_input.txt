@@ -7,7 +7,7 @@ sampling_hz 20
 # computation mode. 0: p-sv+sh, 1: p-sv, 2: sh
 mode 2
 # number of randomly sampled models
-n_mod 1100
+n_mod 440
 # number of model sampled at each step
 n_s 220
 # number of best-fitting models kept at each step
@@ -39,6 +39,6 @@ components T
 # convergence threshold
 convergence_threshold 0.02
 # misfit type
-misfit_type rolling_variance
+misfit_type variance
 # misfit kwargs
 misfit_kwargs size:200 stride:100

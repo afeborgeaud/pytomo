@@ -42,9 +42,9 @@ def get_model(
 def get_model_lininterp(
         n_mtz=10, n_lower_mantle=12,
         types=[ParameterType.VSH], discontinuous=True, verbose=0):
-    '''Boxcar mesh using ak135 as reference model for the structure of
+    """Boxcar mesh using ak135 as reference model for the structure of
         the upper mantle and transition zone down to 1000 km depth.
-    '''
+    """
     ak135 = SeismicModel.ak135()
     radii = np.array(
         [5371, 5611, 5711, 5836, 5961, 6161, 6251, 6336.6])

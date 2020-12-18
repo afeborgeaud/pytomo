@@ -37,10 +37,15 @@ class InputFile:
         self.input_file = input_file
 
     def read(self):
+        """Read from the input file into a dict.
+
+        Returns:
+            dict: input file parameters
+
+        """
         params = dict()
         params['verbose'] = 0
         params['filter_type'] = None
-        params['sac_files'] = None
         params['seed'] = 42
         params['stf_catalog'] = None
         params['misfit_type'] = 'variance'
@@ -61,10 +66,7 @@ class InputFile:
 
     def _parse_line(self, line):
         key, value = line.strip().split()[:2]
-        if key == 'sac_files':
-            full_path = os.path.expanduser(value.strip())
-            value_parsed = list(glob.iglob(full_path))
-        elif key == 'tlen':
+        if key == 'tlen':
             value_parsed = float(value)
         elif key == 'nspc':
             value_parsed = int(value)
@@ -125,7 +127,7 @@ class InputFile:
 
 
 class NeighbouhoodAlgorithm:
-    """Implements a neighbourhood algorithm
+    """Implements the Neighbourhood Algorithm
 
     Args:
         dataset (Dataset): dataset.
@@ -155,7 +157,6 @@ class NeighbouhoodAlgorithm:
         freq (float): minimum frequency of the filter (in Hz)
         freq2 (float): maximum frequency of the filter (in Hz). Used
             only for bandpass filter.
-        sac_files (list of str): list of paths to sac files.
         distance_min (float): minimum epicentral distance (in degree).
         distance_max (float): maximum epicentral distance (in degree).
         convergence_threshold (float): convergence threshold
@@ -176,7 +177,7 @@ class NeighbouhoodAlgorithm:
             self, dataset, model_ref, model_params, range_dict, tlen, nspc,
             sampling_hz, mode, n_mod, n_s, n_r,
             phases, components, t_before, t_after, filter_type,
-            freq, freq2, sac_files, distance_min, distance_max,
+            freq, freq2, distance_min, distance_max,
             convergence_threshold,
             stf_catalog, result_path, misfit_type, misfit_kwargs,
             seed, verbose, comm):
@@ -198,7 +199,6 @@ class NeighbouhoodAlgorithm:
         self.filter_type = filter_type
         self.freq = freq
         self.freq2 = freq2
-        self.sac_files = sac_files
         self.distance_min = distance_min
         self.distance_max = distance_max
         self.convergence_threshold = convergence_threshold
@@ -261,7 +261,6 @@ class NeighbouhoodAlgorithm:
         filter_type = params['filter_type']
         freq = params['freq']
         freq2 = params['freq2']
-        sac_files = None
         distance_min = params['distance_min']
         distance_max = params['distance_max']
         stf_catalog = params['stf_catalog']
@@ -280,7 +279,7 @@ class NeighbouhoodAlgorithm:
             dataset, model_ref, model_params, range_dict, tlen, nspc,
             sampling_hz, mode, n_mod, n_s, n_r,
             phases, components, t_before, t_after, filter_type,
-            freq, freq2, sac_files, distance_min, distance_max,
+            freq, freq2, distance_min, distance_max,
             convergence_threshold,
             stf_catalog, result_path, misfit_type, misfit_kwargs,
             seed, verbose, comm)
@@ -299,7 +298,7 @@ class NeighbouhoodAlgorithm:
             n_s=self.n_s, n_r=self.n_r, phases=self.phases,
             components=self.components, t_before=self.t_before,
             t_after=self.t_after, filter_type=self.filter_type,
-            freq=self.freq, freq2=self.freq2, sac_files=self.sac_files,
+            freq=self.freq, freq2=self.freq2,
             distance_min=self.distance_min, distance_max=self.distance_max,
             convergence_threshold=self.convergence_threshold,
             stf_catalog=self.stf_catalog, result_path=self.result_path,
@@ -308,12 +307,13 @@ class NeighbouhoodAlgorithm:
         )
 
     @classmethod
-    def from_file_with_default(cls, input_file_path, comm):
+    def from_file_with_default(cls, input_file_path, dataset, comm):
         """Build a NeighbourhoodAlgorithm from an input file and
         default values.
 
         Args:
             input_file_path (str): path of the input file
+            dataset (Dataset): dataset.
             comm (COMM_WORLD): MPI communicator
 
         Returns:
@@ -341,10 +341,6 @@ class NeighbouhoodAlgorithm:
             range_arr[:, 1] = 0.5
             range_dict[param_type] = range_arr
 
-        # create dataset
-        dataset = Dataset.dataset_from_sac(
-            params['sac_files'], headonly=False)
-
         return cls.from_file(
             input_file_path, model_ref, model_params,
             range_dict, dataset, comm)
@@ -365,8 +361,9 @@ class NeighbouhoodAlgorithm:
             windows += windows_tmp
         windows = [
             w for w in windows
-            if w.get_epicentral_distance() >= self.distance_min
-               and w.get_epicentral_distance() <= self.distance_max]
+            if
+            self.distance_min <= w.get_epicentral_distance()
+            <= self.distance_max]
         return windows
 
     def _filter_outputs(self, outputs):
@@ -715,7 +712,10 @@ if __name__ == '__main__':
     n_cores = comm.Get_size()
     rank = comm.Get_rank()
 
-    na = NeighbouhoodAlgorithm.from_file_with_default(sys.argv[1], comm)
+    dataset = None
+
+    na = NeighbouhoodAlgorithm.from_file_with_default(
+        sys.argv[1], dataset, comm)
 
     log_path = os.path.join(
         na.out_dir, 'log_{}'.format(rank))

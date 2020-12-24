@@ -44,11 +44,16 @@ class SourceSelection:
             sac_files, headonly=True)
 
     def select(self, event):
-        """Check if event satisfies criteria
+        """Check if the event satisfies the selection criteria
+
         Args:
-            event (pydsm.Event): seismic event
+            event (Event): seismic event.
+
+        Returns:
+            bool: true if the event satisfies the selection criteria.
+
         """
-        iev = np.argwhere(self.dataset.events == event)[0]
+        iev = np.argwhere(self.dataset.events == event)[0][0]
         start, end = self.dataset.get_bounds_from_event_index(iev)
         stations = self.dataset.stations[start:end]
 
@@ -66,7 +71,8 @@ class SourceSelection:
             return False
         distances = np.array([event.get_epicentral_distance(station)
                               for station in stations])
-        n_within = (distances >= dist_min & distances <= dist_max).sum()
+        n_within = (
+            (distances >= self.dist_min) & (distances <= self.dist_max)).sum()
         if n_within < self.n_within_dist:
             return False
         return True
@@ -100,7 +106,6 @@ class SourceSelection:
         X_scaled[:, 2] *= 2
         dists_max = []
         found = False
-        print(X_scaled.shape)
         if max_clusters > X_scaled.shape[0]:
             max_clusters = X_scaled.shape[0]
         for i in range(1, max_clusters):
@@ -119,7 +124,8 @@ class SourceSelection:
                 found = True
         if not found:
             print('Maximum distance of {} not reached'.format(max_dist))
-            kmeans_best = kmeans
+            kmeans_best = KMeans(n_clusters=1, random_state=0)
+            kmeans_best.fit(X_scaled)
         # plt.plot(list(range(1, max_clusters)), dists_max)
         # plt.show()
         centers = scaler.inverse_transform(kmeans_best.cluster_centers_)

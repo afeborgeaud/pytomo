@@ -1,5 +1,5 @@
-from pydsm.utils import cmtcatalog
-from pydsm.dataset import Dataset
+from dsmpy.utils import cmtcatalog
+from dsmpy.dataset import Dataset
 import numpy as np
 from functools import partial
 import matplotlib.pyplot as plt
@@ -245,13 +245,16 @@ def load_event_clusters(path):
 if __name__ == '__main__':
     catalog = cmtcatalog.read_catalog()
 
-    dep_min = 150
+    dep_min = 100
     dep_max = 800
-    dist_min = 15
-    dist_max = 25
+    dist_min = 10
+    dist_max = 35
     Mw_min = 5.3
     Mw_max = 7.
     start_date = datetime(2000, 1, 1)
+    max_clusters = 50
+    max_dist_in_km = 220.
+    min_n_event = 2
 
     sac_files = glob.glob(
         '/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/20*/*T')
@@ -272,14 +275,14 @@ if __name__ == '__main__':
                     and e.longitude < 165]
 
     cluster_labels, cluster_centers = selector.cluster(
-        catalog_filt, max_clusters=50, max_dist=220)
+        catalog_filt, max_clusters=max_clusters, max_dist=max_dist_in_km)
 
     _, counts = np.unique(cluster_labels, return_counts=True)
-    cluster_centers_keep = cluster_centers[counts >= 2]
+    cluster_centers_keep = cluster_centers[counts >= min_n_event]
     catalog_keep = [e for i, e in enumerate(catalog_filt)
-                    if counts[cluster_labels[i]] >= 2]
+                    if counts[cluster_labels[i]] >= min_n_event]
     cluster_labels_keep = [label for i, label in enumerate(cluster_labels)
-                           if counts[cluster_labels[i]] >= 2]
+                           if counts[cluster_labels[i]] >= min_n_event]
 
     print("n_events={}\nn_clusters={}"
           .format(len(catalog_keep), len(cluster_centers_keep)))

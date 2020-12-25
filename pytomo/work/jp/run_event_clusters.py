@@ -1,19 +1,10 @@
 from pytomo.dataset.sourceselection import SourceSelection
-from pytomo.dataset.sourceselection import save_event_clusters
-from pytomo.dataset.sourceselection import get_clusters_as_list
+import pytomo.dataset.sourcecluster as sc
 from dsmpy.utils import cmtcatalog
-from dsmpy.dataset import Dataset
 import numpy as np
-from functools import partial
-import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 from datetime import datetime
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-import pandas as pd
-import seaborn as sns
 import glob
-import pickle
+
 
 if __name__ == '__main__':
     catalog = cmtcatalog.read_catalog()
@@ -27,7 +18,7 @@ if __name__ == '__main__':
     start_date = datetime(2000, 1, 1)
     max_clusters = 50
     max_dist_in_km = 220.
-    min_n_event = 1
+    min_cluster_size = 2
 
     sac_files = glob.glob(
         '/mnt/ntfs/anselme/work/japan/DATA/2*/*T')
@@ -42,36 +33,28 @@ if __name__ == '__main__':
 
     print('len(catalog)={}'.format(catalog_filt.shape))
 
-    # exclude Philippines and Aleutians eqs
-    # catalog_filt = [e for e in catalog_filt
-    #                 if not (e.longitude < 140 and e.latitude < 18)
-    #                 and e.longitude < 165]
+    # exclude Philippines and Aleutians events
+    catalog_filt = [e for e in catalog_filt
+                    if not (e.longitude < 140 and e.latitude < 18)
+                    and e.longitude < 165]
 
-    cluster_labels, cluster_centers = selector.cluster(
+    cluster_labels, cluster_centers = sc.cluster(
         catalog_filt, max_clusters=max_clusters, max_dist=max_dist_in_km)
 
-    _, counts = np.unique(cluster_labels, return_counts=True)
-    cluster_centers_keep = cluster_centers[counts >= min_n_event]
-    catalog_keep = [e for i, e in enumerate(catalog_filt)
-                    if counts[cluster_labels[i]] >= min_n_event]
-    cluster_labels_keep = np.array(
-        [label for i, label in enumerate(cluster_labels)
-         if counts[cluster_labels[i]] >= min_n_event])
+    df = sc.get_dataframe(
+        catalog, cluster_centers, cluster_labels, min_cluster_size)
 
     print("n_events={}\nn_clusters={}"
-          .format(len(catalog_keep), len(cluster_centers_keep)))
+          .format(len(df), len(df.label.nunique())))
 
-    df = selector.get_dataframe(
-        catalog_keep, cluster_centers, cluster_labels_keep)
-
-    # selector.plot(
-    #    catalog_keep, projection='cyl',
-    #    lon_min=120, lon_max=160, lat_min=10, lat_max=60,
-    #    cluster_labels=cluster_labels_keep)
+    sc.plot(
+       df.event, projection='cyl',
+       lon_min=120, lon_max=160, lat_min=10, lat_max=60,
+       cluster_labels=df.label)
 
     df.index = list(range(len(df)))
     df.to_csv('clusters.txt', sep=' ')
-    selector.plot_cartesian(df)
+    sc.plot_cartesian(df)
 
-    event_clusters = get_clusters_as_list(cluster_labels_keep, catalog_keep)
-    save_event_clusters('event_cluster.pkl', event_clusters)
+    event_clusters = df.groupby('label')['event'].apply(list)
+    sc.save_event_clusters('event_cluster.pkl', event_clusters)

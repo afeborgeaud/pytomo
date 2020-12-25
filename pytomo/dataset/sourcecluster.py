@@ -96,7 +96,7 @@ def get_dataframe(
 def _set_min_cluster_size(df, size):
     counts = df['label'].value_counts(sort=False)
     large_counts = counts[counts >= size]
-    return df[df.label in large_counts]
+    return df[df.label.isin(large_counts)]
 
 def plot(
         catalog, lon_min=-180, lon_max=180, lat_min=90, lat_max=90,

@@ -84,7 +84,10 @@ def get_dataframe(
     deps = [e.depth for e in catalog]
     clon = [c[0] for c in centers_expanded]
     clat = [c[1] for c in centers_expanded]
-    cdep = [1 if c[2] > 0.5 else 0 for c in centers_expanded]
+    if (cluster_centers.shape[1] == 3):
+        cdep = [1 if c[2] > 0.5 else 0 for c in centers_expanded]
+    else:
+        cdep = [0 for i in range(len(centers_expanded))]
     mws = [e.mt.Mw for e in catalog]
     data = dict(
         event=catalog, lat=lats, lon=lons, dep=deps, mw=mws,

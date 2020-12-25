@@ -18,7 +18,7 @@ if __name__ == '__main__':
     start_date = datetime(2000, 1, 1)
     max_clusters = 50
     max_dist_in_km = 220.
-    min_cluster_size = 2
+    min_cluster_size = 1
 
     sac_files = glob.glob(
         '/mnt/ntfs/anselme/work/japan/DATA/2*/*T')
@@ -42,7 +42,7 @@ if __name__ == '__main__':
         catalog_filt, max_clusters=max_clusters, max_dist=max_dist_in_km)
 
     df = sc.get_dataframe(
-        catalog, cluster_centers, cluster_labels, min_cluster_size)
+        catalog_filt, cluster_centers, cluster_labels, min_cluster_size)
 
     print("n_events={}\nn_clusters={}"
           .format(len(df), len(df.label.nunique())))

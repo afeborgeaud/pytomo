@@ -21,17 +21,21 @@ def _cat_depth(depth):
     return depth_cat
 
 
-def _get_X(catalog):
+def _get_X(catalog, use_depth=False):
     X = np.zeros((len(catalog), 3), dtype=np.float32)
     X_cat = np.zeros((len(catalog), 3), dtype=np.float32)
     r = 6371
     for i, e in enumerate(catalog):
         x = np.radians(e.longitude + 180.) * r
         y = np.radians(e.latitude + 90) * r
-        z_cat = _cat_depth(e.depth)
-        z = e.depth
-        X[i] = np.array([x, y, z])
-        X_cat[i] = np.array([x, y, z_cat])
+        if use_depth:
+            z_cat = _cat_depth(e.depth)
+            z = e.depth
+            X[i] = np.array([x, y, z])
+            X_cat[i] = np.array([x, y, z_cat])
+        else:
+            X[i] = np.array([x, y])
+            X_cat[i] = np.array([x, y])
     return X_cat, X
 
 
@@ -40,7 +44,8 @@ def cluster(catalog, max_clusters=50, max_dist=400):
     scaler = StandardScaler()
     scaler.fit(X_cat)
     X_scaled = scaler.transform(X_cat)
-    X_scaled[:, 2] *= 2
+    if X_scaled.shape[1] == 3:
+        X_scaled[:, 2] *= 2
     dists_max = []
     found = False
     if max_clusters > X_scaled.shape[0]:
@@ -63,10 +68,9 @@ def cluster(catalog, max_clusters=50, max_dist=400):
         print('Maximum distance of {} not reached'.format(max_dist))
         kmeans_best = KMeans(n_clusters=1, random_state=0)
         kmeans_best.fit(X_scaled)
-    # plt.plot(list(range(1, max_clusters)), dists_max)
-    # plt.show()
+
     centers = scaler.inverse_transform(kmeans_best.cluster_centers_)
-    centers[:, :2] = np.degrees(centers[:, :2] / 2. / 6371.)
+    centers[:, :2] = np.degrees(centers[:, :2] / 6371.)
 
     return kmeans_best.labels_, centers
 

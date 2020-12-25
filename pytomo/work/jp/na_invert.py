@@ -17,8 +17,11 @@ rank = comm.Get_rank()
 input_file = sys.argv[1]
 
 # Set the SAC file paths
-sac_path = "/mnt/ntfs/anselme/work/japan/DATA/200503171337A/*T"
+sac_path = "/mnt/ntfs/anselme/work/japan/DATA/2*/*T"
 sac_files = list(glob.iglob(sac_path))
+
+# Create the dataset
+dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
 
 # Set the model parameters
 types = [ParameterType.VSH, ParameterType.RADIUS]
@@ -64,9 +67,6 @@ for param_type in model_params._types:
         range_arr[:, 0] = -0.3
         range_arr[:, 1] = 0.3
     range_dict[param_type] = range_arr
-
-# Create the dataset
-dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
 
 # create NeighbouhoodAlgorithm object
 na = NeighbouhoodAlgorithm.from_file(

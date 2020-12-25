@@ -27,9 +27,9 @@ distance_min 10.
 # maximum epicentral distance in degree
 distance_max 35.
 # time before arrival for window
-t_before 10.
+t_before 20.
 # time after arrival for window
-t_after 70.
+t_after 50.
 # random seed
 seed 0
 # phases

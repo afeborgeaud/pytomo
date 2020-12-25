@@ -45,7 +45,7 @@ if __name__ == '__main__':
         catalog_filt, cluster_centers, cluster_labels, min_cluster_size)
 
     print("n_events={}\nn_clusters={}"
-          .format(len(df), len(df.label.nunique())))
+          .format(len(df), df.label.nunique()))
 
     sc.plot(
        df.event, projection='cyl',

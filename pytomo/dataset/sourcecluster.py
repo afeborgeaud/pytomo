@@ -144,11 +144,11 @@ def plot(
 def plot_cartesian(df, palette=None):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 5))
     n_labels = len(df.label.unique())
-    nh = 5
-    ns = 3
+    nh = min(df.label.max(), 5)
+    ns = min(df.label.max(), 3)
     palette = sns.color_palette('bright', nh)
-    styles = np.mod(df.label.values, ns)
-    hues = np.mod(df.label.values, nh)
+    styles = np.mod(df.label.values-1, ns)
+    hues = np.mod(df.label.values-1, nh)
     sns.scatterplot(
         x='lon', y='lat', hue=hues, style=styles, data=df, ax=ax1,
         palette=palette, legend=None, s=10, edgecolor=None)

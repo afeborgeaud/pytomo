@@ -22,8 +22,9 @@ def _cat_depth(depth):
 
 
 def _get_X(catalog, use_depth=False):
-    X = np.zeros((len(catalog), 3), dtype=np.float32)
-    X_cat = np.zeros((len(catalog), 3), dtype=np.float32)
+    n_dim = 3 if use_depth else 2
+    X = np.zeros((len(catalog), n_dim), dtype=np.float32)
+    X_cat = np.zeros((len(catalog), n_dim), dtype=np.float32)
     r = 6371
     for i, e in enumerate(catalog):
         x = np.radians(e.longitude + 180.) * r

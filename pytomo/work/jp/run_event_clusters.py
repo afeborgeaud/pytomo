@@ -60,5 +60,5 @@ if __name__ == '__main__':
     fig, axes = sc.plot_cartesian(df)
     plt.savefig('cluster_cartesian.pdf', bbox_inches='tight')
 
-    event_clusters = df.groupby('label')['event'].apply(list)
+    event_clusters = sc.get_clusters_as_list(df)
     sc.save_event_clusters('event_cluster.pkl', event_clusters)

@@ -165,22 +165,17 @@ def plot_cartesian(df, palette=None):
     return fig, (ax1, ax2)
 
 
-def get_clusters_as_list(labels, events):
+def get_clusters_as_list(df):
     """Return a list of list of Event
 
     Args:
-        labels (ndarray): cluster labels
-        events (list of Event): events
+        df (DataFrame): see get_dataframe()
 
     Returns:
         list ot list of Event: list of event clusters
 
     """
-    n_cluster = labels.max()
-    clusters = [[] for i in range(n_cluster)]
-    for label in labels:
-        clusters[label].append(events[label])
-    return [cluster for cluster in clusters if len(cluster) > 0]
+    return df.groupby('label')['event'].apply(list).values.tolist()
 
 
 def save_event_clusters(path, event_clusters):
@@ -206,7 +201,7 @@ def load_event_clusters(path):
 
     """
     with open(path, 'rb') as f:
-        clusters = pickle.load(path)
+        clusters = pickle.load(f)
     return clusters
 
 

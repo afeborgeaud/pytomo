@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-from mpl_toolkits.basemap import Basemap
+import cartopy
+import cartopy.crs as ccrs
+from cartopy.mpl.gridliner import LATITUDE_FORMATTER, LONGITUDE_FORMATTER
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import seaborn as sns
@@ -108,41 +110,39 @@ def _set_min_cluster_size(df, size):
 
 def plot(
         catalog, lon_min=-180, lon_max=180, lat_min=90, lat_max=90,
-        projection='robin', lon_0=-180, cluster_labels=None,
+        proj=ccrs.PlateCarree(), lon_0=-180, cluster_labels=None,
         cmap=None):
-    fig, ax = plt.subplots()
-
-    m = Basemap(resolution='i', projection=projection, lon_0=lon_0,
-                llcrnrlon=lon_min, urcrnrlon=lon_max,
-                llcrnrlat=lat_min, urcrnrlat=lat_max, ax=ax)
-    m.drawcoastlines()
-    m.drawmapboundary(fill_color=None)
-    m.fillcontinents(color='wheat', lake_color='white')
-
-    m.drawparallels(
-        np.arange(-80., 81., 20.), labels=[True, False, False, False],
-        labelstyle='+/-', fontsize=10)
-    m.drawmeridians(
-        np.arange(-180., 181., 20.), labels=[False, False, False, True],
-        labelstyle='+/-', fontsize=10)
+    fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj))
+    ax.coastlines(resolution='50m', color='black', linewidth=1.)
+    gl = ax.gridlines(color='black', linewidth=.5, linestyle='--')
+    gl.bottom_labels = True
+    gl.left_labels = True
+    ax.add_feature(cartopy.feature.OCEAN, zorder=0)
+    ax.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
+    ax.set_xlim(lon_min, lon_max)
+    ax.set_ylim(lat_min, lat_max)
+    # ax.xaxis.set_major_formatter(LONGITUDE_FORMATTER)
+    # ax.yaxis.set_major_formatter(LATITUDE_FORMATTER)
+    # ax.xaxis.tick_bottom()
+    # ax.yaxis.tick_left()
 
     lons = [event.longitude for event in catalog]
     lats = [event.latitude for event in catalog]
-    x_eq, y_eq = m(lons, lats)
     if cluster_labels is None:
-        m.scatter(x_eq, y_eq, marker='*', color='r', s=5, zorder=10)
+        plt.scatter(
+            lons, lats, marker='*', color='r', s=5, zorder=10,
+            transform=proj)
     else:
         if cmap is None:
             cmap = ListedColormap(sns.color_palette('bright', 10).as_hex())
             labels = np.mod(cluster_labels, 10)
         else:
             labels = cluster_labels
-        m.scatter(
-            x_eq, y_eq, marker='*', c=labels, s=12, zorder=10,
-            cmap=cmap)
-    # m.drawcoastlines(zorder=10)
+        plt.scatter(
+            lons, lats, marker='*', c=labels, s=12, zorder=10,
+            cmap=cmap, transform=proj)
 
-    plt.savefig('map.pdf', bbox_inches='tight')
+    return fig, ax
 
 
 def plot_cartesian(df, palette=None):
@@ -161,7 +161,8 @@ def plot_cartesian(df, palette=None):
         palette=palette, legend=None, s=10, edgecolor=None)
     ax1.set(xlabel='Longitude (deg)', ylabel='Latitude (deg)')
     ax2.set(xlabel='Depth (km)', ylabel='Latitude (deg)')
-    plt.savefig('clusters_cart.pdf', bbox_inches='tight')
+
+    return fig, (ax1, ax2)
 
 
 def get_clusters_as_list(labels, events):

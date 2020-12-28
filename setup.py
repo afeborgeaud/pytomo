@@ -29,6 +29,9 @@ if __name__ == '__main__':
             'geographiclib',
             'dsmpy',
             'numpy',
+            'sklearn',
+            'cartopy',
+            'seaborn',
         ],
         python_requires='>=3.7',
         package_data={

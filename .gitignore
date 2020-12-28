@@ -15,3 +15,4 @@ build
 venv
 .idea
 pip-wheel-metadata
+**/*.pyc

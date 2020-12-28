@@ -9,5 +9,8 @@ requires = [
     'matplotlib',
     'geographiclib',
     "numpy",
+    "sklearn",
+    "cartopy",
+    "seaborn",
 ]
 build-backend = 'setuptools.build_meta'

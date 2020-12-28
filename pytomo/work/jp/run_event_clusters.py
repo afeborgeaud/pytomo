@@ -4,6 +4,8 @@ from dsmpy.utils import cmtcatalog
 import numpy as np
 from datetime import datetime
 import glob
+import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
@@ -47,14 +49,16 @@ if __name__ == '__main__':
     print("n_events={}\nn_clusters={}"
           .format(len(df), df.label.nunique()))
 
-    sc.plot(
-       df.event, projection='cyl',
+    fig, ax = sc.plot(
+       df.event, proj=ccrs.PlateCarree(),
        lon_min=120, lon_max=160, lat_min=10, lat_max=60,
        cluster_labels=df.label)
+    plt.savefig('cluster_map.pdf', bbox_inches='tight')
 
     df.index = list(range(len(df)))
     df.to_csv('clusters.txt', sep=' ')
-    sc.plot_cartesian(df)
+    fig, axes = sc.plot_cartesian(df)
+    plt.savefig('cluster_cartesian.pdf', bbox_inches='tight')
 
     event_clusters = df.groupby('label')['event'].apply(list)
     sc.save_event_clusters('event_cluster.pkl', event_clusters)

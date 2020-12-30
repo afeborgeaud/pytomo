@@ -6,6 +6,20 @@ Documentation and tutorials can be found [here](https://afeborgeaud.github.io/py
 
 # Installation
 
+### Requirements
+- Working implementation of MPI
+- Libraries for Python dev
+```bash
+sudo apt-get install python3-dev
+```
+- Install GEOS lib dev, which are required by cartopy
+```bash
+sudo apt-get install libgeos-dev
+```
+```bash
+sudo apt-get install libproj-dev proj-data proj-bin
+```
+
 ### Build from source
 1) Clone the pytomo repository
 ```

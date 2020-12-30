@@ -27,7 +27,7 @@ def _get_X(catalog, use_depth=False):
     n_dim = 3 if use_depth else 2
     X = np.zeros((len(catalog), n_dim), dtype=np.float32)
     X_cat = np.zeros((len(catalog), n_dim), dtype=np.float32)
-    r = 6371
+    r = 6371.
     for i, e in enumerate(catalog):
         x = np.radians(e.longitude + 180.) * r
         y = np.radians(e.latitude + 90) * r
@@ -74,6 +74,8 @@ def cluster(catalog, max_clusters=50, max_dist=400):
 
     centers = scaler.inverse_transform(kmeans_best.cluster_centers_)
     centers[:, :2] = np.degrees(centers[:, :2] / 6371.)
+    centers[:, 0] -= 180.
+    centers[:, 1] -= 90.
 
     return kmeans_best.labels_, centers
 
@@ -109,7 +111,7 @@ def _set_min_cluster_size(df, size):
     return large_df
 
 def plot(
-        catalog, lon_min=-180, lon_max=180, lat_min=90, lat_max=90,
+        df, lon_min=-180, lon_max=180, lat_min=90, lat_max=90,
         proj=ccrs.PlateCarree(), lon_0=-180, cluster_labels=None,
         cmap=None):
     fig, ax = plt.subplots(1, 1, subplot_kw=dict(projection=proj))
@@ -121,13 +123,10 @@ def plot(
     ax.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
     ax.set_xlim(lon_min, lon_max)
     ax.set_ylim(lat_min, lat_max)
-    # ax.xaxis.set_major_formatter(LONGITUDE_FORMATTER)
-    # ax.yaxis.set_major_formatter(LATITUDE_FORMATTER)
-    # ax.xaxis.tick_bottom()
-    # ax.yaxis.tick_left()
 
-    lons = [event.longitude for event in catalog]
-    lats = [event.latitude for event in catalog]
+
+    lons = [event.longitude for event in df.event]
+    lats = [event.latitude for event in df.event]
     if cluster_labels is None:
         plt.scatter(
             lons, lats, marker='*', color='r', s=5, zorder=10,
@@ -141,6 +140,11 @@ def plot(
         plt.scatter(
             lons, lats, marker='*', c=labels, s=12, zorder=10,
             cmap=cmap, transform=proj)
+
+        for i, row in df.drop_duplicates(subset=['label']).iterrows():
+            ax.text(
+                row.clon, row.clat, str(row.label),
+                transform=proj, color='red')
 
     return fig, ax
 

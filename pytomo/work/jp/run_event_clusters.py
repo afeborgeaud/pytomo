@@ -23,7 +23,7 @@ if __name__ == '__main__':
     min_cluster_size = 1
 
     sac_files = glob.glob(
-        '/mnt/ntfs/anselme/work/japan/DATA/2*/*T')
+        '/work/anselme/japan/DATA/2*/*T')
 
     selector = SourceSelection(
         sac_files, dep_min=dep_min, dep_max=dep_max, Mw_min=Mw_min,
@@ -50,7 +50,7 @@ if __name__ == '__main__':
           .format(len(df), df.label.nunique()))
 
     fig, ax = sc.plot(
-       df.event, proj=ccrs.PlateCarree(),
+       df, proj=ccrs.PlateCarree(),
        lon_min=120, lon_max=160, lat_min=10, lat_max=60,
        cluster_labels=df.label)
     plt.savefig('cluster_map.pdf', bbox_inches='tight')

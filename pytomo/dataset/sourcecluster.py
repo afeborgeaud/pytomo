@@ -144,7 +144,7 @@ def plot(
         for i, row in df.drop_duplicates(subset=['label']).iterrows():
             ax.text(
                 row.clon, row.clat, str(row.label),
-                transform=proj, color='red')
+                transform=proj, color='red', zorder=100)
 
     return fig, ax
 

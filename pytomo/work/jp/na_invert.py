@@ -1,4 +1,4 @@
-import params as work_parameters
+import pytomo.work.jp.params as work_parameters
 from pytomo.inversion.na import NeighbouhoodAlgorithm, InputFile
 import pytomo.dataset.sourcecluster as sourcecluster
 from dsmpy.modelparameters import ModelParameters, ParameterType

@@ -29,7 +29,8 @@ def get_best_models(misfit_dict, n_best, key='variance'):
 
 
 def process_outputs(
-        outputs, dataset, models, windows, **kwargs):
+        outputs, dataset, models, windows,
+        freq, freq2, filter_type, **kwargs):
     """Process the output of compute_models_parallel().
 
     Args:
@@ -39,6 +40,10 @@ def process_outputs(
         models (list of SeismicModel): seismic models
         windows (list of Window): time windows. See
             windows_from_dataset().
+        freq (float): frequency for the filter
+        freq2 (float): maximum frequency for the filter
+            (only if filter_type=='bandpass')
+        filter_type (str): filter type.
         kwargs (**dict): kwargs for the misfit functions.
 
     Returns:
@@ -62,8 +67,8 @@ def process_outputs(
             output = outputs[imod][iev]
             start, end = dataset.get_bounds_from_event_index(iev)
 
-            # TODO using to_time_domain() erase the effect of filtering
-            # output.to_time_domain()
+            # filter output
+            output.filter(freq, freq2, filter_type)
 
             for ista in range(start, end):
                 station = dataset.stations[ista]
@@ -103,10 +108,13 @@ def process_outputs(
                         data_cut_w, data_cut_w)
                     win_count += 1
 
-                    if rolling_var > 10000:
-                        plt.plot(data_cut)
-                        plt.plot(u_cut)
-                        plt.show()
+                    # if rolling_var > 10000:
+                    #     plt.plot(data_cut)
+                    #     plt.plot(u_cut)
+                    #     plt.show()
+
+            # free memory for output.ts and output.us
+            output.free()
 
     misfit_dict = {
         'corr': corrs,

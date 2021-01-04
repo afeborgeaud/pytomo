@@ -366,12 +366,6 @@ class NeighbouhoodAlgorithm:
             <= self.distance_max]
         return windows
 
-    def _filter_outputs(self, outputs):
-        if self.filter_type is not None:
-            for imod in range(len(outputs)):
-                for iev in range(len(outputs[0])):
-                    outputs[imod][iev].filter(
-                        self.freq, self.freq2, self.filter_type)
 
     @staticmethod
     def _get_points_for_voronoi(perturbations, range_dict, types):
@@ -416,6 +410,7 @@ class NeighbouhoodAlgorithm:
                     max_bounds[i] /= (max_bounds[i] - min_bounds[i])
         return min_bounds, max_bounds
 
+
     def _compute_one_step(
             self, umcutils, dataset, models, perturbations,
             result, windows, comm):
@@ -428,9 +423,10 @@ class NeighbouhoodAlgorithm:
             verbose=self.verbose)
 
         if rank == 0:
-            self._filter_outputs(outputs)
             misfit_dict = process_outputs(
-                outputs, dataset, models, windows, **self.misfit_kwargs)
+                outputs, dataset, models, windows,
+                self.freq, self.freq2, self.filter_type,
+                **self.misfit_kwargs)
             result.add_result(models, misfit_dict, perturbations)
 
     def compute(self, comm, log=None):

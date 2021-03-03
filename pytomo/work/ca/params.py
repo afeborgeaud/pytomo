@@ -67,7 +67,7 @@ def get_model_lininterp(
     rs_dpp = np.linspace(
         depth_cmb, depth_dpp, n_dpp, endpoint=(n_lower_mantle==0))
     radii = 6371. - np.round(
-        np.hstack((rs_lower_mantle, rs_mtz, rs_upper_mantle, rs_dpp)), 4)
+        np.hstack((rs_dpp, rs_lower_mantle, rs_mtz, rs_upper_mantle)), 4)
     if verbose > 1:
         print('dr_um={}, dr_mtz={}, dr_lm={}, dr_dpp={}'.format(
             rs_upper_mantle[1] - rs_upper_mantle[0],

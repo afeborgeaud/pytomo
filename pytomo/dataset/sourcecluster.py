@@ -101,6 +101,7 @@ def get_dataframe(
     df = _set_min_cluster_size(df, min_cluster_size)
     return df
 
+
 def _set_min_cluster_size(df, size):
     counts = df['label'].value_counts(sort=False)
     large_counts = counts[counts >= size]

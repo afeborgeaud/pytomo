@@ -225,8 +225,8 @@ class UniformMonteCarlo:
 
         Returns:
             list of SeismicModel: list of sampled models.
-            dict: model perturbations. Entries are of
-                type ParameterType:ndarray of shape (ns, n_grid_params).
+            list of ndarray: model perturbations for each sampled
+                model. Entries are of shape [n_grid_params * ntype,].
 
         """
         perturbations = []
@@ -238,9 +238,9 @@ class UniformMonteCarlo:
             value_dict = dict()
 
             it = 0
-            for param_type in self.model_params._types:
+            for param_type in self.model_params.get_types():
                 values = np.zeros(
-                    self.model_params._n_grd_params, dtype='float')
+                    self.model_params._n_grd_params, dtype=np.float64)
                 for igrd in range(self.model_params._n_grd_params):
                     if it not in free_indices:
                         it += 1
@@ -253,8 +253,11 @@ class UniformMonteCarlo:
 
                 value_dict[param_type] = values
 
+            # TODO check no bug
             perturbations.append(
-                np.hstack([v for v in value_dict.values()]))
+                np.hstack(
+                    [value_dict[ptype]
+                     for ptype in self.model_params.get_types()]))
 
             model_sample = self.model.build_model(
                 self.mesh, self.model_params, value_dict)

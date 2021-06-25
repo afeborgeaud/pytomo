@@ -23,9 +23,9 @@ model_ref, model_params = work_parameters.get_model_lininterp(
 # constraints to parameters
 mask_dict = dict()
 mask_dict[ParameterType.VSH] = np.ones(
-    model_params._n_grd_params, dtype='bool')
+    model_params.get_n_grd_params(), dtype='bool')
 mask_dict[ParameterType.RADIUS] = np.zeros(
-    model_params._n_grd_params, dtype='bool')
+    model_params.get_n_grd_params(), dtype='bool')
 mask_dict[ParameterType.VSH][[0, 1]] = False
 mask_dict[ParameterType.VSH][[-1, -2]] = False
 mask_dict[ParameterType.RADIUS][[i for i in range(4, 10)]] = True
@@ -115,7 +115,7 @@ if rank == 0:
 #     models = [result.models[i] for i in indices_better]
 # else:
 #     models = None
-# outputs = result.compute_models(models, comm)
+# outputs = result.compute_models(models)
 
 # plot results
 # if rank == 0:

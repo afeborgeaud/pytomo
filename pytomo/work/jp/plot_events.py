@@ -27,7 +27,7 @@ if rank == 0:
     models = [model_ref, model_best]
 else:
     models = None
-outputs = result.compute_models(models, comm)
+outputs = result.compute_models(models)
 
 # plot results
 if rank == 0:

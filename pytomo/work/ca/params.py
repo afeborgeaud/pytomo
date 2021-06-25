@@ -124,7 +124,7 @@ def get_dataset(
             noise_normalized_std, dataset.data.shape)
         npts_cut = int(dataset.data.shape[3]*0.9)
         norm = np.abs(
-            dataset.data[:,:,:npts_cut]).max(axis=3, keepdims=True)
+            dataset.data[:, :, :npts_cut]).max(axis=3, keepdims=True)
         noise_arr *= norm
         dataset.data += noise_arr
 
@@ -162,6 +162,13 @@ def get_dataset_syntest4(
         get_model_syntest4(), tlen, nspc, sampling_hz, mode,
         add_noise, noise_normalized_std)
 
+def get_dataset_syntest_vshvsv_4(
+        tlen=1638.4, nspc=256, sampling_hz=20, mode=0,
+        add_noise=False, noise_normalized_std=1.):
+    return get_dataset(
+        get_model_syntest_vshvsv_4(), tlen, nspc, sampling_hz, mode,
+        add_noise, noise_normalized_std)
+
 def get_dataset_syntest_cmb_topo(
         tlen=1638.4, nspc=256, sampling_hz=20, mode=0,
         add_noise=False, noise_normalized_std=1.):
@@ -176,13 +183,26 @@ def get_model_syntest1():
     model_params = ModelParameters(types, radii, mesh_type='boxcar')
     model, mesh = model_ref.boxcar_mesh(model_params)
     values = np.array(
-        [.2 * (-1)**i for i in range(model_params._n_grd_params)])
+        [.2 * (-1)**i for i in range(model_params.get_n_grd_params())])
     values_dict = {param_type: values for param_type in types}
     values_mat = model_params.get_values_matrix(values_dict)
-    mesh_mul = mesh.multiply(model_params.get_nodes(), values_mat)
-    model_mul = model + mesh_mul
+    model_updated = mesh.multiply(values_mat)
 
-    return model_mul
+    return model_updated
+
+def get_model_syntest1_prem():
+    types = [ParameterType.VSH]
+    radii = np.array([3480. + 100 * i for i in range(5)])
+    model_params = ModelParameters(types, radii, mesh_type='boxcar')
+    model = SeismicModel.prem().boxcar_mesh(model_params)
+    values = np.array(
+        [.2 * (-1)**i if i < 2 else 0.
+         for i in range(model_params.get_n_grd_params())])
+    values_dict = {param_type: values for param_type in types}
+    values_mat = model_params.get_values_matrix(values_dict)
+    model_updated = model.multiply(values_mat)
+
+    return model_updated
 
 def get_model_syntest2():
     model_ref = SeismicModel.ak135()
@@ -255,6 +275,26 @@ def get_model_syntest4():
         model, model_params, values_dict_p)
 
     return model_mul
+
+def get_model_syntest_vshvsv_4():
+    model_ref = SeismicModel.prem()
+    types = [ParameterType.VSH, ParameterType.VSV]
+    radii = np.linspace(3480., 3980., 3, endpoint=True)
+    model_params = ModelParameters(
+        types, radii, mesh_type='lininterp')
+    model = model_ref.lininterp_mesh(
+        model_params)
+
+    values = np.zeros(model_params.get_n_grd_params())
+    values[2] = model_ref.get_value_at(radii[1], ParameterType.VSH) * 0.03
+    value_dict = {
+        ParameterType.VSH: values,
+        ParameterType.VSV: -values
+    }
+    model_updated = model.build_model(
+        model, model_params, value_dict)
+
+    return model_updated
 
 def get_model_syntest5():
     model_ref = SeismicModel.ak135()

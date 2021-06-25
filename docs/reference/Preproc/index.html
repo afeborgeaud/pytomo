@@ -1,0 +1,287 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Pre-processing &#8212; pytomo 1.0a0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Dataset" href="../Dataset/index.html" />
+    <link rel="prev" title="Inversion" href="../Inversion/index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../Dataset/index.html" title="Dataset"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../Inversion/index.html" title="Inversion"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">pytomo 1.0a0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">API reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Pre-processing</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="pre-processing">
+<h1>Pre-processing<a class="headerlink" href="#pre-processing" title="Permalink to this headline">¶</a></h1>
+<div class="line-block">
+<div class="line">Modules for data pre-processing</div>
+<div class="line">pytomo.preproc.*</div>
+</div>
+<section id="module-pytomo.preproc.deconvolve">
+<span id="deconvolve"></span><h2>deconvolve<a class="headerlink" href="#module-pytomo.preproc.deconvolve" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomo.preproc.deconvolve.Deconvolver">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.preproc.deconvolve.</span></span><span class="sig-name descname"><span class="pre">Deconvolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wavelet_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.deconvolve.Deconvolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform deconvolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>traces</strong> (<em>obspy.traces</em>) – waveform traces</p></li>
+<li><p><strong>wavelet_dict</strong> (<em>dict</em>) – dictionary of wavelets for each event_id</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.preproc.deconvolve.Deconvolver.deconvolve">
+<span class="sig-name descname"><span class="pre">deconvolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">waveform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wavelet</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.005</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.deconvolve.Deconvolver.deconvolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deconvolve a single waveform.
+:param waveform: waveform
+:type waveform: ndarray
+:param wavelet: wavelet
+:type wavelet: ndarray
+:param level: water level
+:type level: float</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-pytomo.preproc.iterstack">
+<span id="iterstack"></span><h2>iterstack<a class="headerlink" href="#module-pytomo.preproc.iterstack" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomo.preproc.iterstack.InputFile">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.preproc.iterstack.</span></span><span class="sig-name descname"><span class="pre">InputFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.iterstack.InputFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Input file for IterStack.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_file</strong> (<em>str</em>) – path of IterStack input file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomo.preproc.iterstack.IterStack">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.preproc.iterstack.</span></span><span class="sig-name descname"><span class="pre">IterStack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modelname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'prem'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phasenames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['p',</span> <span class="pre">'P',</span> <span class="pre">'Pdiff']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_before</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_after</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_cc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_polarity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.005</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.iterstack.IterStack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterative stacking for source wavelet
+following Kennett &amp; Rowlingson (2014)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>traces</strong> (<em>obspy.traces</em>) – waveform traces</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.preproc.iterstack.IterStack.compute">
+<span class="sig-name descname"><span class="pre">compute</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.iterstack.IterStack.compute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute source wavelets for all events.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>dictionary of wavelets for each event_id</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>wavelet_dict (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.preproc.iterstack.IterStack.compute_windows">
+<span class="sig-name descname"><span class="pre">compute_windows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.iterstack.IterStack.compute_windows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return: windows (list): list of pydsm.window.Window</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.preproc.iterstack.IterStack.save_stf_catalog">
+<span class="sig-name descname"><span class="pre">save_stf_catalog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.iterstack.IterStack.save_stf_catalog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the empirical source time functions to files. One file
+per event, named event_id.stf.
+:param out_dir: output directory
+:type out_dir: str</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-pytomo.preproc.stfgridsearch">
+<span id="stfgridsearch"></span><h2>stfgridsearch<a class="headerlink" href="#module-pytomo.preproc.stfgridsearch" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomo.preproc.stfgridsearch.STFGridSearch">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.preproc.stfgridsearch.</span></span><span class="sig-name descname"><span class="pre">STFGridSearch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seismic_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tlen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nspc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_hz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">durations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amplitudes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_distinct_comp_phase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.stfgridsearch.STFGridSearch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute triangular source time functions by grid search.
+Args:</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.preproc.stfgridsearch.STFGridSearch.compute_parallel">
+<span class="sig-name descname"><span class="pre">compute_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.stfgridsearch.STFGridSearch.compute_parallel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute using MPI.
+:param comm: MPI communicator
+:type comm: mpi4py.COMM_WORLD
+:param mode: 0: sh+psv, 1: psv, 2:sh
+:type mode: int
+:param verbose: 0: quiet, 1: debug
+:type verbose: int</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>dict with event_id as key and</dt><dd><p>a=ndarray((n_durations,n_amplitudes,3)) as values.
+a[:,:,0] gives durations; a[:,:,1] gives amplitudes;
+a[:,:,2] gives misfit values</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>misfit_dict (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.preproc.stfgridsearch.STFGridSearch.get_best_parameters">
+<span class="sig-name descname"><span class="pre">get_best_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">misfit_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">count_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.stfgridsearch.STFGridSearch.get_best_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get best duration and amplitude correction from misfit_dict.
+:param misfit_dict: dict returned by compute_parallel()
+:type misfit_dict: dict
+:param count_dict: dict returbed by compute_parallel()
+:type count_dict: dict</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>keys are event_id; values are</dt><dd><p>tuples (duration, amplitude).</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>best_params_dict (dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-pytomo.preproc.stream">
+<span id="stream"></span><h2>stream<a class="headerlink" href="#module-pytomo.preproc.stream" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomo.preproc.stream.read_sac">
+<span class="sig-prename descclassname"><span class="pre">pytomo.preproc.stream.</span></span><span class="sig-name descname"><span class="pre">read_sac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sacpaths_regex</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.stream.read_sac" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read sac files
+:param sacpaths_regex: regex specifies list of sac paths</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>waveform traces</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>traces (obspy.traces)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Pre-processing</a><ul>
+<li><a class="reference internal" href="#module-pytomo.preproc.deconvolve">deconvolve</a></li>
+<li><a class="reference internal" href="#module-pytomo.preproc.iterstack">iterstack</a></li>
+<li><a class="reference internal" href="#module-pytomo.preproc.stfgridsearch">stfgridsearch</a></li>
+<li><a class="reference internal" href="#module-pytomo.preproc.stream">stream</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../Inversion/index.html"
+                        title="previous chapter">Inversion</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../Dataset/index.html"
+                        title="next chapter">Dataset</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/reference/Preproc/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../Dataset/index.html" title="Dataset"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../Inversion/index.html" title="Inversion"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">pytomo 1.0a0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >API reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Pre-processing</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Anselme Borgeaud.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.0.2.
+    </div>
+  </body>
+</html>

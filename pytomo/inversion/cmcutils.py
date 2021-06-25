@@ -87,6 +87,68 @@ class InputFile:
             return None, None
         return key, value_parsed
 
+
+def process_outputs(outputs, dataset, models, windows):
+    """Process the output of compute_models_parallel().
+
+    Args:
+        outputs (list of list of PyDSMOutput): (n_models, n_events)
+        dataset (Dataset): dataset with observed data. Same as the
+            one used for input to compute_models_parallel()
+        models (list of SeismicModel): seismic models
+        windows (list of Window): time windows. See
+            windows_from_dataset()
+    Returns:
+        dict: misfit_dict. Keys are misfit names (corr, variance).
+            Values are ndarray of shape (n_models, n_windows)
+            with misfit values.
+
+    """
+    n_mod = len(models)
+    n_ev = len(dataset.events)
+    n_window = len(windows)
+
+    corrs = np.empty((n_mod, n_window), dtype=np.float32)
+    variances = np.empty((n_mod, n_window), dtype=np.float32)
+
+    for imod in range(n_mod):
+        win_count = 0
+        for iev in range(n_ev):
+            event = dataset.events[iev]
+            output = outputs[imod][iev]
+            start, end = dataset.get_bounds_from_event_index(iev)
+
+            # TODO using to_time_domain() erase the effect of filtering
+            # output.to_time_domain()
+
+            for ista in range(start, end):
+                station = dataset.stations[ista]
+                jsta = np.argwhere(output.stations==station)[0][0]
+                windows_filt = [
+                    window for window in windows
+                    if (window.station == station
+                        and window.event == event)]
+                for iwin, window in enumerate(windows_filt):
+                    window_arr = window.to_array()
+                    icomp = window.component.value
+                    i_start = int(window_arr[0] * dataset.sampling_hz)
+                    i_end = int(window_arr[1] * dataset.sampling_hz)
+                    u_cut = output.us[icomp, jsta, i_start:i_end]
+                    data_cut = dataset.data[
+                        iwin, icomp, ista, :]
+
+                    corr = 0.5 * (1. - np.corrcoef(u_cut, data_cut)[0, 1])
+                    variance = (np.dot(u_cut-data_cut, u_cut-data_cut)
+                        / np.dot(data_cut, data_cut))
+                    corrs[imod, win_count] = corr
+                    variances[imod, win_count] = variance
+
+                    win_count += 1
+
+    misfit_dict = {'corr': corrs, 'variance': variances}
+    return misfit_dict
+
+
 class ConstrainedMonteCarloUtils:
     """Implements a constrained monte carlo method.
 
@@ -127,66 +189,6 @@ class ConstrainedMonteCarloUtils:
         models = [self.sample_one_model('model_{}'.format(i))
                   for i in range(ns)]
         return models
-
-    def process_outputs(self, outputs, dataset, models, windows):
-        '''Process the output of compute_models_parallel().
-
-        Args:
-            outputs (list of list of PyDSMOutput): (n_models, n_events)
-            dataset (Dataset): dataset with observed data. Same as the
-                one used for input to compute_models_parallel()
-            models (list of SeismicModel): seismic models
-            windows (list of Window): time windows. See
-                windows_from_dataset()
-        Returns:
-            misfit_dict (dict): values are ndarray of shape
-            (n_models, n_windows)
-            containing misfit values (corr, variance)
-
-        '''
-        n_mod = len(models)
-        n_ev = len(dataset.events)
-        n_window = len(windows)
-
-        corrs = np.empty((n_mod, n_window), dtype=np.float32)
-        variances = np.empty((n_mod, n_window), dtype=np.float32)
-
-        for imod in range(n_mod):
-            win_count = 0
-            for iev in range(n_ev):
-                event = dataset.events[iev]
-                output = outputs[imod][iev]
-                start, end = dataset.get_bounds_from_event_index(iev)
-                
-                # TODO using to_time_domain() erase the effect of filtering
-                # output.to_time_domain()
-
-                for ista in range(start, end):
-                    station = dataset.stations[ista]
-                    jsta = np.argwhere(output.stations==station)[0][0]
-                    windows_filt = [
-                        window for window in windows
-                        if (window.station == station
-                            and window.event == event)]
-                    for iwin, window in enumerate(windows_filt):
-                        window_arr = window.to_array()
-                        icomp = window.component.value
-                        i_start = int(window_arr[0] * dataset.sampling_hz)
-                        i_end = int(window_arr[1] * dataset.sampling_hz)
-                        u_cut = output.us[icomp, jsta, i_start:i_end]
-                        data_cut = dataset.data[
-                            iwin, icomp, ista, :]
-
-                        corr = 0.5 * (1. - np.corrcoef(u_cut, data_cut)[0, 1])
-                        variance = (np.dot(u_cut-data_cut, u_cut-data_cut)
-                            / np.dot(data_cut, data_cut))
-                        corrs[imod, win_count] = corr
-                        variances[imod, win_count] = variance
-
-                        win_count += 1
-
-        misfit_dict = {'corr': corrs, 'variance': variances}
-        return misfit_dict
 
     @staticmethod
     def smooth_damp_cov(n, g, l):

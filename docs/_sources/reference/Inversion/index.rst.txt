@@ -1,5 +1,12 @@
 Inversion
 **********
+| Modules for waveform inversion
+| pytomo.inversion.*
+
+fwi
+~~~
+.. automodule:: pytomo.inversion.fwi
+    :members:
 
 umcutils
 ~~~~~~~~

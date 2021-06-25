@@ -28,21 +28,21 @@ model_ref, model_params = work_parameters.get_model_lininterp(
 # constraints to parameters
 mask_dict = dict()
 mask_dict[ParameterType.VSH] = np.ones(
-    model_params._n_grd_params, dtype='bool')
+    model_params.get_n_grd_params(), dtype='bool')
 mask_dict[ParameterType.VSV] = np.ones(
-    model_params._n_grd_params, dtype='bool')
+    model_params.get_n_grd_params(), dtype='bool')
 
 equal_dict = dict()
 for param_type in types:
     equal_dict[param_type] = np.arange(
-        model_params._n_grd_params, dtype='int')
+        model_params.get_n_grd_params(), dtype='int')
     equal_dict[param_type][1] = 0
 model_params.set_constraints(equal_dict=equal_dict)
 
 # parameter ranges
 range_dict = dict()
-for param_type in model_params._types:
-    range_arr = np.empty((model_params._n_grd_params, 2), dtype='float')
+for param_type in model_params.get_types():
+    range_arr = np.empty((model_params.get_n_grd_params(), 2), dtype='float')
     range_arr[:, 0] = -0.5
     range_arr[:, 1] = 0.5
     range_dict[param_type] = range_arr
@@ -104,7 +104,7 @@ if rank == 0:
     models = [result.models[i] for i in indices_better]
 else:
     models = None
-outputs = result.compute_models(models, comm)
+outputs = result.compute_models(models)
 
 # plot results
 if rank == 0:

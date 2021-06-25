@@ -4,19 +4,20 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>Inversion &#8212; pytomo 1.0a0 documentation</title>
-    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
     
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
-    <script src="../../_static/language_data.js"></script>
     
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Pre-processing" href="../Preproc/index.html" />
     <link rel="prev" title="API reference" href="../index.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
@@ -28,6 +29,9 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
+        <li class="right" >
+          <a href="../Preproc/index.html" title="Pre-processing"
+             accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="../index.html" title="API reference"
              accesskey="P">previous</a> |</li>
@@ -42,14 +46,85 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="inversion">
+  <section id="inversion">
 <h1>Inversion<a class="headerlink" href="#inversion" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="module-pytomo.inversion.umcutils">
+<div class="line-block">
+<div class="line">Modules for waveform inversion</div>
+<div class="line">pytomo.inversion.*</div>
+</div>
+<section id="module-pytomo.inversion.fwi">
+<span id="fwi"></span><h2>fwi<a class="headerlink" href="#module-pytomo.inversion.fwi" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.inversion.fwi.</span></span><span class="sig-name descname"><span class="pre">FWI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_phases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implement full-waveform inversion.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model_params</span> <span class="o">=</span> <span class="n">ModelParameters</span><span class="p">(</span>
+<span class="gp">... </span>   <span class="n">types</span><span class="o">=</span><span class="p">[</span><span class="n">ParameterType</span><span class="o">.</span><span class="n">VSH</span><span class="p">],</span>
+<span class="gp">... </span>   <span class="n">radii</span><span class="o">=</span><span class="p">[</span><span class="mf">3480.</span> <span class="o">+</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">21</span><span class="p">)],</span>
+<span class="gp">... </span>   <span class="n">mesh_type</span><span class="o">=</span><span class="s1">&#39;boxcar&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model_ref</span> <span class="o">=</span> <span class="n">SeismicModel</span><span class="o">.</span><span class="n">prem</span><span class="p">()</span><span class="o">.</span><span class="n">boxcar_mesh</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">dataset_from_sac</span><span class="p">(</span>
+<span class="gp">... </span>   <span class="n">sac_files</span><span class="p">,</span> <span class="n">headonly</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">windows</span> <span class="o">=</span> <span class="n">WindowMaker</span><span class="o">.</span><span class="n">windows_from_dataset</span><span class="p">(</span>
+<span class="gp">... </span>   <span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;prem&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ScS&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">Component</span><span class="o">.</span><span class="n">T</span><span class="p">],</span>
+<span class="gp">... </span>   <span class="n">t_before</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">t_after</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fwi</span> <span class="o">=</span> <span class="n">FWI</span><span class="p">(</span>
+<span class="gp">... </span>   <span class="n">model_ref</span><span class="p">,</span> <span class="n">model_params</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span>
+<span class="gp">... </span>   <span class="n">windows</span><span class="p">,</span> <span class="n">n_phases</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model_1</span> <span class="o">=</span> <span class="n">fwi</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+<span class="go">        model_ref, freq=0.01, freq2=0.04, n_pca_components=[4])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model_2</span> <span class="o">=</span> <span class="n">fwi</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">model_1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.04</span><span class="p">,</span> <span class="n">n_pca_components</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model_3</span> <span class="o">=</span> <span class="n">fwi</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+<span class="gp">... </span>   <span class="n">model_2</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">,</span> <span class="n">n_pca_components</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">])</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI.minimum_nspc">
+<span class="sig-name descname"><span class="pre">minimum_nspc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">int</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI.minimum_nspc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the minimum nspc for accurate computation given freq2.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI.minimum_tlen">
+<span class="sig-name descname"><span class="pre">minimum_tlen</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">float</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI.minimum_tlen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the minimum tlen that includes the longest time window.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_pca_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[4]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Advance one step in the FWI iteration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>SeismicModel</em>) – the current initial model</p></li>
+<li><p><strong>freq</strong> (<em>float</em>) – minimum frequency for the bandpass filter
+(in Hz)</p></li>
+<li><p><strong>freq2</strong> (<em>float</em>) – maximum frequency</p></li>
+<li><p><strong>n_pca_components</strong> (<em>list of int</em>) – number of PCA components
+to test (default is [4,])</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the updated model</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>SeismicModel</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-pytomo.inversion.umcutils">
 <span id="umcutils"></span><h2>umcutils<a class="headerlink" href="#module-pytomo.inversion.umcutils" title="Permalink to this headline">¶</a></h2>
 <p>Utilities for the UniformMonteCarlo algorithm.</p>
 <dl class="py class">
-<dt id="pytomo.inversion.umcutils.UniformMonteCarlo">
-<em class="property">class </em><code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">UniformMonteCarlo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">model_params</span></em>, <em class="sig-param"><span class="n">range_dict</span></em>, <em class="sig-param"><span class="n">mesh_type</span><span class="o">=</span><span class="default_value">'boxcar'</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.UniformMonteCarlo" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.umcutils.UniformMonteCarlo">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.inversion.umcutils.</span></span><span class="sig-name descname"><span class="pre">UniformMonteCarlo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">range_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mesh_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'boxcar'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.UniformMonteCarlo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Implements the Uniform Monte Carlo method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -65,8 +140,8 @@ ParameterType:ndarray.</p></li>
 </dd>
 </dl>
 <dl class="py method">
-<dt id="pytomo.inversion.umcutils.UniformMonteCarlo.sample_models">
-<code class="sig-name descname">sample_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ns</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.UniformMonteCarlo.sample_models" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.umcutils.UniformMonteCarlo.sample_models">
+<span class="sig-name descname"><span class="pre">sample_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ns</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.UniformMonteCarlo.sample_models" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sample ns seismic models using a uniform distribution.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -74,9 +149,9 @@ ParameterType:ndarray.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><p>list of sampled models.
-dict: model perturbations. Entries are of</p>
+list of ndarray: model perturbations for each sampled</p>
 <blockquote>
-<div><p>type ParameterType:ndarray of shape (ns, n_grid_params).</p>
+<div><p>model. Entries are of shape [n_grid_params * ntype,].</p>
 </div></blockquote>
 </p>
 </dd>
@@ -89,8 +164,8 @@ dict: model perturbations. Entries are of</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pytomo.inversion.umcutils.correlation">
-<code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">correlation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obs</span></em>, <em class="sig-param"><span class="n">syn</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.correlation" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.umcutils.correlation">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.umcutils.</span></span><span class="sig-name descname"><span class="pre">correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">syn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.correlation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the zero-lag cross-correlation misfit.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -109,8 +184,8 @@ dict: model perturbations. Entries are of</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pytomo.inversion.umcutils.get_best_models">
-<code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">get_best_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">misfit_dict</span></em>, <em class="sig-param"><span class="n">n_best</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'variance'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.get_best_models" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.umcutils.get_best_models">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.umcutils.</span></span><span class="sig-name descname"><span class="pre">get_best_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">misfit_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_best</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'variance'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.get_best_models" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the n_best best models. Should be used together with
 an InversionResult object.</p>
 <dl class="field-list simple">
@@ -138,8 +213,8 @@ model, as given by InversionResult.misfit_dict.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pytomo.inversion.umcutils.process_outputs">
-<code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">process_outputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outputs</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">models</span></em>, <em class="sig-param"><span class="n">windows</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.process_outputs" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.umcutils.process_outputs">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.umcutils.</span></span><span class="sig-name descname"><span class="pre">process_outputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">models</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_type</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.process_outputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Process the output of compute_models_parallel().</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -150,6 +225,10 @@ one used for input to compute_models_parallel()</p></li>
 <li><p><strong>models</strong> (<em>list of SeismicModel</em>) – seismic models</p></li>
 <li><p><strong>windows</strong> (<em>list of Window</em>) – time windows. See
 windows_from_dataset().</p></li>
+<li><p><strong>freq</strong> (<em>float</em>) – frequency for the filter</p></li>
+<li><p><strong>freq2</strong> (<em>float</em>) – maximum frequency for the filter
+(only if filter_type==’bandpass’)</p></li>
+<li><p><strong>filter_type</strong> (<em>str</em>) – filter type.</p></li>
 <li><p><strong>kwargs</strong> (<a href="#id1"><span class="problematic" id="id2">**</span></a>dict) – kwargs for the misfit functions.</p></li>
 </ul>
 </dd>
@@ -167,8 +246,8 @@ windows_from_dataset().</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pytomo.inversion.umcutils.rolling_variance">
-<code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">rolling_variance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obs</span></em>, <em class="sig-param"><span class="n">syn</span></em>, <em class="sig-param"><span class="n">size</span></em>, <em class="sig-param"><span class="n">stride</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.rolling_variance" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.umcutils.rolling_variance">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.umcutils.</span></span><span class="sig-name descname"><span class="pre">rolling_variance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">syn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stride</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.rolling_variance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the variances of the obs-syn residual vectors
 summed over a rolling window. The obs-syn residual is scaled to
 max(abs(obs)) in each rolling window in order to give the same
@@ -192,8 +271,8 @@ importance to signals of different amplitudes.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pytomo.inversion.umcutils.variance">
-<code class="sig-prename descclassname">pytomo.inversion.umcutils.</code><code class="sig-name descname">variance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obs</span></em>, <em class="sig-param"><span class="n">syn</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.variance" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.umcutils.variance">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.umcutils.</span></span><span class="sig-name descname"><span class="pre">variance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">syn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.umcutils.variance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the variance of the obs-syn residual vector.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -211,26 +290,40 @@ importance to signals of different amplitudes.</p>
 </dl>
 </dd></dl>
 
-</div>
-<div class="section" id="module-pytomo.inversion.na">
+</section>
+<section id="module-pytomo.inversion.na">
 <span id="na"></span><h2>na<a class="headerlink" href="#module-pytomo.inversion.na" title="Permalink to this headline">¶</a></h2>
 <p>Module for global optimization using
 the Neighbourhood algorithm.</p>
 <dl class="py class">
-<dt id="pytomo.inversion.na.InputFile">
-<em class="property">class </em><code class="sig-prename descclassname">pytomo.inversion.na.</code><code class="sig-name descname">InputFile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_file</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.InputFile" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.na.InputFile">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.inversion.na.</span></span><span class="sig-name descname"><span class="pre">InputFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.InputFile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Input file for NeighbourAlgorithm (NA) inversion.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>input_file</strong> (<em>str</em>) – path of NA input file</p>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.inversion.na.InputFile.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.InputFile.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read from the input file into a dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>input file parameters</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
-<dt id="pytomo.inversion.na.NeighbouhoodAlgorithm">
-<em class="property">class </em><code class="sig-prename descclassname">pytomo.inversion.na.</code><code class="sig-name descname">NeighbouhoodAlgorithm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">model_ref</span></em>, <em class="sig-param"><span class="n">model_params</span></em>, <em class="sig-param"><span class="n">range_dict</span></em>, <em class="sig-param"><span class="n">tlen</span></em>, <em class="sig-param"><span class="n">nspc</span></em>, <em class="sig-param"><span class="n">sampling_hz</span></em>, <em class="sig-param"><span class="n">mode</span></em>, <em class="sig-param"><span class="n">n_mod</span></em>, <em class="sig-param"><span class="n">n_s</span></em>, <em class="sig-param"><span class="n">n_r</span></em>, <em class="sig-param"><span class="n">phases</span></em>, <em class="sig-param"><span class="n">components</span></em>, <em class="sig-param"><span class="n">t_before</span></em>, <em class="sig-param"><span class="n">t_after</span></em>, <em class="sig-param"><span class="n">filter_type</span></em>, <em class="sig-param"><span class="n">freq</span></em>, <em class="sig-param"><span class="n">freq2</span></em>, <em class="sig-param"><span class="n">sac_files</span></em>, <em class="sig-param"><span class="n">distance_min</span></em>, <em class="sig-param"><span class="n">distance_max</span></em>, <em class="sig-param"><span class="n">convergence_threshold</span></em>, <em class="sig-param"><span class="n">stf_catalog</span></em>, <em class="sig-param"><span class="n">result_path</span></em>, <em class="sig-param"><span class="n">misfit_type</span></em>, <em class="sig-param"><span class="n">misfit_kwargs</span></em>, <em class="sig-param"><span class="n">seed</span></em>, <em class="sig-param"><span class="n">verbose</span></em>, <em class="sig-param"><span class="n">comm</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Implements a neighbourhood algorithm</p>
+<dt class="sig sig-object py" id="pytomo.inversion.na.NeighbouhoodAlgorithm">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.inversion.na.</span></span><span class="sig-name descname"><span class="pre">NeighbouhoodAlgorithm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">range_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tlen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nspc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_hz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_mod</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">components</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_before</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_after</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convergence_threshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stf_catalog</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">misfit_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">misfit_kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comm</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements the Neighbourhood Algorithm</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -261,7 +354,6 @@ time when creating time windows.</p></li>
 <li><p><strong>freq</strong> (<em>float</em>) – minimum frequency of the filter (in Hz)</p></li>
 <li><p><strong>freq2</strong> (<em>float</em>) – maximum frequency of the filter (in Hz). Used
 only for bandpass filter.</p></li>
-<li><p><strong>sac_files</strong> (<em>list of str</em>) – list of paths to sac files.</p></li>
 <li><p><strong>distance_min</strong> (<em>float</em>) – minimum epicentral distance (in degree).</p></li>
 <li><p><strong>distance_max</strong> (<em>float</em>) – maximum epicentral distance (in degree).</p></li>
 <li><p><strong>convergence_threshold</strong> (<em>float</em>) – convergence threshold</p></li>
@@ -279,8 +371,8 @@ Used for rolling_variance. See umcutils.rolling_variance.</p></li>
 </dd>
 </dl>
 <dl class="py method">
-<dt id="pytomo.inversion.na.NeighbouhoodAlgorithm.compute">
-<code class="sig-name descname">compute</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">comm</span></em>, <em class="sig-param"><span class="n">log</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm.compute" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.na.NeighbouhoodAlgorithm.compute">
+<span class="sig-name descname"><span class="pre">compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm.compute" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run the NA inversion.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -299,8 +391,8 @@ Used for rolling_variance. See umcutils.rolling_variance.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.na.NeighbouhoodAlgorithm.from_file">
-<em class="property">classmethod </em><code class="sig-name descname">from_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_file</span></em>, <em class="sig-param"><span class="n">model_ref</span></em>, <em class="sig-param"><span class="n">model_params</span></em>, <em class="sig-param"><span class="n">range_dict</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">comm</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm.from_file" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.na.NeighbouhoodAlgorithm.from_file">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">range_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comm</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm.from_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Build a NeighbourhoodAlgorithm object from an input file and
 key inputs.</p>
 <dl class="field-list simple">
@@ -326,14 +418,15 @@ are of type ParameterType:ndarray of shape
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.na.NeighbouhoodAlgorithm.from_file_with_default">
-<em class="property">classmethod </em><code class="sig-name descname">from_file_with_default</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_file_path</span></em>, <em class="sig-param"><span class="n">comm</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm.from_file_with_default" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.na.NeighbouhoodAlgorithm.from_file_with_default">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_file_with_default</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comm</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm.from_file_with_default" title="Permalink to this definition">¶</a></dt>
 <dd><p>Build a NeighbourhoodAlgorithm from an input file and
 default values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_file_path</strong> (<em>str</em>) – path of the input file</p></li>
+<li><p><strong>dataset</strong> (<em>Dataset</em>) – dataset.</p></li>
 <li><p><strong>comm</strong> (<em>COMM_WORLD</em>) – MPI communicator</p></li>
 </ul>
 </dd>
@@ -347,8 +440,8 @@ default values.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.na.NeighbouhoodAlgorithm.get_meta">
-<code class="sig-name descname">get_meta</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm.get_meta" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.na.NeighbouhoodAlgorithm.get_meta">
+<span class="sig-name descname"><span class="pre">get_meta</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.na.NeighbouhoodAlgorithm.get_meta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the meta parameters of the NeighbourhoodAlgorithm
 object.</p>
 <blockquote>
@@ -361,12 +454,12 @@ object.</p>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-pytomo.inversion.inversionresult">
+</section>
+<section id="module-pytomo.inversion.inversionresult">
 <span id="inversionresult"></span><h2>inversionresult<a class="headerlink" href="#module-pytomo.inversion.inversionresult" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
-<dt id="pytomo.inversion.inversionresult.InversionResult">
-<em class="property">class </em><code class="sig-prename descclassname">pytomo.inversion.inversionresult.</code><code class="sig-name descname">InversionResult</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">windows</span></em>, <em class="sig-param"><span class="n">meta</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.inversion.inversionresult.</span></span><span class="sig-name descname"><span class="pre">InversionResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pack the inversion results, models and dataset needed to
 reproduce the results.</p>
 <dl class="field-list simple">
@@ -380,8 +473,8 @@ is the same as for axis 1 of misfit_dict.</p></li>
 </dd>
 </dl>
 <dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.add_result">
-<code class="sig-name descname">add_result</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">models</span></em>, <em class="sig-param"><span class="n">misfit_dict</span></em>, <em class="sig-param"><span class="n">perturbations</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.add_result" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult.add_result">
+<span class="sig-name descname"><span class="pre">add_result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">misfit_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturbations</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.add_result" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add misfit_dict for new models to current inversion result.
 The dataset and windows must be the same.</p>
 <dl class="field-list simple">
@@ -399,8 +492,8 @@ values (corr, variance)</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.get_model_perturbations">
-<code class="sig-name descname">get_model_perturbations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">smooth</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">n_s</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">in_percent</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.get_model_perturbations" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult.get_model_perturbations">
+<span class="sig-name descname"><span class="pre">get_model_perturbations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">smooth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.get_model_perturbations" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get perturbations from model_ref.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -427,8 +520,8 @@ else shape is (n_models,)</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.get_variances">
-<code class="sig-name descname">get_variances</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'variance'</span></em>, <em class="sig-param"><span class="n">smooth</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">n_s</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.get_variances" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult.get_variances">
+<span class="sig-name descname"><span class="pre">get_variances</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'variance'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.get_variances" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get misfit array.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -450,8 +543,8 @@ else shape is (n_models,)</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.load">
-<em class="property">static </em><code class="sig-name descname">load</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.load" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult.load">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.load" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read file into self using pickle.load().</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -461,8 +554,8 @@ else shape is (n_models,)</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.plot_models">
-<code class="sig-name descname">plot_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">types</span></em>, <em class="sig-param"><span class="n">n_best</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">n_mod</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'variance'</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.plot_models" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult.plot_models">
+<span class="sig-name descname"><span class="pre">plot_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">types</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_best</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_mod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'variance'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.plot_models" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot models colored by misfit value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -486,8 +579,8 @@ Axes: matplotlib Axes object.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.save">
-<code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.save" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save self using pickle.dump().</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -497,8 +590,8 @@ Axes: matplotlib Axes object.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.save_convergence_curve">
-<code class="sig-name descname">save_convergence_curve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">scale_arr</span></em>, <em class="sig-param"><span class="n">free_indices</span></em>, <em class="sig-param"><span class="n">smooth</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.save_convergence_curve" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult.save_convergence_curve">
+<span class="sig-name descname"><span class="pre">save_convergence_curve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.save_convergence_curve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save the convergence curve to path.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -515,8 +608,8 @@ iteration of the NA algorithm (n_s points)
 </dd></dl>
 
 <dl class="py method">
-<dt id="pytomo.inversion.inversionresult.InversionResult.save_variance_curve">
-<code class="sig-name descname">save_variance_curve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">smooth</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.save_variance_curve" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult.save_variance_curve">
+<span class="sig-name descname"><span class="pre">save_variance_curve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult.save_variance_curve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save the variance curve to path.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -532,12 +625,12 @@ iteration of the NA algorithm (n_s points)
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-pytomo.inversion.voronoi">
+</section>
+<section id="module-pytomo.inversion.voronoi">
 <span id="voronoi"></span><h2>voronoi<a class="headerlink" href="#module-pytomo.inversion.voronoi" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
-<dt id="pytomo.inversion.voronoi.compute_distances_to_points">
-<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">compute_distances_to_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">p_arr</span></em>, <em class="sig-param"><span class="n">ips</span><span class="o">=</span><span class="default_value">slice(None, None, None)</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.compute_distances_to_points" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.voronoi.compute_distances_to_points">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.voronoi.</span></span><span class="sig-name descname"><span class="pre">compute_distances_to_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ips</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">slice(None,</span> <span class="pre">None,</span> <span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.compute_distances_to_points" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -557,8 +650,8 @@ iteration of the NA algorithm (n_s points)
 </dd></dl>
 
 <dl class="py function">
-<dt id="pytomo.inversion.voronoi.find_point_of_region">
-<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">find_point_of_region</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vor</span></em>, <em class="sig-param"><span class="n">ireg</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.find_point_of_region" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.voronoi.find_point_of_region">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.voronoi.</span></span><span class="sig-name descname"><span class="pre">find_point_of_region</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ireg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.find_point_of_region" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the index of point within region ireg.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -577,8 +670,8 @@ iteration of the NA algorithm (n_s points)
 </dd></dl>
 
 <dl class="py function">
-<dt id="pytomo.inversion.voronoi.implicit_find_bound_for_dim">
-<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">implicit_find_bound_for_dim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">anchor_point</span></em>, <em class="sig-param"><span class="n">current_point</span></em>, <em class="sig-param"><span class="n">idim</span></em>, <em class="sig-param"><span class="n">n_nearest</span><span class="o">=</span><span class="default_value">10</span></em>, <em class="sig-param"><span class="n">min_bound</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">max_bound</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">step_size</span><span class="o">=</span><span class="default_value">0.01</span></em>, <em class="sig-param"><span class="n">n_step_max</span><span class="o">=</span><span class="default_value">1000</span></em>, <em class="sig-param"><span class="n">log</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.implicit_find_bound_for_dim" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.voronoi.implicit_find_bound_for_dim">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.voronoi.</span></span><span class="sig-name descname"><span class="pre">implicit_find_bound_for_dim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor_point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_nearest</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_step_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.implicit_find_bound_for_dim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find the lower and upper boundaries of region of current_point
 along dimension idim, without explicitly computing
 the voronoi diagram, by performing a linear grid search.</p>
@@ -615,8 +708,8 @@ defined in range_dict.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pytomo.inversion.voronoi.plot_voronoi_2d">
-<code class="sig-prename descclassname">pytomo.inversion.voronoi.</code><code class="sig-name descname">plot_voronoi_2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">misfits</span></em>, <em class="sig-param"><span class="n">xlim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ylim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ax</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.plot_voronoi_2d" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.voronoi.plot_voronoi_2d">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.voronoi.</span></span><span class="sig-name descname"><span class="pre">plot_voronoi_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">misfits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.voronoi.plot_voronoi_2d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot a voronoi diagram (only for 2-D points).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -640,18 +733,18 @@ scalar_map (): color map</p>
 </dl>
 </dd></dl>
 
-</div>
-<div class="section" id="module-pytomo.inversion.modelutils">
+</section>
+<section id="module-pytomo.inversion.modelutils">
 <span id="modelutils"></span><h2>modelutils<a class="headerlink" href="#module-pytomo.inversion.modelutils" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
-<dt id="pytomo.inversion.modelutils.std_boxcar_mesh">
-<code class="sig-prename descclassname">pytomo.inversion.modelutils.</code><code class="sig-name descname">std_boxcar_mesh</code><span class="sig-paren">(</span><em class="sig-param">n_upper_mantle=20, n_mtz=10, n_lower_mantle=12, n_dpp=6, types=[&lt;ParameterType.VSH: 4&gt;], verbose=0</em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.modelutils.std_boxcar_mesh" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pytomo.inversion.modelutils.std_boxcar_mesh">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.modelutils.</span></span><span class="sig-name descname"><span class="pre">std_boxcar_mesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">n_upper_mantle=20,</span> <span class="pre">n_mtz=10,</span> <span class="pre">n_lower_mantle=12,</span> <span class="pre">n_dpp=6,</span> <span class="pre">types=[&lt;ParameterType.VSH:</span> <span class="pre">4&gt;],</span> <span class="pre">verbose=0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.modelutils.std_boxcar_mesh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Boxcar mesh using ak135 as reference model for the structure of
 the upper mantle and transition zone down to 1000 km depth.</p>
 </dd></dl>
 
-</div>
-</div>
+</section>
+</section>
 
 
             <div class="clearer"></div>
@@ -663,6 +756,7 @@ the upper mantle and transition zone down to 1000 km depth.</p>
   <h3><a href="../../index.html">Table of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Inversion</a><ul>
+<li><a class="reference internal" href="#module-pytomo.inversion.fwi">fwi</a></li>
 <li><a class="reference internal" href="#module-pytomo.inversion.umcutils">umcutils</a></li>
 <li><a class="reference internal" href="#module-pytomo.inversion.na">na</a></li>
 <li><a class="reference internal" href="#module-pytomo.inversion.inversionresult">inversionresult</a></li>
@@ -675,6 +769,9 @@ the upper mantle and transition zone down to 1000 km depth.</p>
   <h4>Previous topic</h4>
   <p class="topless"><a href="../index.html"
                         title="previous chapter">API reference</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../Preproc/index.html"
+                        title="next chapter">Pre-processing</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -706,6 +803,9 @@ the upper mantle and transition zone down to 1000 km depth.</p>
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
+          <a href="../Preproc/index.html" title="Pre-processing"
+             >next</a> |</li>
+        <li class="right" >
           <a href="../index.html" title="API reference"
              >previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../index.html">pytomo 1.0a0 documentation</a> &#187;</li>
@@ -715,7 +815,7 @@ the upper mantle and transition zone down to 1000 km depth.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, Anselme Borgeaud.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.0.2.
     </div>
   </body>
 </html>

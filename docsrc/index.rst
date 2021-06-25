@@ -7,11 +7,10 @@ Welcome to pytomo's documentation!
 ==================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    reference/index
-
 
 
 Indices and tables

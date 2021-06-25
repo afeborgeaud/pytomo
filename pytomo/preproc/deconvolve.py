@@ -1,6 +1,6 @@
 import numpy as np
-from stream import read_sac
-from iterstack import IterStack
+from .stream import read_sac
+from .iterstack import IterStack
 import os
 import glob
 import matplotlib.pyplot as plt

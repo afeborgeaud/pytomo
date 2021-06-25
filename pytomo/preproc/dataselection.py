@@ -9,6 +9,7 @@ from dsmpy.windowmaker import WindowMaker
 if __name__ == '__main__':
     sac_files = glob.glob(
         '/work/anselme/CA_ANEL_NEW/VERTICAL/200707211534A/*T')
+    dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
     model = SeismicModel.prem()
     tlen = 3276.8
     nspc = 1024

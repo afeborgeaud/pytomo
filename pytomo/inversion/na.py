@@ -419,7 +419,7 @@ class NeighbouhoodAlgorithm:
 
         outputs = compute_models_parallel(
             dataset, models, self.tlen, self.nspc,
-            self.sampling_hz, self.comm, mode=self.mode,
+            self.sampling_hz, mode=self.mode,
             verbose=self.verbose)
 
         if rank == 0:

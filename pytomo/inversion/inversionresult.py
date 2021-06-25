@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 import pickle
+from mpi4py import MPI
 
 
 class InversionResult:
@@ -217,7 +218,7 @@ class InversionResult:
             self.models[i].plot(ax=ax, types=types, color=color, **kwargs)
 
         # model_ref.plot(ax=ax, types=[ParameterType.VPV], color='red')
-        ax.get_legend().remove()
+        # ax.get_legend().remove()
 
         return fig, ax
 
@@ -229,15 +230,15 @@ class InversionResult:
         i_bests = avg_misfit[:n_mod].argsort()[:n_best]
         return i_bests
 
-    def compute_models(self, models, comm):
+    def compute_models(self, models):
         outputs = compute_models_parallel(
             self.dataset, models, self.dataset.tlen,
             self.dataset.nspc, self.dataset.sampling_hz,
-            comm, mode=self.meta['mode'], verbose=self.meta['verbose'])
+            mode=self.meta['mode'], verbose=self.meta['verbose'])
         filter_type = self.meta['filter_type']
         freq = self.meta['freq']
         freq2 = self.meta['freq2']
-        if comm.Get_rank() == 0:
+        if MPI.COMM_WORLD.Get_rank() == 0:
             if filter_type is not None:
                 for imod in range(len(outputs)):
                     for iev in range(len(outputs[0])):

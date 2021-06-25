@@ -1,15 +1,15 @@
 # length of the synthetics (in seconds)
 tlen 1638.4
 # number of frequency points for the synthetics
-nspc 64
+nspc 256
 # sampling frequency for the synthetics
 sampling_hz 20
 # computation mode. 0: p-sv+sh, 1: p-sv, 2: sh
-mode 2
+mode 0
 # number of randomly sampled models
-n_mod 200
+n_mod 1600
 # number of model sampled at each step
-n_s 20
+n_s 80
 # number of best-fitting models kept at each step
 n_r 2
 # name of the output file containing the inversion result
@@ -19,26 +19,26 @@ verbose 1
 # filter type. 'bandpass' or 'lowpass'
 filter_type bandpass
 # filter (minimum) frequency
-freq 0.005
+freq 0.01
 # filter maximum frequency (for bandpass only)
-freq2 0.1
+freq2 0.08
 # mininum epicentral distance
 distance_min 70.
 # maximum epicentral distance in degree
 distance_max 90.
 # time before arrival for window
-t_before 10.
+t_before 15.
 # time after arrival for window
-t_after 30.
+t_after 35.
 # random seed
 seed 0
 # phases
-phases ScS
+phases ScS ScS
 # components
-components T
+components R T
 # convergence threshold
 convergence_threshold 0.02
 # misfit type
-misfit_type rolling_variance
+misfit_type variance
 # misfit kwargs
 misfit_kwargs size:200 stride:100

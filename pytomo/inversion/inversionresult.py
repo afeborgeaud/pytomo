@@ -7,6 +7,55 @@ import matplotlib.cm as cmx
 import pickle
 from mpi4py import MPI
 
+class FWIResult:
+    """Pack the inversion results for full-waveform inversion and
+    the metadata needed to reproduce the results."""
+
+    def __init__(self, windows):
+        self.windows = windows
+        self.models_at_iter = []
+        self.models_meta_at_iter = []
+        self.misfits_at_iter = []
+
+    def add(self, models, models_meta, misfits):
+        """Add results of an iteration step.
+
+        Args:
+            models (list of SeismicModel): inverted models for
+                different metaparameters.
+            models_meta (list of dict): entries should correspond to
+                the models list.
+            misfits (dict): Keys are misfit names (corr, variance).
+                Values are ndarray of shape (n_models, n_windows)
+                with misfit values.
+
+        """
+        self.models_at_iter.append(models)
+        self.models_meta_at_iter.append(models_meta)
+        self.misfits_at_iter.append(misfits)
+
+    def save(self, path):
+        """Save self using pickle.dump().
+
+        Args:
+            path (str): name of the output file.
+
+        """
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(path):
+        """Read file into self using pickle.load().
+
+        Args:
+            path (str): name of the file that contains self.
+
+        """
+        with open(path, 'rb') as f:
+            output = pickle.load(f)
+        return output
+
 
 class InversionResult:
     """Pack the inversion results, models and dataset needed to

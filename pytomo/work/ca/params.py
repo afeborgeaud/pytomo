@@ -204,6 +204,27 @@ def get_model_syntest1_prem():
 
     return model_updated
 
+def get_model_syntest1_prem_vshvsv():
+    types = [ParameterType.VSH, ParameterType.VSV]
+    radii = np.array([3480. + 20 * i for i in range(21)])
+    model_params = ModelParameters(types, radii, mesh_type='boxcar')
+    model = SeismicModel.prem().boxcar_mesh(model_params)
+    values_vsh = np.array(
+        [0.2 * (-1)**(i//5) if i <= 9 else 0.
+         for i in range(model_params.get_n_grd_params())])
+    values_vsv = np.array(
+        [-0.2 * (-1) ** (i // 5) if i <= 4 else 0.
+         for i in range(model_params.get_n_grd_params())]
+    )
+    values_dict = {
+        ParameterType.VSH: values_vsh,
+        ParameterType.VSV: values_vsv
+    }
+    values_mat = model_params.get_values_matrix(values_dict)
+    model_updated = model.multiply(values_mat)
+
+    return model_updated
+
 def get_model_syntest2():
     model_ref = SeismicModel.ak135()
     types = [ParameterType.VSH]

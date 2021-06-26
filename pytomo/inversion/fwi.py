@@ -6,8 +6,11 @@ from dsmpy.utils.sklearnutils import get_XY
 from dsmpy.dataset import Dataset
 from dsmpy.dsm import compute_models_parallel
 from dsmpy import root_sac
-from pytomo.work.ca.params import get_dataset, get_model_syntest1_prem
+from pytomo.work.ca.params import get_dataset, get_model_syntest1_prem_vshvsv
 from pytomo.inversion.cmcutils import process_outputs
+from pytomo.utilities import get_temporary_str
+from pytomo.inversion.inversionresult import FWIResult
+from pytomo.preproc.dataselection import compute_misfits
 import matplotlib.pyplot as plt
 import numpy as np
 import glob
@@ -40,7 +43,7 @@ class FWI:
         ...    model_ref, model_params, dataset,
         ...    windows, n_phases=1, mode=2)
         >>> model_1 = fwi.step(
-                model_ref, freq=0.01, freq2=0.04, n_pca_components=[4])
+        ...     model_ref, freq=0.01, freq2=0.04, n_pca_components=[4])
         >>> model_2 = fwi.step(
         ...     model_1, 0.01, 0.04, n_pca_components=[4])
         >>> model_3 = fwi.step(
@@ -71,6 +74,7 @@ class FWI:
         self.windows = windows
         self.n_phases = n_phases
         self.mode = mode
+        self.results = FWIResult(windows)
 
     def minimum_tlen(self) -> float:
         """Find the minimum tlen that includes the longest time window.
@@ -131,19 +135,15 @@ class FWI:
                 ('reg', linear_model.Ridge(alpha=0.))
             ])
 
-            # param_grid = {
-            #     'pca__n_components': [4, 6, 8, 10],
-            # }
-            # search = GridSearchCV(pipe, param_grid, n_jobs=-1)
-            # search.fit(X, y)
-
             value_dicts = []
+            rmses = []
             for n_pca in n_pca_components:
                 pipe.set_params(pca__n_components=n_pca)
                 pipe.fit(X, y)
                 y_pred = pipe.predict(X)
                 mse = mean_squared_error(y, y_pred)
                 rmse = np.sqrt(mse)
+                rmses.append(rmse)
                 logging.info(f'n_pca={n_pca}, rmse={rmse}')
 
                 coefs_trans = pipe['reg'].coef_.reshape(1, -1)
@@ -176,12 +176,36 @@ class FWI:
         misfit_dict = MPI.COMM_WORLD.bcast(misfit_dict, root=0)
         variances = misfit_dict['variance'].mean(axis=1)
         logging.info(f'variances = {variances}')
+        updated_model = updated_models[np.argmin(variances)]
 
-        return updated_models[np.argmin(variances)]
+        if MPI.COMM_WORLD.Get_rank() == 0:
+            self.plot_model_log(
+                updated_model, f'model{get_temporary_str()}.pdf')
+            models_meta = [{'n_pca': n_pca_components[i], 'freq': freq,
+                            'freq2': freq2, 'rmse': rmses[i],
+                            'variance': variances[i]}
+                           for i in range(len(n_pca_components))]
+            self.results.add(updated_models, models_meta, misfit_dict)
+
+        return updated_model
+
+    def plot_model_log(self, model, figname: str):
+        fig, ax = plt.subplots(1, figsize=(4, 7))
+        self.model_ref.plot(
+            types=self.model_params.get_types(), ax=ax, label='ref')
+        get_model_syntest1_prem_vshvsv().plot(
+            types=types, ax=ax, label='target')
+        model.plot(
+            types=self.model_params.get_types(), ax=ax, label='update')
+        nodes = model_params.get_nodes()
+        ax.set_ylim([nodes.min(), nodes.max()])
+        ax.set_xlim([6.5, 8])
+        ax.legend()
+        fig.savefig(figname, bbox_inches='tight')
 
 
 if __name__ == '__main__':
-    types = [ParameterType.VSH]
+    types = [ParameterType.VSH, ParameterType.VSV]
     radii = [3480. + 20 * i for i in range(21)]
     model_params = ModelParameters(
         types=types,
@@ -198,7 +222,7 @@ if __name__ == '__main__':
     phases = ['ScS']
 
     dataset, output = get_dataset(
-        get_model_syntest1_prem(), tlen=1638.4, nspc=256,
+        get_model_syntest1_prem_vshvsv(), tlen=1638.4, nspc=256,
         sampling_hz=sampling_hz,
         mode=mode, add_noise=False, noise_normalized_std=1.)
 
@@ -206,18 +230,39 @@ if __name__ == '__main__':
         dataset, 'prem', phases, [Component.T],
         t_before=t_before, t_after=t_after)
 
-    fwi = FWI(
-        model_ref, model_params, dataset, windows, len(phases), mode)
+    # misfits = compute_misfits(dataset, model_ref, windows, mode=mode)
+    # if MPI.COMM_WORLD.Get_rank() == 0:
+    #     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+    #     for i, (freq, freq2) in enumerate(misfits['frequency']):
+    #         axes[i, 0].hist(misfits['misfit'][i]['variance'],
+    #                         label='variance', bins=30)
+    #         axes[i, 1].hist(misfits['misfit'][i]['corr'], label='corr',
+    #                         bins=30)
+    #         axes[i, 2].hist(misfits['misfit'][i]['ratio'], label='ratio',
+    #                         bins=30)
+    #     for ax in axes.ravel():
+    #         ax.legend()
+    #     plt.show()
 
-    model_1 = fwi.step(model_ref, 0.01, 0.04, n_pca_components=[4])
-    model_2 = fwi.step(model_1, 0.01, 0.04, n_pca_components=[4])
-    model_3 = fwi.step(model_2, 0.01, 0.08, n_pca_components=[4, 6, 8])
-    model_4 = fwi.step(model_3, 0.01, 0.1, n_pca_components=[4, 6, 8])
+    fwi = FWI(
+        model_ref, model_params, dataset, windows, 2, mode)
+
+    model_1 = fwi.step(model_ref, 0.01, 0.04, n_pca_components=[8])
+    model_2 = fwi.step(model_1, 0.01, 0.04, n_pca_components=[8])
+    model_3 = fwi.step(model_2, 0.01, 0.08, n_pca_components=[8, 12, 16])
+    model_4 = fwi.step(model_3, 0.01, 0.08, n_pca_components=[8, 12, 16])
+    model_5 = fwi.step(model_4, 0.01, 0.08, n_pca_components=[12, 16, 20, 24])
 
     if MPI.COMM_WORLD.Get_rank() == 0:
+        # save FWI result to object
+        fname = 'fwiresult_' + get_temporary_str() + '.pkl'
+        fwi.results.save(fname)
+
+        # plot models
         fig, ax = plt.subplots(1)
         model_ref.plot(types=types, ax=ax, label='prem')
-        get_model_syntest1_prem().plot(types=types, ax=ax, label='target')
+        get_model_syntest1_prem_vshvsv().plot(
+            types=types, ax=ax, label='target')
         model_1.plot(types=types, ax=ax, label='it1')
         model_2.plot(types=types, ax=ax, label='it2')
         model_3.plot(types=types, ax=ax, label='it3')

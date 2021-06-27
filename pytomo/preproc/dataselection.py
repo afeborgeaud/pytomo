@@ -6,12 +6,18 @@ from dsmpy.seismicmodel import SeismicModel
 from dsmpy.component import Component
 from dsmpy.windowmaker import WindowMaker
 from dsmpy.dsm import compute_dataset_parallel, compute_models_parallel
+import matplotlib.pyplot as plt
 
-def compute_misfits(dataset, model, windows, mode=0):
+def compute_misfits(
+        datasets, freqs, freqs2, model, windows, mode=0):
     """Return a dict with misfits for each time windows.
 
     Args:
-        dataset (Dataset): dataset
+        datasets (list of Dataset): datasets filtered at frequencies
+            in freqs and freqs2
+        freqs (list of float): list of minimum frequencies at which
+            the datasets have been filtered
+        freqs2 (list of float): list of maximum frequencies
         model (SeismicModel): reference model
         windows (list of Window): time windows
         mode (int): computation mode.
@@ -25,25 +31,25 @@ def compute_misfits(dataset, model, windows, mode=0):
     tlen = 1638.4
     nspc = 256
 
-    outputs = compute_models_parallel(
-        dataset, [model], tlen=tlen,
-        nspc=nspc, sampling_hz=dataset.sampling_hz, mode=mode)
+    assert len(datasets) == len(freqs) == len(freqs2)
 
-    freqs = [0.01, 0.01]
-    freqs2 = [0.04, 0.08]
+    outputs = compute_models_parallel(
+        datasets[0], [model], tlen=tlen,
+        nspc=nspc, sampling_hz=datasets[0].sampling_hz, mode=mode)
 
     if MPI.COMM_WORLD.Get_rank() == 0:
         misfits = dict()
         misfits['frequency'] = list(zip(freqs, freqs2))
         misfits['misfit'] = []
         for ifreq, (freq, freq2) in enumerate(zip(freqs, freqs2)):
-            ds = dataset.filter(freq, freq2, 'bandpass', inplace=False)
-            ds.apply_windows(windows, 1, 60 * 20)
+            # ds = dataset.filter(freq, freq2, 'bandpass', inplace=False)
+            # ds.apply_windows(windows, 1, 60 * 20)
+            ds = datasets[ifreq]
             variances = np.zeros(len(windows))
             corrs = np.zeros(len(windows))
             ratios = np.zeros(len(windows))
             for iev in range(len(outputs)):
-                event = dataset.events[iev]
+                event = ds.events[iev]
                 output = outputs[0][iev]
                 output.filter(freq, freq2, 'bandpass')
                 start, end = ds.get_bounds_from_event_index(iev)
@@ -62,13 +68,23 @@ def compute_misfits(dataset, model, windows, mode=0):
                         u_cut = output.us[icomp, jsta, i_start:i_end]
                         data_cut = ds.data[
                             i, icomp, ista, :]
+                        plt.plot(u_cut)
+                        plt.plot(data_cut)
+                        plt.show()
                         residual = data_cut - u_cut
-                        variance = np.var(residual)
+                        mean = np.mean(residual)
+                        variance = np.dot(residual - mean, residual - mean)
                         if np.abs(data_cut).max() > 0:
-                            variance /= np.abs(data_cut).max()**2
+                            variance /= np.dot(data_cut - data_cut.mean(),
+                                               data_cut - data_cut.mean())
+                        else:
+                            variance = np.nan
                         corr = np.corrcoef(data_cut, u_cut)[0, 1]
-                        ratio = (data_cut.max() - data_cut.min()) / (
-                            u_cut.max() - u_cut.min())
+                        if u_cut.max() > 0:
+                            ratio = (data_cut.max() - data_cut.min()) / (
+                                u_cut.max() - u_cut.min())
+                        else:
+                            ratio = np.nan
                         variances[iwin] = variance
                         corrs[iwin] = corr
                         ratios[iwin] = ratio

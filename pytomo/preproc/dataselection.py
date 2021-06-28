@@ -90,9 +90,6 @@ def compute_misfits(
                         u_cut = output.us[
                                 icomp, jsta, i_start+shift:i_end+shift]
 
-                        plt.plot(u_cut)
-                        plt.plot(data_cut)
-                        plt.show()
                         residual = data_cut - u_cut
                         mean = np.mean(residual)
                         variance = np.dot(residual - mean, residual - mean)

@@ -28,16 +28,19 @@ def compute_misfits(
                                      'corr': np.ndarray,
                                      'ratio': np.ndarray}]}
     """
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
     tlen = 1638.4
     nspc = 256
 
     assert len(datasets) == len(freqs) == len(freqs2)
 
-    outputs = compute_models_parallel(
-        datasets[0], [model], tlen=tlen,
+    outputs = compute_dataset_parallel(
+        datasets[0], model, tlen=tlen,
         nspc=nspc, sampling_hz=datasets[0].sampling_hz, mode=mode)
 
-    if MPI.COMM_WORLD.Get_rank() == 0:
+    if rank == 0:
         misfits = dict()
         misfits['frequency'] = list(zip(freqs, freqs2))
         misfits['misfit'] = []

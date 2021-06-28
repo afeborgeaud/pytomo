@@ -71,6 +71,43 @@ class InputFile:
             return None, None
         return key, value_parsed
 
+def find_best_shift(
+        y, y_template, shift_polarity=False, skip_freq=1):
+    """Compute the index shift to maximize the correlation
+     between y[shift:shift+n] and y_template,
+     where n=len(y_template)
+
+    Args:
+        y (np.ndarray): must have len(y) >= len(y_template)
+        y_template (np.ndarray):
+        shift_polarity: allows to switch polarity (default is False)
+        skip_freq: skip points to reduce computation
+            time (default is 1, i.e. no skip)
+
+    Returns:
+        int: best shift
+        int: polarity (1 or -1)
+    """
+    if not np.any(y) or not np.any(y_template):
+        warnings.warn('y or y_template is 0. Returning 0 shift')
+        return 0, 1.
+    n = len(y_template)
+    n_shift = len(y) - n
+    assert n_shift % skip_freq == 0
+    n_shift = int(n_shift / skip_freq)
+    corrs = np.zeros(n_shift)
+    for i in range(n_shift):
+        y_shift = y[i*skip_freq:i*skip_freq+n]
+        corrs[i] = np.corrcoef(y_shift, y_template)[0,1]
+    if not shift_polarity:
+        best_shift = np.argmax(corrs) * skip_freq
+        polarity = 1.
+    else:
+        if corrs.max() < -corrs.min():
+            best_shift = np.argmin(corrs) * skip_freq
+            polarity = -1.
+    return best_shift, polarity
+
 class IterStack:
     """Iterative stacking for source wavelet
     following Kennett & Rowlingson (2014)
@@ -234,7 +271,7 @@ class IterStack:
             wavelet0 = wavelet_dict[trace.stats.sac.kevnm]
 
             waveform_cut_buffer = np.array(trace.data[start:end])
-            best_shift, polarity = IterStack.find_best_shift(
+            best_shift, polarity = find_best_shift(
                 waveform_cut_buffer, wavelet0, self.shift_polarity)
             waveform_cut = waveform_cut_buffer[
                 best_shift:best_shift+len(wavelet0)]
@@ -263,7 +300,7 @@ class IterStack:
             wavelet = wavelet_dict[trace.stats.sac.kevnm]
 
             waveform_cut_buffer = np.array(trace.data[start:end])
-            best_shift, polarity = IterStack.find_best_shift(
+            best_shift, polarity = find_best_shift(
                 waveform_cut_buffer, wavelet, self.shift_polarity)
             best_shift = best_shift/self.sampling - buffer
             
@@ -321,29 +358,6 @@ class IterStack:
                 masks[i] = False 
         
         return masks
-
-    @staticmethod
-    def find_best_shift(
-            y, y_template, shift_polarity=False, skip_freq=1):
-        if not np.any(y) or not np.any(y_template):
-            warnings.warn('y or y_template is 0. Returning 0 shift')
-            return 0, 1.
-        n = len(y_template)
-        n_shift = len(y) - n
-        assert n_shift % skip_freq == 0
-        n_shift = int(n_shift / skip_freq)
-        corrs = np.zeros(n_shift)
-        for i in range(n_shift):
-            y_shift = y[i*skip_freq:i*skip_freq+n]
-            corrs[i] = np.corrcoef(y_shift, y_template)[0,1]
-        if not shift_polarity:
-            best_shift = np.argmax(corrs) * skip_freq
-            polarity = 1.
-        else:
-            if corrs.max() < -corrs.min():
-                best_shift = np.argmin(corrs) * skip_freq
-                polarity = -1.
-        return best_shift, polarity
 
     def process_causal_wavelet(self, wavelet_dict, eps=0.01):
         stf_dict = dict(wavelet_dict)

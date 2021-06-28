@@ -5,7 +5,9 @@ from dsmpy.dataset import Dataset
 from dsmpy.seismicmodel import SeismicModel
 from dsmpy.component import Component
 from dsmpy.windowmaker import WindowMaker
+from dsmpy.window import Window
 from dsmpy.dsm import compute_dataset_parallel, compute_models_parallel
+from pytomo.preproc.iterstack import find_best_shift
 import matplotlib.pyplot as plt
 
 def compute_misfits(
@@ -33,6 +35,7 @@ def compute_misfits(
 
     tlen = 1638.4
     nspc = 256
+    buffer = int(10 * datasets[0].sampling_hz)
 
     assert len(datasets) == len(freqs) == len(freqs2)
 
@@ -41,19 +44,21 @@ def compute_misfits(
         nspc=nspc, sampling_hz=datasets[0].sampling_hz, mode=mode)
 
     if rank == 0:
+        windows_shift = []
         misfits = dict()
         misfits['frequency'] = list(zip(freqs, freqs2))
         misfits['misfit'] = []
         for ifreq, (freq, freq2) in enumerate(zip(freqs, freqs2)):
             # ds = dataset.filter(freq, freq2, 'bandpass', inplace=False)
             # ds.apply_windows(windows, 1, 60 * 20)
+            windows_shift_tmp = []
             ds = datasets[ifreq]
             variances = np.zeros(len(windows))
             corrs = np.zeros(len(windows))
             ratios = np.zeros(len(windows))
             for iev in range(len(outputs)):
                 event = ds.events[iev]
-                output = outputs[0][iev]
+                output = outputs[iev]
                 output.filter(freq, freq2, 'bandpass')
                 start, end = ds.get_bounds_from_event_index(iev)
                 for ista in range(start, end):
@@ -68,9 +73,23 @@ def compute_misfits(
                         icomp = window.component.value
                         i_start = int(window_arr[0] * ds.sampling_hz)
                         i_end = int(window_arr[1] * ds.sampling_hz)
-                        u_cut = output.us[icomp, jsta, i_start:i_end]
                         data_cut = ds.data[
-                            i, icomp, ista, :]
+                                   i, icomp, ista, :]
+
+                        # shift window to maximize correlation
+                        u_cut_buffer = output.us[
+                            icomp, jsta, i_start-buffer:i_end+buffer]
+                        shift, _ = find_best_shift(u_cut_buffer, data_cut)
+                        shift -= buffer
+                        t_shift = shift * ds.sampling_hz
+                        window_shift = Window(
+                            window.travel_time + t_shift, window.event,
+                            window.station, window.phase_name,
+                            window.component, window.t_before, window.t_after)
+                        windows_shift_tmp.append(window_shift)
+                        u_cut = output.us[
+                                icomp, jsta, i_start+shift:i_end+shift]
+
                         plt.plot(u_cut)
                         plt.plot(data_cut)
                         plt.show()
@@ -96,10 +115,12 @@ def compute_misfits(
             )
 
             output.free()
+        windows_shift.append(windows_shift_tmp)
     else:
         misfits = None
+        windows_shift = None
 
-    return misfits
+    return misfits, windows_shift
 
 
 if __name__ == '__main__':

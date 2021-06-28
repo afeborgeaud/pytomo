@@ -12,10 +12,8 @@ import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
-    # sac_files = list(
-    #     glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
     sac_files = list(
-        glob.iglob('/Users/navy/git/pytomo/tests/sac_files/*2005*T'))
+        glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
     dataset = Dataset.dataset_from_sac(sac_files)
     print(dataset.events)
     print(dataset.nrs)

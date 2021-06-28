@@ -58,11 +58,15 @@ if __name__ == '__main__':
 
         fig, axes = plt.subplots(2, 3, figsize=(15, 10))
         for i, (freq, freq2) in enumerate(misfits['frequency']):
-            axes[i, 0].hist(misfits['misfit'][i]['variance'],
+            variances = misfits['misfit'][i]['variance']
+            ratios = misfits['misfit'][i]['ratio']
+            variances = variances[variances < 10]
+            ratios = ratios[ratios < 10]
+            axes[i, 0].hist(variances,
                             label='variance', bins=30)
             axes[i, 1].hist(misfits['misfit'][i]['corr'], label='corr',
                             bins=30)
-            axes[i, 2].hist(misfits['misfit'][i]['ratio'], label='ratio',
+            axes[i, 2].hist(ratios, label='ratio',
                             bins=30)
         for ax in axes.ravel():
             ax.legend()

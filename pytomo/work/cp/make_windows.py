@@ -12,8 +12,12 @@ import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
-    sac_files = list(glob.iglob(sys.argv[1]))
+    sac_files = list(glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
+    print(sac_files)
     dataset = Dataset.dataset_from_sac(sac_files)
+    print(dataset.events)
+    print(dataset.stations)
+    print(dataset.nr)
     windows = WindowMaker.windows_from_dataset(
         dataset, 'prem', ['ScS'], [Component.T],
         t_before=20, t_after=40)

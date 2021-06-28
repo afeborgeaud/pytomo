@@ -13,10 +13,9 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     sac_files = list(glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
-    print(sac_files)
     dataset = Dataset.dataset_from_sac(sac_files)
     print(dataset.events)
-    print(dataset.stations)
+    print(dataset.nrs)
     print(dataset.nr)
     windows = WindowMaker.windows_from_dataset(
         dataset, 'prem', ['ScS'], [Component.T],
@@ -29,17 +28,15 @@ if __name__ == '__main__':
             sac_files, windows, freq, freq2)
         for freq, freq2 in zip(freqs, freqs2)
     ]
-    misfits = compute_misfits(
+    misfits, windows_shift = compute_misfits(
         datasets, freqs, freqs2, model, windows, mode=0)
-
-    print(misfits)
 
     if MPI.COMM_WORLD.Get_rank() == 0:
         selected_windows = dict()
         for ifreq in range(len(freqs)):
             windows_tmp = []
             for window, variance, corr, ratio in zip(
-                windows, misfits['misfit'][0]['variance'],
+                windows_shift[ifreq], misfits['misfit'][0]['variance'],
                 misfits['misfit'][0]['corr'],
                 misfits['misfit'][0]['ratio'],
             ):
@@ -56,7 +53,7 @@ if __name__ == '__main__':
         selected_windows[key] = windows_tmp
 
         WindowMaker.save('windows.pkl', windows)
-        WindowMaker.save('selected_windows.pkl', selected_windows)
+        WindowMaker.save('selected_shift_windows.pkl', selected_windows)
 
         fig, axes = plt.subplots(2, 3, figsize=(15, 10))
         for i, (freq, freq2) in enumerate(misfits['frequency']):

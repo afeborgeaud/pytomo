@@ -60,7 +60,7 @@ if __name__ == '__main__':
         for i, (freq, freq2) in enumerate(misfits['frequency']):
             variances = misfits['misfit'][i]['variance']
             ratios = misfits['misfit'][i]['ratio']
-            variances = variances[variances < 10]
+            variances = variances[variances < 5]
             ratios = ratios[ratios < 10]
             axes[i, 0].hist(variances,
                             label='variance', bins=30)

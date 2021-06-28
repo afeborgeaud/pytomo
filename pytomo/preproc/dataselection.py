@@ -8,7 +8,12 @@ from dsmpy.windowmaker import WindowMaker
 from dsmpy.window import Window
 from dsmpy.dsm import compute_dataset_parallel, compute_models_parallel
 from pytomo.preproc.iterstack import find_best_shift
+from pytomo.utilities import minimum_nspc, minimum_tlen
 import matplotlib.pyplot as plt
+import logging
+
+logging.basicConfig(
+        level=logging.INFO, filename='dataselection.log', filemode='w')
 
 def compute_misfits(
         datasets, freqs, freqs2, model, windows, mode=0):
@@ -33,9 +38,10 @@ def compute_misfits(
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 
-    tlen = 1638.4
-    nspc = 256
+    tlen = minimum_tlen(windows)
+    nspc = minimum_nspc(tlen, max(freqs2))
     buffer = int(10 * datasets[0].sampling_hz)
+    logging.info(f'tlen={tlen}, nspc={nspc}')
 
     assert len(datasets) == len(freqs) == len(freqs2)
 
@@ -52,6 +58,7 @@ def compute_misfits(
             # ds = dataset.filter(freq, freq2, 'bandpass', inplace=False)
             # ds.apply_windows(windows, 1, 60 * 20)
             windows_shift_tmp = []
+            indices_order = []
             ds = datasets[ifreq]
             variances = np.zeros(len(windows))
             corrs = np.zeros(len(windows))
@@ -87,6 +94,7 @@ def compute_misfits(
                             window.station, window.phase_name,
                             window.component, window.t_before, window.t_after)
                         windows_shift_tmp.append(window_shift)
+                        indices_order.append(iwin)
                         u_cut = output.us[
                                 icomp, jsta, i_start+shift:i_end+shift]
 
@@ -112,39 +120,11 @@ def compute_misfits(
             )
 
             output.free()
-        windows_shift.append(windows_shift_tmp)
+            windows_shift.append(
+                [windows_shift_tmp[i] for i in indices_order])
     else:
         misfits = None
         windows_shift = None
 
     return misfits, windows_shift
-
-
-if __name__ == '__main__':
-    sac_files = glob.glob(
-        '/work/anselme/CA_ANEL_NEW/VERTICAL/200707211534A/*T')
-    dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
-    model = SeismicModel.prem()
-    tlen = 3276.8
-    nspc = 1024
-    sampling_hz = 20
-    freq = 0.005
-    freq2 = 0.167
-
-    comm = MPI.COMM_WORLD
-    n_cores = comm.Get_size()
-    rank = comm.Get_rank()
-
-    if rank == 0:
-        windows_S = WindowMaker.windows_from_dataset(
-            dataset, 'prem', ['s', 'S', 'Sdiff'],
-            [Component.T], t_before=10., t_after=20.)
-        windows_P = WindowMaker.windows_from_dataset(
-            dataset, 'prem', ['p', 'P', 'Pdiff'],
-            [Component.Z], t_before=10., t_after=20.)
-        windows = windows_S #+ windows_P
-
-        dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
-    else:
-        dataset = None
 

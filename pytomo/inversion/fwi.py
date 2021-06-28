@@ -10,6 +10,7 @@ from pytomo.work.ca.params import get_dataset, get_model_syntest1_prem_vshvsv
 from pytomo.inversion.cmcutils import process_outputs
 from pytomo.utilities import get_temporary_str
 from pytomo.inversion.inversionresult import FWIResult
+from pytomo.utilities import minimum_tlen, minimum_nspc
 from pytomo.preproc.dataselection import compute_misfits
 import matplotlib.pyplot as plt
 import numpy as np
@@ -76,20 +77,6 @@ class FWI:
         self.mode = mode
         self.results = FWIResult(windows)
 
-    def minimum_tlen(self) -> float:
-        """Find the minimum tlen that includes the longest time window.
-        """
-        t_max = np.array(
-            [window.to_array()[1] for window in self.windows]).max()
-        n_min = np.ceil(np.log2(10 * t_max))
-        return 2 ** n_min / 10.
-
-    def minimum_nspc(self, freq2: float) -> int:
-        """Find the minimum nspc for accurate computation given freq2.
-        """
-        x = np.ceil(np.log2(1.4 * self.minimum_tlen() * freq2))
-        return int(2 ** x)
-
     def step(self, model, freq, freq2, n_pca_components=[4]):
         """Advance one step in the FWI iteration.
 
@@ -117,8 +104,8 @@ class FWI:
         ds.apply_windows(
             self.windows, self.n_phases, window_npts)
 
-        tlen = self.minimum_tlen()
-        nspc = self.minimum_nspc(freq2)
+        tlen = minimum_tlen(self.windows)
+        nspc = minimum_nspc(tlen, freq2)
 
         if MPI.COMM_WORLD.Get_rank() == 0:
             logging.info(f'tlen={tlen}, nspc={nspc}')

@@ -12,7 +12,10 @@ import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
-    sac_files = list(glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
+    # sac_files = list(
+    #     glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
+    sac_files = list(
+        glob.iglob('/Users/navy/git/pytomo/tests/sac_files/*2005*T'))
     dataset = Dataset.dataset_from_sac(sac_files)
     print(dataset.events)
     print(dataset.nrs)
@@ -36,9 +39,9 @@ if __name__ == '__main__':
         for ifreq in range(len(freqs)):
             windows_tmp = []
             for window, variance, corr, ratio in zip(
-                windows_shift[ifreq], misfits['misfit'][0]['variance'],
-                misfits['misfit'][0]['corr'],
-                misfits['misfit'][0]['ratio'],
+                windows_shift[ifreq], misfits['misfit'][ifreq]['variance'],
+                misfits['misfit'][ifreq]['corr'],
+                misfits['misfit'][ifreq]['ratio'],
             ):
                 if (
                     variance < 2.5

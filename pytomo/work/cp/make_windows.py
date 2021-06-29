@@ -7,6 +7,7 @@ from dsmpy.seismicmodel import SeismicModel
 from dsmpy.component import Component
 from dsmpy.windowmaker import WindowMaker
 from dsmpy.utils.cmtcatalog import read_catalog
+from dsmpy.event import Event
 from dsmpy.dsm import compute_dataset_parallel, compute_models_parallel
 from pytomo.preproc.dataselection import compute_misfits
 import matplotlib.pyplot as plt
@@ -14,12 +15,15 @@ import matplotlib.pyplot as plt
 if __name__ == '__main__':
     sac_files = list(
         glob.iglob('/work/anselme/central_pac/DATA/DATA/20*/*T'))
+    sac_files = list(
+        glob.iglob('/Users/navy/git/dsmpy/tests/sac_files/*T')
+    )
 
     catalog = read_catalog()
     filter_70to80 = (
-        lambda event_id, station: (
-            70 <= catalog[event_id]
-            .get_epicentral_distance(station) <= 80)
+        lambda eventid_station: (
+            70 <= Event.event_from_catalog(catalog, eventid_station[0])
+            .get_epicentral_distance(eventid_station[1]) <= 80)
     )
     sac_files_70to80 = filter_sac_files(sac_files, filter_70to80)
 

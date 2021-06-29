@@ -21,7 +21,7 @@ def filter_70to80(eventid_station):
 
 if __name__ == '__main__':
     sac_files = list(
-        glob.iglob('/work/anselme/central_pac/DATA/DATA/20*/*T'))
+        glob.iglob('/work/anselme/central_pac/DATA/DATA/20*/*[RT]'))
 
     catalog = read_catalog()
     sac_files_70to80 = filter_sac_files(sac_files, filter_70to80)

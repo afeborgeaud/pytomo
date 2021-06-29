@@ -12,16 +12,18 @@ from dsmpy.dsm import compute_dataset_parallel, compute_models_parallel
 from pytomo.preproc.dataselection import compute_misfits
 import matplotlib.pyplot as plt
 
+def filter_70to80(eventid_station):
+    event = Event.event_from_catalog(catalog, eventid_station[0])
+    if event is not None:
+        return 70 <= event.get_epicentral_distance(eventid_station[1]) <= 80
+    else:
+        return False
+
 if __name__ == '__main__':
     sac_files = list(
         glob.iglob('/work/anselme/central_pac/DATA/DATA/20*/*T'))
 
     catalog = read_catalog()
-    filter_70to80 = (
-        lambda eventid_station: (
-            70 <= Event.event_from_catalog(catalog, eventid_station[0])
-            .get_epicentral_distance(eventid_station[1]) <= 80)
-    )
     sac_files_70to80 = filter_sac_files(sac_files, filter_70to80)
 
     dataset = Dataset.dataset_from_sac(sac_files_70to80)

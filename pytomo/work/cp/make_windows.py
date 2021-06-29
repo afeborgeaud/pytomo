@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     dataset = Dataset.dataset_from_sac(sac_files_70to80)
     windows = WindowMaker.windows_from_dataset(
-        dataset, 'prem', ['ScS'], [Component.T],
+        dataset, 'prem', ['ScS'], [Component.T, Component.R],
         t_before=20, t_after=40)
     model = SeismicModel.prem()
     freqs = [0.01, 0.01]

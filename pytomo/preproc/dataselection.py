@@ -15,6 +15,7 @@ import logging
 logging.basicConfig(
         level=logging.INFO, filename='dataselection.log', filemode='w')
 
+@profile
 def compute_misfits(
         datasets, freqs, freqs2, model, windows, mode=0):
     """Return a dict with misfits for each time windows.
@@ -115,11 +116,12 @@ def compute_misfits(
                         variances[iwin] = variance
                         corrs[iwin] = corr
                         ratios[iwin] = ratio
+
+                output.free()
             misfits['misfit'].append(
                 {'variance': variances, 'corr': corrs, 'ratio': ratios}
             )
 
-            output.free()
             windows_shift.append(
                 [windows_shift_tmp[i] for i in indices_order])
     else:

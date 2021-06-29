@@ -35,7 +35,7 @@ if __name__ == '__main__':
     freqs2 = [0.04, 0.08]
     datasets = [
         Dataset.dataset_from_sac_process(
-            sac_files, windows, freq, freq2)
+            sac_files_70to80, windows, freq, freq2)
         for freq, freq2 in zip(freqs, freqs2)
     ]
     misfits, windows_shift = compute_misfits(

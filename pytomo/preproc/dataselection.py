@@ -15,7 +15,6 @@ import logging
 logging.basicConfig(
         level=logging.INFO, filename='dataselection.log', filemode='w')
 
-@profile
 def compute_misfits(
         datasets, freqs, freqs2, model, windows, mode=0):
     """Return a dict with misfits for each time windows.

@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     sac_files = list(
-        glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
+        glob.iglob('/work/anselme/central_pac/DATA/DATA/20*/*T'))
 
     catalog = read_catalog()
     filter_70to80 = (

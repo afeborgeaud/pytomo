@@ -2,19 +2,28 @@ import numpy as np
 import glob
 import sys
 from mpi4py import MPI
-from dsmpy.dataset import Dataset
+from dsmpy.dataset import Dataset, filter_sac_files
 from dsmpy.seismicmodel import SeismicModel
 from dsmpy.component import Component
 from dsmpy.windowmaker import WindowMaker
+from dsmpy.utils.cmtcatalog import read_catalog
 from dsmpy.dsm import compute_dataset_parallel, compute_models_parallel
 from pytomo.preproc.dataselection import compute_misfits
 import matplotlib.pyplot as plt
 
-
 if __name__ == '__main__':
     sac_files = list(
         glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
-    dataset = Dataset.dataset_from_sac(sac_files)
+
+    catalog = read_catalog()
+    filter_70to80 = (
+        lambda event_id, station: (
+            70 <= catalog[event_id]
+            .get_epicentral_distance(station) <= 80)
+    )
+    sac_files_70to80 = filter_sac_files(sac_files, filter_70to80)
+
+    dataset = Dataset.dataset_from_sac(sac_files_70to80)
     windows = WindowMaker.windows_from_dataset(
         dataset, 'prem', ['ScS'], [Component.T],
         t_before=20, t_after=40)

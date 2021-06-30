@@ -214,7 +214,7 @@ if __name__ == '__main__':
         mode=mode, add_noise=False, noise_normalized_std=1.)
 
     windows = WindowMaker.windows_from_dataset(
-        dataset, 'prem', phases, [Component.T],
+        dataset, 'prem', phases, [Component.T, Component.R],
         t_before=t_before, t_after=t_after)
 
     # misfits = compute_misfits(dataset, model_ref, windows, mode=mode)

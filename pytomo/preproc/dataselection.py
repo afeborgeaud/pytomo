@@ -17,7 +17,9 @@ logging.basicConfig(
 
 def compute_misfits(
         datasets, freqs, freqs2, model, windows, mode=0):
-    """Return a dict with misfits for each time windows.
+    """Return a dict with misfits for each time windows, and
+    a copy of windows shifted to maximize the correlation between
+    data and synthetics.
 
     Args:
         datasets (list of Dataset): datasets filtered at frequencies
@@ -90,9 +92,10 @@ def compute_misfits(
                         shift -= buffer
                         t_shift = shift * ds.sampling_hz
                         window_shift = Window(
-                            window.travel_time + t_shift, window.event,
+                            window.travel_time, window.event,
                             window.station, window.phase_name,
-                            window.component, window.t_before, window.t_after)
+                            window.component, window.t_before,
+                            window.t_after, t_shift)
                         windows_shift_tmp.append(window_shift)
                         indices_order.append(iwin)
                         u_cut = output.us[

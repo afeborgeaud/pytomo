@@ -1,6 +1,7 @@
 from dsmpy.seismicmodel import SeismicModel
 from dsmpy.modelparameters import ModelParameters, ParameterType
 from dsmpy.windowmaker import WindowMaker
+from dsmpy.window import Window
 from dsmpy.component import Component
 from dsmpy.utils.sklearnutils import get_XY
 from dsmpy.dataset import Dataset
@@ -207,29 +208,39 @@ if __name__ == '__main__':
     freq = 0.01
     freq2 = 0.04
     phases = ['ScS']
+    window_file = 'windows.pkl'
 
     dataset, output = get_dataset(
         get_model_syntest1_prem_vshvsv(), tlen=1638.4, nspc=256,
         sampling_hz=sampling_hz,
         mode=mode, add_noise=False, noise_normalized_std=1.)
 
-    windows = WindowMaker.windows_from_dataset(
-        dataset, 'prem', phases, [Component.T, Component.R],
-        t_before=t_before, t_after=t_after)
+    # windows = WindowMaker.windows_from_dataset(
+    #     dataset, 'prem', phases, [Component.T, Component.R],
+    #     t_before=t_before, t_after=t_after)
 
-    # misfits = compute_misfits(dataset, model_ref, windows, mode=mode)
-    # if MPI.COMM_WORLD.Get_rank() == 0:
-    #     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
-    #     for i, (freq, freq2) in enumerate(misfits['frequency']):
-    #         axes[i, 0].hist(misfits['misfit'][i]['variance'],
-    #                         label='variance', bins=30)
-    #         axes[i, 1].hist(misfits['misfit'][i]['corr'], label='corr',
-    #                         bins=30)
-    #         axes[i, 2].hist(misfits['misfit'][i]['ratio'], label='ratio',
-    #                         bins=30)
-    #     for ax in axes.ravel():
-    #         ax.legend()
-    #     plt.show()
+    windows = WindowMaker.load(window_file)
+    windows_ScS = [w for w in windows if w.phase_name == 'ScS']
+    windows_S = [w for w in windows if w.phase_name == 'S']
+    windows_S_sS = [w for w in windows if w.phase_name in {'S', 'sS'}]
+    windows_S_sS_trim = WindowMaker.set_limit(
+        windows_ScS, t_before=5, t_after=15, inplace=False)
+    windows_ScS_trimmed = WindowMaker.trim_windows(
+        windows_ScS, windows_S_sS_trim)
+    windows_ScS_proc = []
+    for window in windows_ScS_trimmed:
+        window_S = [
+            w for w in windows_S
+            if (w.station == window.station
+                and w.event == window.event
+                and w.component == window.component)
+        ]
+        if len(windows_S) == 1:
+            windows_ScS_proc.append(
+                Window(window.travel_time, window.event, window.station,
+                       window.phase_name, window.component, window.t_before,
+                       window.t_after, windows_S[0].t_shift)
+            )
 
     fwi = FWI(
         model_ref, model_params, dataset, windows, 2, mode)

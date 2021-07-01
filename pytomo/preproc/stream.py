@@ -2,6 +2,8 @@ from obspy import read
 import os
 import glob
 from collections import defaultdict
+from mpi4py import MPI
+
 
 def read_sac(sacpaths_regex):
     """Read sac files
@@ -16,7 +18,19 @@ def read_sac(sacpaths_regex):
                 glob.iglob(fullpath)]
     return traces
 
-def sac_files_iterator(sacpaths_regex, comm=None, log=None):
+
+def sac_files_iterator(sacpaths_regex):
+    """Yields chunks of sac files in which the number of events
+    is <= the number of CPU cores.
+
+    Args:
+        sacpaths_regex: regex to the sac files locations on disk
+            (e.g., /root_dir/event*/*[RZT])
+
+    Yields:
+        list of str: list of paths to sac files
+    """
+    comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
     if rank == 0:
@@ -39,8 +53,6 @@ def sac_files_iterator(sacpaths_regex, comm=None, log=None):
     else:
         chunks = None
     chunks = comm.bcast(chunks, root=0)
-    if log is not None:
-        log.write('{} chunks={}\n'.format(rank, chunks))
 
     if rank > 0:
         for i in range(chunks):
@@ -55,6 +67,7 @@ def sac_files_iterator(sacpaths_regex, comm=None, log=None):
                 for j in range(i*size, len(event_ids)):
                     files += event_trace_dict[event_ids[j]]
             yield files
+
 
 if __name__ == '__main__':
     it = sac_files_iterator(

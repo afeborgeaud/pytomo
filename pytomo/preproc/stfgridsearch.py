@@ -8,24 +8,41 @@ from dsmpy.dsm import PyDSMOutput
 from dsmpy.spc.stfcatalog import STFCatalog
 from pytomo.preproc.iterstack import IterStack
 from pytomo.preproc.stream import sac_files_iterator
-import glob
 import os
 from mpi4py import MPI
 import numpy as np
 import matplotlib.pyplot as plt
-from collections import defaultdict
-import warnings
-# warnings.filterwarnings('error')
+import logging
+
+logging.basicConfig(
+        level=logging.INFO, filename='stfgridsearch.log', filemode='w')
+
 
 class STFGridSearch():
-    '''Compute triangular source time functions by grid search.
+    """Compute triangular source time functions by grid search.
     Args:
 
-    '''
+    """
     def __init__(
             self, dataset, seismic_model, tlen, nspc, sampling_hz,
             freq, freq2, windows, durations, amplitudes,
             n_distinct_comp_phase, buffer=10.):
+        """
+
+        Args:
+            dataset (Dataset):
+            seismic_model (SeismicModel):
+            tlen (float):
+            nspc (int):
+            sampling_hz (int):
+            freq (float):
+            freq2 (float):
+            windows (list of Window):
+            durations (float):
+            amplitudes (float):
+            n_distinct_comp_phase (int):
+            buffer (int):
+        """
         self.dataset = dataset
         self.seismic_model = seismic_model
         self.tlen = tlen
@@ -50,7 +67,8 @@ class STFGridSearch():
                 windows, n_distinct_comp_phase, window_npts_max, buffer)
 
     def load_outputs(
-            self, comm, dir=None, mode=0, verbose=0, log=None):
+            self, dir=None, mode=0, verbose=0, log=None):
+        comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
         if rank == 0:
             filenames = [
@@ -60,7 +78,7 @@ class STFGridSearch():
  
             if all_found:
                 if log is not None:
-                    log.write(
+                    logging.info(
                         '{} loading pydsmoutputs from files\n'
                         .format(rank))
                 outputs = [
@@ -69,36 +87,40 @@ class STFGridSearch():
             outputs = None
             all_found = None
         all_found = comm.bcast(all_found, root=0)
-        log.write('{} all_found={}\n'.format(rank, all_found))
+        logging.info('{} all_found={}\n'.format(rank, all_found))
 
         if not all_found:
             if log is not None:
-                log.write('{} computing outputs\n'.format(rank))
+                logging.info('{} computing outputs\n'.format(rank))
             outputs = compute_dataset_parallel(
                 self.dataset, self.seismic_model, self.tlen,
                 self.nspc, self.sampling_hz, comm, mode=mode,
                 verbose=verbose, log=log)
             if log is not None:
-                log.write('{} done!\n'.format(rank))
+                logging.info('{} done!\n'.format(rank))
         return outputs, all_found
     
     def compute_parallel(
-            self, comm, mode=0, dir=None, verbose=0, log=None):
-        '''Compute using MPI.
+            self, mode=0, dir=None, verbose=0):
+        """Compute using MPI.
+
         Args:
-            comm (mpi4py.COMM_WORLD): MPI communicator
             mode (int): 0: sh+psv, 1: psv, 2:sh
+            dir (str):
             verbose (int): 0: quiet, 1: debug
+
         Returns:
             misfit_dict (dict): dict with event_id as key and
-                a=ndarray((n_durations,n_amplitudes,3)) as values.
+                a=np.ndarray((n_durations,n_amplitudes,3)) as values.
                 a[:,:,0] gives durations; a[:,:,1] gives amplitudes;
                 a[:,:,2] gives misfit values
-        '''
+
+        """
+        comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
         size = comm.Get_size()
         outputs, read_from_file = self.load_outputs(
-            comm, dir=dir, mode=mode, verbose=verbose, log=log)
+            dir=dir, mode=mode, verbose=verbose)
         self.outputs = outputs
         if rank == 0:
             if not read_from_file:
@@ -140,8 +162,8 @@ class STFGridSearch():
         station_local = comm.scatter(station_scat, root=0)
         windows_local = comm.bcast(windows, root=0)
 
-        log.write('{} computing misfits\n'.format(rank))
-        log.write(
+        logging.info('{} computing misfits\n'.format(rank))
+        logging.info(
             '{} len(outputs_local)={}\n'.format(rank, len(outputs_local)))
         misfit_dict_local = dict()
         count_dict_local = dict()
@@ -162,7 +184,7 @@ class STFGridSearch():
                 event_misfits[:, i, 1] = amplitudes[i]
 
             for idur, duration in enumerate(self.durations):
-                log.write('{} {}\n'.format(rank, idur))
+                logging.info('{} {}\n'.format(rank, idur))
                 stf = SourceTimeFunction('triangle', duration/2.)
                 output.to_time_domain(stf)
                 output.filter(
@@ -177,8 +199,6 @@ class STFGridSearch():
                             and window.event == event)]
 
                     jsta = np.argwhere(station_local[iev]==station)[0][0]
-                    # print(rank, ista, jsta)
-                    # print(rank, windows_filt)
                     
                     for iwin, window in enumerate(windows_filt):
                         u_cut, data_cut = self.cut_data(
@@ -191,7 +211,7 @@ class STFGridSearch():
                                 misfit = STFGridSearch._misfit(
                                     data_cut, u_cut * amp)
                                 if np.isnan(misfit):
-                                    log.write(
+                                    logging.info(
                                         '{} NaN misfit {} {}\n'
                                         .format(rank, station, event))
                                     continue
@@ -264,14 +284,17 @@ class STFGridSearch():
 
     def get_best_parameters(
             self, misfit_dict, count_dict, duration_cap=1.3):
-        '''Get best duration and amplitude correction from misfit_dict.
+        """Get best duration and amplitude correction from misfit_dict.
+
         Args:
             misfit_dict (dict): dict returned by compute_parallel()
             count_dict (dict): dict returbed by compute_parallel()
+
         Returns:
-            best_params_dict (dict): keys are event_id; values are
+            dict: best_params_dict. keys are event_id; values are
                 tuples (duration, amplitude).
-        '''
+
+        """
         best_params_dict = dict()
         for event_id in misfit_dict.keys():
             misfits = misfit_dict[event_id]
@@ -300,6 +323,7 @@ class STFGridSearch():
     def write_catalog(
             self, filename, best_params_dict, count_dict):
         with open(filename, 'a') as f:
+            f.write('event_id duration amp_corr num_win duration_gcmt\n')
             for event_id in best_params_dict.keys():
                 duration, amp_corr = best_params_dict[event_id]
                 n_windows = count_dict[event_id]
@@ -394,7 +418,6 @@ class STFGridSearch():
 
 if __name__ == '__main__':
     comm = MPI.COMM_WORLD
-    n_cores = comm.Get_size()
     rank = comm.Get_rank()
 
     model = SeismicModel.prem()
@@ -417,39 +440,23 @@ if __name__ == '__main__':
     catalog_path = 'stf_catalog.txt'
     n_distinct_comp_phase = 1
 
-    with open(catalog_path, 'w') as f:
-        f.write('event_id duration duration_gcmt amp_corr num_win\n')
-
-    logfile = open('log_{}'.format(rank), 'w', buffering=1)
-
     for sac_files in sac_files_iterator(
-        '/home/anselme/Dropbox/Kenji/MTZ_JAPAN/DATA/20*/*T',
-        comm, log=logfile):
-        #'/mnt/doremi/anpan/inversion/MTZ_JAPAN/DATA/USED/20*/*T'
-        #'/work/anselme/DATA/CENTRAL_AMERICA/2005*/*T'
-        #'/home/anselme/Dropbox/Kenji/MTZ_JAPAN/DATA/20*/*T'
-
-        logfile.write('{} num sacs = {}\n'.format(rank, len(sac_files)))
+            '/home/anselme/Dropbox/Kenji/MTZ_JAPAN/DATA/20*/*T'):
+        logging.write('{} num sacs = {}\n'.format(rank, len(sac_files)))
 
         if rank == 0:
-            logfile.write('{} reading dataset\n'.format(rank))
+            logging.write('{} reading dataset\n'.format(rank))
             dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
 
-            logfile.write('{} computing time windows\n'.format(rank))
+            logging.write('{} computing time windows\n'.format(rank))
             windows_S = WindowMaker.windows_from_dataset(
                dataset, 'prem', ['S'],
                [Component.T], t_before=t_before, t_after=t_after)
-            # windows_P = WindowMaker.windows_from_dataset(
-            #     dataset, 'prem', ['p', 'P', 'Pdiff'],
-            #     [Component.Z], t_before=t_before, t_after=t_after)
-            windows = windows_S #+ windows_P
-            WindowMaker.save('windows.pkl', windows)
-            #windows = WindowMaker.load('windows.pkl')
+            windows = windows_S
             windows = [
                 window for window in windows
-                if (
-                    window.get_epicentral_distance() >= distance_min
-                    and window.get_epicentral_distance() <= distance_max)]
+                if (distance_min <= window.get_epicentral_distance()
+                    <= distance_max)]
         else:
             dataset = None
             windows = None
@@ -458,32 +465,26 @@ if __name__ == '__main__':
                 duration_min, duration_max,
                 int((duration_max - duration_min)/duration_inc)+1,
                 dtype=np.float32)
-        amplitudes = np.linspace(1., amp, int((amp-1)/amp_inc)+1)
-        amplitudes = np.concatenate((1./amplitudes[:0:-1], amplitudes))
+        amplitudes = np.linspace(1., amp, int((amp - 1) / amp_inc) + 1)
+        amplitudes = np.concatenate((1. / amplitudes[:0:-1], amplitudes))
 
-        logfile.write('Init stfgrid; filter dataset')
+        logging.write('Init stfgrid; filter dataset')
         stfgrid = STFGridSearch(
             dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
             durations, amplitudes, n_distinct_comp_phase, buffer)
 
-        logfile.write('{} computing synthetics\n'.format(rank))
+        logging.write('{} computing synthetics\n'.format(rank))
         misfit_dict, count_dict = stfgrid.compute_parallel(
-            comm, mode=2, dir=dir_syn, verbose=2, log=logfile)
+            comm, mode=2, dir=dir_syn, verbose=2)
         
         if rank == 0:
-            logfile.write('{} saving misfits\n'.format(rank))
+            logging.write('{} saving misfits\n'.format(rank))
             best_params_dict = stfgrid.get_best_parameters(
                 misfit_dict, count_dict)
-
             stfgrid.write_catalog(
                 catalog_path, best_params_dict, count_dict)
-
             for event_id in misfit_dict.keys():
                 filename = '{}.pdf'.format(event_id)
-                logfile.write(
+                logging.write(
                     '{} saving figure to {}\n'.format(rank, filename))
                 stfgrid.savefig(best_params_dict, event_id, filename)
-
-    logfile.write('{} Done!\n'.format(rank))
-    logfile.close()
-    

@@ -442,13 +442,13 @@ if __name__ == '__main__':
 
     for sac_files in sac_files_iterator(
             '/home/anselme/Dropbox/Kenji/MTZ_JAPAN/DATA/20*/*T'):
-        logging.write('{} num sacs = {}\n'.format(rank, len(sac_files)))
+        logging.info('{} num sacs = {}\n'.format(rank, len(sac_files)))
 
         if rank == 0:
-            logging.write('{} reading dataset\n'.format(rank))
+            logging.info('{} reading dataset\n'.format(rank))
             dataset = Dataset.dataset_from_sac(sac_files, headonly=False)
 
-            logging.write('{} computing time windows\n'.format(rank))
+            logging.info('{} computing time windows\n'.format(rank))
             windows_S = WindowMaker.windows_from_dataset(
                dataset, 'prem', ['S'],
                [Component.T], t_before=t_before, t_after=t_after)
@@ -468,23 +468,23 @@ if __name__ == '__main__':
         amplitudes = np.linspace(1., amp, int((amp - 1) / amp_inc) + 1)
         amplitudes = np.concatenate((1. / amplitudes[:0:-1], amplitudes))
 
-        logging.write('Init stfgrid; filter dataset')
+        logging.info('Init stfgrid; filter dataset')
         stfgrid = STFGridSearch(
             dataset, model, tlen, nspc, sampling_hz, freq, freq2, windows,
             durations, amplitudes, n_distinct_comp_phase, buffer)
 
-        logging.write('{} computing synthetics\n'.format(rank))
+        logging.info('{} computing synthetics\n'.format(rank))
         misfit_dict, count_dict = stfgrid.compute_parallel(
             comm, mode=2, dir=dir_syn, verbose=2)
         
         if rank == 0:
-            logging.write('{} saving misfits\n'.format(rank))
+            logging.info('{} saving misfits\n'.format(rank))
             best_params_dict = stfgrid.get_best_parameters(
                 misfit_dict, count_dict)
             stfgrid.write_catalog(
                 catalog_path, best_params_dict, count_dict)
             for event_id in misfit_dict.keys():
                 filename = '{}.pdf'.format(event_id)
-                logging.write(
+                logging.info(
                     '{} saving figure to {}\n'.format(rank, filename))
                 stfgrid.savefig(best_params_dict, event_id, filename)

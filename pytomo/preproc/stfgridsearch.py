@@ -364,7 +364,7 @@ class STFGridSearch():
         for ista in range(len(output.stations)):
             station = output.stations[ista]
             windows_filt = [
-                window for window in windows
+                window for window in self.windows
                 if (window.station == station
                     and window.event == event)]
             jsta = np.where(

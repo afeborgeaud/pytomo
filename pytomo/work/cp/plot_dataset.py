@@ -3,9 +3,14 @@ from dsmpy.windowmaker import WindowMaker
 import pygmt
 
 if __name__ == '__main__':
-    windows = WindowMaker.load('windows.pkl')
-    stations = list(set([w.station for w in windows]))
-    events = list(set([w.event for w in windows]))
+    windows = WindowMaker.load('selected_shift_windows_ScS_S_sS.pkl')
+    windows = windows['0.01_0.08']
+    stations = events = []
+    for window in windows:
+        if window.station not in stations:
+            stations.append(window.station)
+        if window.event not in events:
+            events.append(window.event)
 
     fig = pygmt.Figure()
     with fig.subplot(
@@ -17,6 +22,6 @@ if __name__ == '__main__':
     ):
         display_dataset(
             fig, stations, events, [0, 0], proj='W15c',
-            format=["af", "WSne"]
+            frame=["af", "WSne"]
         )
     fig.savefig('map.pdf')

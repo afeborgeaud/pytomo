@@ -6,7 +6,7 @@ from dsmpy.component import Component
 from dsmpy.spc.stf import SourceTimeFunction
 from dsmpy.dsm import PyDSMOutput
 from dsmpy.spc.stfcatalog import STFCatalog
-from pytomo.preproc.iterstack import IterStack
+from pytomo.preproc.iterstack import find_best_shift
 from pytomo.preproc.stream import sac_files_iterator
 import os
 from mpi4py import MPI
@@ -251,13 +251,13 @@ class STFGridSearch():
         data_cut_tmp = data_local[
             iwin, icomp, jsta]
         shift = 0
-        # try:
-        shift, _ = IterStack.find_best_shift(
-            data_cut_tmp, u_cut,
-            shift_polarity=False,
-            skip_freq=1)
-        # except:
-        #     print('Problem with finding best shift')
+        try:
+            shift, _ = find_best_shift(
+                data_cut_tmp, u_cut,
+                shift_polarity=False,
+                skip_freq=1)
+        except:
+            print('Problem with finding best shift')
 
         data_cut = data_local[
             iwin, icomp, jsta, shift:(i_end-i_start+shift)]

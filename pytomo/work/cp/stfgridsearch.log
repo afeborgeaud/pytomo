@@ -1,0 +1,22 @@
+INFO:root:0 num sacs = 6
+
+INFO:root:Init stfgrid; filteINFO:root:0 computing time windows
+
+INFO:rooINFO:root:1 all_found=False
+
+INFO:root:1 computing outputs
+
+INFO:root:1 done!
+
+INFO:root:1 computing misfits
+
+INFO:root:1 len(outputs_local)=1
+
+INFO:root:1 0
+
+puting misfits
+
+INFO:root:0 len(outputs_local)=1
+
+INFO:root:0 0
+

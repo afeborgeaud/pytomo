@@ -34,9 +34,11 @@ if __name__ == '__main__':
     buffer = 10.
     catalog_path = 'stf_catalog.txt'
     n_distinct_comp_phase = 1
+    sac_files_regex = '/work/anselme/central_pac/DATA/DATA/20*/*T'
+    # sac_files_regex = '/Users/navy/git/dsmpy/tests/sac_files_2/*T'
 
     for sac_files in sac_files_iterator(
-            '/work/anselme/central_pac/DATA/DATA/20*/*T'):
+            sac_files_regex):
         logging.info('{} num sacs = {}\n'.format(rank, len(sac_files)))
 
         if rank == 0:

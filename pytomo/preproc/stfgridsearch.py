@@ -178,7 +178,7 @@ class STFGridSearch():
                 event_misfits[i, :, 0] = self.durations[i]
                 count_used_windows[i, 0] = self.durations[i]
             for i in range(len(self.amplitudes)):
-                event_misfits[:, i, 1] = amplitudes[i]
+                event_misfits[:, i, 1] = self.amplitudes[i]
 
             for idur, duration in enumerate(self.durations):
                 logging.info('{} {}\n'.format(rank, idur))

@@ -27,7 +27,7 @@ if __name__ == '__main__':
     amp = 1.6
     amp_inc = .02
     distance_min = 40.
-    distance_max = 80.
+    distance_max = 90.
     dir_syn = '.'
     t_before = 10.
     t_after = 20.

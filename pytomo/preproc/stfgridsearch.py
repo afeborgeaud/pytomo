@@ -157,7 +157,7 @@ class STFGridSearch():
         outputs_local = comm.scatter(outputs_scat, root=0)
         data_local = comm.scatter(data_scat, root=0)
         station_local = comm.scatter(station_scat, root=0)
-        windows_local = comm.bcast(windows, root=0)
+        windows_local = comm.bcast(self.windows, root=0)
 
         logging.info('{} computing misfits\n'.format(rank))
         logging.info(

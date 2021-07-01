@@ -67,7 +67,7 @@ class STFGridSearch():
                 windows, n_distinct_comp_phase, window_npts_max, buffer)
 
     def load_outputs(
-            self, dir=None, mode=0, verbose=0, log=None):
+            self, dir=None, mode=0, verbose=0):
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
         if rank == 0:
@@ -77,10 +77,9 @@ class STFGridSearch():
             all_found = np.array([os.path.isfile(f) for f in filenames]).all()
  
             if all_found:
-                if log is not None:
-                    logging.info(
-                        '{} loading pydsmoutputs from files\n'
-                        .format(rank))
+                logging.info(
+                    '{} loading pydsmoutputs from files\n'
+                    .format(rank))
                 outputs = [
                     PyDSMOutput.load(filename) for filename in filenames]
         else:
@@ -90,14 +89,12 @@ class STFGridSearch():
         logging.info('{} all_found={}\n'.format(rank, all_found))
 
         if not all_found:
-            if log is not None:
-                logging.info('{} computing outputs\n'.format(rank))
+            logging.info('{} computing outputs\n'.format(rank))
             outputs = compute_dataset_parallel(
                 self.dataset, self.seismic_model, self.tlen,
-                self.nspc, self.sampling_hz, comm, mode=mode,
-                verbose=verbose, log=log)
-            if log is not None:
-                logging.info('{} done!\n'.format(rank))
+                self.nspc, self.sampling_hz, mode=mode,
+                verbose=verbose)
+            logging.info('{} done!\n'.format(rank))
         return outputs, all_found
     
     def compute_parallel(

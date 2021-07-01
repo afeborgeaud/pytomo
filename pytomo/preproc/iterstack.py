@@ -98,7 +98,7 @@ def find_best_shift(
     corrs = np.zeros(n_shift)
     for i in range(n_shift):
         y_shift = y[i*skip_freq:i*skip_freq+n]
-        corrs[i] = np.corrcoef(y_shift, y_template)[0,1]
+        corrs[i] = np.corrcoef(y_shift, y_template)[0, 1]
     if not shift_polarity:
         best_shift = np.argmax(corrs) * skip_freq
         polarity = 1.

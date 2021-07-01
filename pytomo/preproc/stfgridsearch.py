@@ -255,7 +255,7 @@ class STFGridSearch():
             shift, _ = IterStack.find_best_shift(
                 data_cut_tmp, u_cut,
                 shift_polarity=False,
-                skip_freq=4)
+                skip_freq=1)
         except:
             print('Problem with finding best shift')
 
@@ -325,11 +325,11 @@ class STFGridSearch():
                 duration, amp_corr = best_params_dict[event_id]
                 n_windows = count_dict[event_id]
                 n_window = n_windows[
-                    np.abs(n_windows[:,0]-duration) < 1e-5][0, 1]
+                    np.abs(n_windows[:, 0] - duration) < 1e-5][0, 1]
                 duration_gcmt = [
-                    event.source_time_function.half_duration * 2. 
+                    event.source_time_function.half_duration * 2
                     for event in self.dataset.events
-                    if event.event_id==event_id][0]
+                    if event.event_id == event_id][0]
                 line = STFCatalog._format_line(
                     event_id, duration, amp_corr, n_window, duration_gcmt)
                 f.write(line + '\n')

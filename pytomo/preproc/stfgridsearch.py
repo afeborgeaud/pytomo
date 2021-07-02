@@ -255,7 +255,7 @@ class STFGridSearch():
             shift, _ = find_best_shift(
                 data_cut_tmp, u_cut,
                 shift_polarity=False,
-                skip_freq=1)
+                skip_freq=4)
         except:
             print('Problem with finding best shift')
 

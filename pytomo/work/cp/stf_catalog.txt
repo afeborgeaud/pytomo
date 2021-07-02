@@ -1,0 +1,17 @@
+event_id duration amp_corr num_win duration_gcmt
+201409302234A 1.0 0.625 0.0 2.6
+201412122022A 2.75 0.8928571343421936 1.0 3.8
+event_id duration amp_corr num_win duration_gcmt
+201409101631A 1.0 0.625 0.0 3.2
+201412310247A 1.0 0.625 0.0 2.8
+event_id duration amp_corr num_win duration_gcmt
+201411170620A 1.5 1.0800000429153442 1.0 2.6
+201412310006A 5.75 0.625 1.0 4.6
+event_id duration amp_corr num_win duration_gcmt
+201409161300A 1.0 0.625 0.0 3.0
+201412112227A 1.0 0.8620689511299133 1.0 3.6
+event_id duration amp_corr num_win duration_gcmt
+201407030935A 1.0 0.625 0.0 2.6
+201412302117A 1.0 0.7575757503509521 1.0 5.0
+event_id duration amp_corr num_win duration_gcmt
+201412271853A 1.0 0.625 0.0 2.6

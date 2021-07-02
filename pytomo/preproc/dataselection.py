@@ -83,14 +83,14 @@ def compute_misfits(
                         i_start = int(window_arr[0] * ds.sampling_hz)
                         i_end = int(window_arr[1] * ds.sampling_hz)
                         data_cut = ds.data[
-                                   i, icomp, ista, :]
+                                   i, icomp, ista, :i_end - i_start]
 
                         # shift window to maximize correlation
                         u_cut_buffer = output.us[
                             icomp, jsta, i_start-buffer:i_end+buffer]
                         shift, _ = find_best_shift(u_cut_buffer, data_cut)
                         shift -= buffer
-                        t_shift = shift * ds.sampling_hz
+                        t_shift = -float(shift / ds.sampling_hz)
                         window_shift = Window(
                             window.travel_time, window.event,
                             window.station, window.phase_name,

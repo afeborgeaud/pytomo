@@ -1,0 +1,11 @@
+INFO:root:Number of processed ScS windows: 2
+INFO:root:Total number of SAC files used 2
+INFO:root:Starting the inversion...
+INFO:root:Iteration step
+INFO:root:freq=0.01, freq2=0.04
+INFO:root:tlen=1638.4, nspc=128
+INFO:root:n_pca=8, rmse=0.39130182765240556
+INFO:root:variances = [ 1.5944153]
+INFO:root:Iteration step
+INFO:root:freq=0.01, freq2=0.04
+INFO:root:tlen=1638.4, nspc=128

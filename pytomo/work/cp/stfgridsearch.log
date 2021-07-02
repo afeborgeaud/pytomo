@@ -2,7 +2,132 @@ INFO:root:0 num sacs = 6
 
 INFO:root:Init stfgrid; filteINFO:root:0 computing time windows
 
-INFO:rooINFO:root:1 all_found=False
+INFO:rooINFO:root:1 all_found=True
+
+INFO:root:1 computing misfits
+
+INFO:root:1 len(outputs_local)=1
+
+INFO:root:1 0
+
+INFO:root:1 1
+
+INFO:root:1 2
+
+INFO:root:1 3
+
+INFO:root:1 4
+
+INFO:root:1 5
+
+INFO:root:1 6
+
+INFO:root:1 7
+
+INFO:root:1 8
+
+INFO:root:1 9
+
+INFO:root:1 10
+
+INFO:root:1 11
+
+INFO:root:1 12
+
+INFO:root:1 13
+
+INFO:root:1 14
+
+INFO:root:1 15
+
+INFO:root:1 16
+
+INFO:root:1 17
+
+INFO:root:1 18
+
+INFO:root:1 19
+
+INFO:root:1 20
+
+INFO:root:1 21
+
+INFO:root:1 22
+
+INFO:root:1 23
+
+INFO:root:1 24
+
+INFO:root:1 25
+
+INFO:root:1 26
+
+INFO:root:1 27
+
+INFO:root:1 28
+
+INFO:root:1 29
+
+INFO:root:1 30
+
+INFO:root:1 31
+
+INFO:root:1 32
+
+INFO:root:1 33
+
+INFO:root:1 34
+
+INFO:root:1 35
+
+INFO:root:1 36
+
+INFO:root:1 37
+
+INFO:root:1 38
+
+INFO:root:1 39
+
+INFO:root:1 40
+
+INFO:root:1 41
+
+INFO:root:1 42
+
+INFO:root:1 43
+
+INFO:root:1 44
+
+INFO:root:1 45
+
+INFO:root:1 46
+
+INFO:root:1 47
+
+INFO:root:1 48
+
+INFO:root:1 49
+
+INFO:root:1 50
+
+INFO:root:1 51
+
+INFO:root:1 52
+
+INFO:root:1 53
+
+INFO:root:1 54
+
+INFO:root:1 55
+
+INFO:root:1 56
+
+INFO:root:1 num sacs = 0
+
+INFO:root:Init stfgrid; filter dataset
+INFO:root:1 computing synthetics
+
+INFO:root:1 all_found=False
 
 INFO:root:1 computing outputs
 
@@ -14,9 +139,647 @@ INFO:root:1 len(outputs_local)=1
 
 INFO:root:1 0
 
-puting misfits
+INFO:root:1 1
 
-INFO:root:0 len(outputs_local)=1
+INFO:root:1 2
 
-INFO:root:0 0
+INFO:root:1 3
+
+INFO:root:1 4
+
+INFO:root:1 5
+
+INFO:root:1 6
+
+INFO:root:1 7
+
+INFO:root:1 8
+
+INFO:root:1 9
+
+INFO:root:1 10
+
+INFO:root:1 11
+
+INFO:root:1 12
+
+INFO:root:1 13
+
+INFO:root:1 14
+
+INFO:root:1 15
+
+INFO:root:1 16
+
+INFO:root:1 17
+
+INFO:root:1 18
+
+INFO:root:1 19
+
+INFO:root:1 20
+
+INFO:root:1 21
+
+INFO:root:1 22
+
+INFO:root:1 23
+
+INFO:root:1 24
+
+INFO:root:1 25
+
+INFO:root:1 26
+
+INFO:root:1 27
+
+INFO:root:1 28
+
+INFO:root:1 29
+
+INFO:root:1 30
+
+INFO:root:1 31
+
+INFO:root:1 32
+
+INFO:root:1 33
+
+INFO:root:1 34
+
+INFO:root:1 35
+
+INFO:root:1 36
+
+INFO:root:1 37
+
+INFO:root:1 38
+
+INFO:root:1 39
+
+INFO:root:1 40
+
+INFO:root:1 41
+
+INFO:root:1 42
+
+INFO:root:1 43
+
+INFO:root:1 44
+
+INFO:root:1 45
+
+INFO:root:1 46
+
+INFO:root:1 47
+
+INFO:root:1 48
+
+INFO:root:1 49
+
+INFO:root:1 50
+
+INFO:root:1 51
+
+INFO:root:1 52
+
+INFO:root:1 53
+
+INFO:root:1 54
+
+INFO:root:1 55
+
+INFO:root:1 56
+
+INFO:root:1 num sacs = 0
+
+INFO:root:Init stfgrid; filter dataset
+INFO:root:1 computing synthetics
+
+INFO:root:1 all_found=False
+
+INFO:root:1 computing outputs
+
+INFO:root:1 done!
+
+INFO:root:1 computing misfits
+
+INFO:root:1 len(outputs_local)=1
+
+INFO:root:1 0
+
+INFO:root:1 1
+
+INFO:root:1 2
+
+INFO:root:1 3
+
+INFO:root:1 4
+
+INFO:root:1 5
+
+INFO:root:1 6
+
+INFO:root:1 7
+
+INFO:root:1 8
+
+INFO:root:1 9
+
+INFO:root:1 10
+
+INFO:root:1 11
+
+INFO:root:1 12
+
+INFO:root:1 13
+
+INFO:root:1 14
+
+INFO:root:1 15
+
+INFO:root:1 16
+
+INFO:root:1 17
+
+INFO:root:1 18
+
+INFO:root:1 19
+
+INFO:root:1 20
+
+INFO:root:1 21
+
+INFO:root:1 22
+
+INFO:root:1 23
+
+INFO:root:1 24
+
+INFO:root:1 25
+
+INFO:root:1 26
+
+INFO:root:1 27
+
+INFO:root:1 28
+
+INFO:root:1 29
+
+INFO:root:1 30
+
+INFO:root:1 31
+
+INFO:root:1 32
+
+INFO:root:1 33
+
+INFO:root:1 34
+
+INFO:root:1 35
+
+INFO:root:1 36
+
+INFO:root:1 37
+
+INFO:root:1 38
+
+INFO:root:1 39
+
+INFO:root:1 40
+
+INFO:root:1 41
+
+INFO:root:1 42
+
+INFO:root:1 43
+
+INFO:root:1 44
+
+INFO:root:1 45
+
+INFO:root:1 46
+
+INFO:root:1 47
+
+INFO:root:1 48
+
+INFO:root:1 49
+
+INFO:root:1 50
+
+INFO:root:1 51
+
+INFO:root:1 52
+
+INFO:root:1 53
+
+INFO:root:1 54
+
+INFO:root:1 55
+
+INFO:root:1 56
+
+INFO:root:1 num sacs = 0
+
+INFO:root:Init stfgrid; filter dataset
+INFO:root:1 computing synthetics
+
+INFO:root:1 all_found=False
+
+INFO:root:1 computing outputs
+
+INFO:root:1 done!
+
+INFO:root:1 computing misfits
+
+INFO:root:1 len(outputs_local)=1
+
+INFO:root:1 0
+
+INFO:root:1 1
+
+INFO:root:1 2
+
+INFO:root:1 3
+
+INFO:root:1 4
+
+INFO:root:1 5
+
+INFO:root:1 6
+
+INFO:root:1 7
+
+INFO:root:1 8
+
+INFO:root:1 9
+
+INFO:root:1 10
+
+INFO:root:1 11
+
+INFO:root:1 12
+
+INFO:root:1 13
+
+INFO:root:1 14
+
+INFO:root:1 15
+
+INFO:root:1 16
+
+INFO:root:1 17
+
+INFO:root:1 18
+
+INFO:root:1 19
+
+INFO:root:1 20
+
+INFO:root:1 21
+
+INFO:root:1 22
+
+INFO:root:1 23
+
+INFO:root:1 24
+
+INFO:root:1 25
+
+INFO:root:1 26
+
+INFO:root:1 27
+
+INFO:root:1 28
+
+INFO:root:1 29
+
+INFO:root:1 30
+
+INFO:root:1 31
+
+INFO:root:1 32
+
+INFO:root:1 33
+
+INFO:root:1 34
+
+INFO:root:1 35
+
+INFO:root:1 36
+
+INFO:root:1 37
+
+INFO:root:1 38
+
+INFO:root:1 39
+
+INFO:root:1 40
+
+INFO:root:1 41
+
+INFO:root:1 42
+
+INFO:root:1 43
+
+INFO:root:1 44
+
+INFO:root:1 45
+
+INFO:root:1 46
+
+INFO:root:1 47
+
+INFO:root:1 48
+
+INFO:root:1 49
+
+INFO:root:1 50
+
+INFO:root:1 51
+
+INFO:root:1 52
+
+INFO:root:1 53
+
+INFO:root:1 54
+
+INFO:root:1 55
+
+INFO:root:1 56
+
+INFO:root:1 num sacs = 0
+
+INFO:root:Init stfgrid; filter dataset
+INFO:root:1 computing synthetics
+
+INFO:root:1 all_found=False
+
+INFO:root:1 computing outputs
+
+INFO:root:1 done!
+
+INFO:root:1 computing misfits
+
+INFO:root:1 len(outputs_local)=1
+
+INFO:root:1 0
+
+INFO:root:1 1
+
+INFO:root:1 2
+
+INFO:root:1 3
+
+INFO:root:1 4
+
+INFO:root:1 5
+
+INFO:root:1 6
+
+INFO:root:1 7
+
+INFO:root:1 8
+
+INFO:root:1 9
+
+INFO:root:1 10
+
+INFO:root:1 11
+
+INFO:root:1 12
+
+INFO:root:1 13
+
+INFO:root:1 14
+
+INFO:root:1 15
+
+INFO:root:1 16
+
+INFO:root:1 17
+
+INFO:root:1 18
+
+INFO:root:1 19
+
+INFO:root:1 20
+
+INFO:root:1 21
+
+INFO:root:1 22
+
+INFO:root:1 23
+
+INFO:root:1 24
+
+INFO:root:1 25
+
+INFO:root:1 26
+
+INFO:root:1 27
+
+INFO:root:1 28
+
+INFO:root:1 29
+
+INFO:root:1 30
+
+INFO:root:1 31
+
+INFO:root:1 32
+
+INFO:root:1 33
+
+INFO:root:1 34
+
+INFO:root:1 35
+
+INFO:root:1 36
+
+INFO:root:1 37
+
+INFO:root:1 38
+
+INFO:root:1 39
+
+INFO:root:1 40
+
+INFO:root:1 41
+
+INFO:root:1 42
+
+INFO:root:1 43
+
+INFO:root:1 44
+
+INFO:root:1 45
+
+INFO:root:1 46
+
+INFO:root:1 47
+
+INFO:root:1 48
+
+INFO:root:1 49
+
+INFO:root:1 50
+
+INFO:root:1 51
+
+INFO:root:1 52
+
+INFO:root:1 53
+
+INFO:root:1 54
+
+INFO:root:1 55
+
+INFO:root:1 56
+
+INFO:root:1 num sacs = 0
+
+INFO:root:Init stfgrid; filter dataset
+INFO:root:1 computing synthetics
+
+INFO:root:1 all_found=False
+
+INFO:root:1 computing outputs
+
+INFO:root:1 done!
+
+INFO:root:1 computing misfits
+
+INFO:root:1 len(outputs_local)=1
+
+INFO:root:1 0
+
+INFO:root:1 1
+
+INFO:root:1 2
+
+INFO:root:1 3
+
+INFO:root:1 4
+
+INFO:root:1 5
+
+INFO:root:1 6
+
+INFO:root:1 7
+
+INFO:root:1 8
+
+INFO:root:1 9
+
+INFO:root:1 10
+
+INFO:root:1 11
+
+INFO:root:1 12
+
+INFO:root:1 13
+
+INFO:root:1 14
+
+INFO:root:1 15
+
+INFO:root:1 16
+
+INFO:root:1 17
+
+INFO:root:1 18
+
+INFO:root:1 19
+
+INFO:root:1 20
+
+INFO:root:1 21
+
+INFO:root:1 22
+
+INFO:root:1 23
+
+INFO:root:1 24
+
+INFO:root:1 25
+
+INFO:root:1 26
+
+INFO:root:1 27
+
+INFO:root:1 28
+
+INFO:root:1 29
+
+INFO:root:1 30
+
+INFO:root:1 31
+
+INFO:root:1 32
+
+INFO:root:1 33
+
+INFO:root:1 34
+
+INFO:root:1 35
+
+INFO:root:1 36
+
+INFO:root:1 37
+
+INFO:root:1 38
+
+INFO:root:1 39
+
+INFO:root:1 40
+
+INFO:root:1 41
+
+INFO:root:1 42
+
+INFO:root:1 43
+
+INFO:root:1 44
+
+INFO:root:1 45
+
+INFO:root:1 46
+
+INFO:root:1 47
+
+INFO:root:1 48
+
+INFO:root:1 49
+
+INFO:root:1 50
+
+INFO:root:1 51
+
+INFO:root:1 52
+
+INFO:root:1 53
+
+INFO:root:1 54
+
+INFO:root:1 55
+
+INFO:root:1 56
+
+thetics
+
+INFO:root:0 all_found=False
+
+INFO:root:0 computing outputs
+
+INFO:root:0 done!
+
+INFO:root:0 computing misfits
+
+INFO:root:0 len(outputs_local)=0
+
+INFO:root:0 saving misfits
+
+INFO:root:0 saving figure to 201412271853A.pdf
 

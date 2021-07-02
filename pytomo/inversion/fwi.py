@@ -6,24 +6,19 @@ from dsmpy.component import Component
 from dsmpy.utils.sklearnutils import get_XY
 from dsmpy.dataset import Dataset
 from dsmpy.dsm import compute_models_parallel
-from dsmpy import root_sac
 from pytomo.work.ca.params import get_dataset, get_model_syntest1_prem_vshvsv
 from pytomo.inversion.cmcutils import process_outputs
 from pytomo.utilities import get_temporary_str
 from pytomo.inversion.inversionresult import FWIResult
 from pytomo.utilities import minimum_tlen, minimum_nspc
-from pytomo.preproc.dataselection import compute_misfits
 import matplotlib.pyplot as plt
 import numpy as np
-import glob
-import os
 from mpi4py import MPI
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import GridSearchCV
 import logging
 
 
@@ -99,9 +94,9 @@ class FWI:
 
         ds = self.dataset.filter(
             freq, freq2, FWI.FILTER_TYPE, inplace=False)
-        window_npts = int(np.array(
-            [window.get_length() for window in self.windows]
-        ).max() * ds.sampling_hz)
+        window_npts = np.array(
+            [window.get_length() * ds.sampling_hz for window in self.windows]
+        ).astype('int').max()
         ds.apply_windows(
             self.windows, self.n_phases, window_npts)
 
@@ -138,27 +133,28 @@ class FWI:
                 coefs_scaled = pipe['pca'].inverse_transform(coefs_trans)
                 coefs = pipe['scaler'].transform(coefs_scaled)
 
-                best_params = np.array(coefs).reshape(len(types), -1)
+                best_params = np.array(coefs).reshape(
+                    len(self.model_params.get_types()), -1)
                 value_dicts.append(
                     {p_type: best_params[i]
-                     for i, p_type in enumerate(types)})
+                     for i, p_type in enumerate(
+                        self.model_params.get_types())})
         else:
             value_dicts = None
 
         value_dicts = MPI.COMM_WORLD.bcast(value_dicts, root=0)
         updated_models = [
-            model.multiply(model_params.get_values_matrix(value_dict))
+            model.multiply(self.model_params.get_values_matrix(value_dict))
             for value_dict in value_dicts
         ]
         outputs = compute_models_parallel(
             ds, updated_models, tlen=tlen,
-            nspc=nspc, sampling_hz=sampling_hz, mode=mode)
+            nspc=nspc, sampling_hz=ds.sampling_hz, mode=self.mode)
         if MPI.COMM_WORLD.Get_rank() == 0:
-            for i in range(len(outputs)):
-                for j in range(len(outputs[0])):
-                    outputs[i][j].filter(freq, freq2, FWI.FILTER_TYPE)
             misfit_dict = process_outputs(
-                outputs, ds, updated_models, windows)
+                outputs, ds, updated_models, self.windows,
+                freq, freq2, FWI.FILTER_TYPE
+            )
         else:
             misfit_dict = None
         misfit_dict = MPI.COMM_WORLD.bcast(misfit_dict, root=0)
@@ -182,10 +178,10 @@ class FWI:
         self.model_ref.plot(
             types=self.model_params.get_types(), ax=ax, label='ref')
         get_model_syntest1_prem_vshvsv().plot(
-            types=types, ax=ax, label='target')
+            types=self.model_params.get_types(), ax=ax, label='target')
         model.plot(
             types=self.model_params.get_types(), ax=ax, label='update')
-        nodes = model_params.get_nodes()
+        nodes = self.model_params.get_nodes()
         ax.set_ylim([nodes.min(), nodes.max()])
         ax.set_xlim([6.5, 8])
         ax.legend()

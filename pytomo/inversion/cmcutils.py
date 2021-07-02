@@ -88,7 +88,10 @@ class InputFile:
         return key, value_parsed
 
 
-def process_outputs(outputs, dataset, models, windows):
+def process_outputs(
+        outputs, dataset, models, windows,
+        freq, freq2, filter_type='bandpass'
+    ):
     """Process the output of compute_models_parallel().
 
     Args:
@@ -98,6 +101,9 @@ def process_outputs(outputs, dataset, models, windows):
         models (list of SeismicModel): seismic models
         windows (list of Window): time windows. See
             windows_from_dataset()
+        freq (float): minimum filtering frequency
+        freq2 (float): maximum filtering frequency
+        filter_type (str): 'bandpass' or 'lowpass'
     Returns:
         dict: misfit_dict. Keys are misfit names (corr, variance).
             Values are ndarray of shape (n_models, n_windows)
@@ -118,12 +124,14 @@ def process_outputs(outputs, dataset, models, windows):
             output = outputs[imod][iev]
             start, end = dataset.get_bounds_from_event_index(iev)
 
+            output.filter(freq, freq2, filter_type)
+
             # TODO using to_time_domain() erase the effect of filtering
             # output.to_time_domain()
 
             for ista in range(start, end):
                 station = dataset.stations[ista]
-                jsta = np.argwhere(output.stations==station)[0][0]
+                jsta = np.argwhere(output.stations == station)[0][0]
                 windows_filt = [
                     window for window in windows
                     if (window.station == station
@@ -135,7 +143,7 @@ def process_outputs(outputs, dataset, models, windows):
                     i_end = int(window_arr[1] * dataset.sampling_hz)
                     u_cut = output.us[icomp, jsta, i_start:i_end]
                     data_cut = dataset.data[
-                        iwin, icomp, ista, :]
+                        iwin, icomp, ista, :i_end - i_start]
 
                     corr = 0.5 * (1. - np.corrcoef(u_cut, data_cut)[0, 1])
                     variance = (np.dot(u_cut-data_cut, u_cut-data_cut)
@@ -144,6 +152,7 @@ def process_outputs(outputs, dataset, models, windows):
                     variances[imod, win_count] = variance
 
                     win_count += 1
+            output.free()
 
     misfit_dict = {'corr': corrs, 'variance': variances}
     return misfit_dict

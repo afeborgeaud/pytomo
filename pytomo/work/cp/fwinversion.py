@@ -9,7 +9,7 @@ from dsmpy.dataset import get_station, get_event_id
 from dsmpy.dsm import compute_models_parallel
 from pytomo.work.ca.params import get_dataset, get_model_syntest1_prem_vshvsv
 from pytomo.utilities import get_temporary_str
-from pytomo.inversion.fwi import FWI
+from pytomo.inversion.fwi import FWI, freqency_hash, frequencies_from_hash
 import matplotlib.pyplot as plt
 from mpi4py import MPI
 import logging
@@ -50,67 +50,85 @@ if __name__ == '__main__':
         glob.iglob('/Users/navy/git/dsmpy/tests/sac_files_2/*T'))
     sac_meta = read_sac_meta(sac_files)
 
-    windows = WindowMaker.load(window_file)
-    windows = windows['0.01_0.08']
-    windows = [
-        w for w in windows
-        if len([
-            tr for sac_file, tr in sac_meta
-            if (w.event.event_id == get_event_id(tr)
-                and w.station == get_station(tr))
-        ]) > 0
-    ]
+    windows_dict = WindowMaker.load(window_file)
+    windows_ScS_proc_dict = dict()
+    for freq_hash, windows in windows_dict.items():
+        # windows = [
+        #     w for w in windows
+        #     if len([
+        #         tr for sac_file, tr in sac_meta
+        #         if (w.event.event_id == get_event_id(tr)
+        #             and w.station == get_station(tr))
+        #     ]) > 0
+        # ]
 
-    windows_ScS = [w for w in windows
-                   if (w.phase_name == 'ScS'
-                       and w.component == Component.T)
-                   ]
-    windows_S = [w for w in windows if (w.phase_name == 'S'
-                                        and w.component == Component.T)
-                 ]
-    for i in range(len(windows_S)):
-        windows_S[i].t_shift /= -40.
-        print(windows_S[i].t_shift)
-    windows_S_sS = [w for w in windows if w.phase_name in {'S', 'sS'}]
-    windows_S_sS_trim = WindowMaker.set_limit(
-        windows_S_sS, t_before=5, t_after=15, inplace=False)
-    windows_ScS_trimmed = WindowMaker.trim_windows(
-        windows_ScS, windows_S_sS_trim)
-    windows_ScS_proc = []
-    for window in windows_ScS_trimmed:
-        window_S = [
-            w for w in windows_S
-            if (w.station == window.station
-                and w.event == window.event
-                and w.component == window.component)
-        ]
-        if len(window_S) == 1:
-            windows_ScS_proc.append(
-                Window(window.travel_time, window.event, window.station,
-                       window.phase_name, window.component, window.t_before,
-                       window.t_after, windows_S[0].t_shift)
-            )
-    logging.info(f'Number of processed ScS windows: {len(windows_ScS_proc)}')
+        windows_ScS = []
+        windows_S = []
+        windows_S_sS = []
+        for w in windows:
+            if w.phase_name == 'ScS' and w.component == Component.T:
+                windows_ScS.append(w)
+            elif w.phase_name == 'S' and w.component == Component.T:
+                windows_S.append(w)
+                windows_S_sS.append(w)
+            elif w.phase_name == 'sS' and w.component == Component.T:
+                windows_S_sS.append(w)
 
-    sac_meta_filt = [
-        (sac_file, tr) for sac_file, tr in sac_meta
-        if len(
-            [
-                w for w in windows_ScS_proc
-                if (w.event.event_id == get_event_id(tr)
-                    and w.station == get_station(tr))
+        windows_S_sS_trim = WindowMaker.set_limit(
+            windows_S_sS, t_before=5, t_after=15, inplace=False)
+        windows_ScS_trimmed = WindowMaker.trim_windows(
+            windows_ScS, windows_S_sS_trim)
+
+        windows_ScS_proc = []
+        for w in windows_ScS_trimmed:
+            window_S = [
+                window for window in windows_S
+                if (w.station == window.station
+                    and w.event == window.event
+                    and w.component == window.component)
             ]
-        ) > 0
-    ]
-    sac_files_filt = [sac_file for sac_file, tr in sac_meta_filt]
-    logging.info(f'Total number of SAC files used {len(sac_files_filt)}')
+            if len(window_S) == 1:
+                # windows_ScS_proc.append(
+                #     Window(w.travel_time, w.event, w.station,
+                #            w.phase_name, w.component, w.t_before,
+                #            w.t_after, windows_S[0].t_shift)
+                # )
+                windows_ScS_proc.append(
+                    Window(w.travel_time, w.event, w.station,
+                           w.phase_name, w.component, w.t_before,
+                           w.t_after, w.t_shift)
+                )
+        windows_ScS_proc_dict[freq_hash] = windows_ScS_proc
+        logging.info(
+            f'Number of processed ScS windows: {len(windows_ScS_proc)}')
 
-    dataset = Dataset.dataset_from_sac(
-        sac_files_filt, broadcast_data=True, headonly=False)
+    # sac_meta_filt = [
+    #     (sac_file, tr) for sac_file, tr in sac_meta
+    #     if len(
+    #         [
+    #             w for w in windows_ScS_proc
+    #             if (w.event.event_id == get_event_id(tr)
+    #                 and w.station == get_station(tr))
+    #         ]
+    #     ) > 0
+    # ]
+    # sac_files_filt = [sac_file for sac_file, tr in sac_meta_filt]
+    # logging.info(f'Total number of SAC files used {len(sac_files_filt)}')
+
+    sac_files = [sac_file for sac_file, tr in sac_meta]
+
+    dataset_dict = dict()
+    for freq_hash, windows in windows_ScS_proc_dict.items():
+        freq, freq2 = frequencies_from_hash(freq_hash)
+        ds = Dataset.dataset_from_sac_process(
+                sac_files, windows, freq, freq2,
+                filter_type='bandpass', shift=True)
+        dataset_dict[freq_hash] = ds
 
     logging.info('Starting the inversion...')
     fwi = FWI(
-        model_ref, model_params, dataset, windows_S, 2, mode)
+        model_ref, model_params, dataset_dict,
+        windows_ScS_proc_dict, n_phases=1, mode=mode)
 
     model_1 = fwi.step(model_ref, 0.01, 0.04, n_pca_components=[8])
     model_2 = fwi.step(model_1, 0.01, 0.04, n_pca_components=[8])

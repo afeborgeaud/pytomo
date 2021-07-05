@@ -22,6 +22,18 @@ from sklearn.pipeline import Pipeline
 import logging
 
 
+def freqency_hash(freq: float, freq2: float) -> str:
+    """Return a hash to use as a key."""
+    return f'{freq:.3f}_{freq2:.3f}'
+
+
+def frequencies_from_hash(freq_hash: str) -> (float, float):
+    """Return freq_min, freq_max from a frequency hash obtained
+    using frequency_hash()."""
+    hash_split = freq_hash.split('_')
+    return float(hash_split[0]), float(hash_split[1])
+
+
 class FWI:
     """Implement full-waveform inversion.
 
@@ -52,23 +64,25 @@ class FWI:
         level=logging.INFO, filename='fwi.log', filemode='w')
 
     def __init__(
-            self, model_ref, model_params, dataset,
-            windows, n_phases, mode):
+            self, model_ref, model_params, dataset_dict,
+            windows_dict, n_phases, mode):
         """
 
         Args:
             model_ref (SeismicModel): initial model
             model_params (ModelParams): model parameters
-            dataset (Dataset): dataset
-            windows (list of Window): time windows
+            dataset_dict (dict of Dataset): dict of filtered and cut
+                datasets. The keys code the frequency ranges
+                as given by frequency_hash()
+            windows_dict (dict of list of Window): time windows
             n_phases (int): number of distinct phases in windows
             mode (int): computation mode.
                 0: P-SV + SH, 1: P-SV, 2: SH
         """
         self.model_ref = model_ref
         self.model_params = model_params
-        self.dataset = dataset
-        self.windows = windows
+        self.dataset_dict = dataset_dict
+        self.windows_dict = windows_dict
         self.n_phases = n_phases
         self.mode = mode
         self.results = FWIResult(windows)
@@ -92,22 +106,21 @@ class FWI:
             logging.info('Iteration step')
             logging.info(f'freq={freq}, freq2={freq2}')
 
-        ds = self.dataset.filter(
-            freq, freq2, FWI.FILTER_TYPE, inplace=False)
+        freq_hash = freqency_hash(freq, freq2)
+        ds = self.dataset_dict[freq_hash]
+        windows = self.windows_dict[freq_hash]
         window_npts = np.array(
             [window.get_length() * ds.sampling_hz for window in self.windows]
         ).astype('int').max()
-        ds.apply_windows(
-            self.windows, self.n_phases, window_npts)
 
-        tlen = minimum_tlen(self.windows)
+        tlen = minimum_tlen(windows)
         nspc = minimum_nspc(tlen, freq2)
 
         if MPI.COMM_WORLD.Get_rank() == 0:
             logging.info(f'tlen={tlen}, nspc={nspc}')
 
         X, y = get_XY(
-            model, ds, self.windows, tlen=tlen, nspc=nspc,
+            model, ds, windows, tlen=tlen, nspc=nspc,
             freq=freq, freq2=freq2, filter_type=FWI.FILTER_TYPE,
             sampling_hz=ds.sampling_hz, mode=self.mode)
 
@@ -152,7 +165,7 @@ class FWI:
             nspc=nspc, sampling_hz=ds.sampling_hz, mode=self.mode)
         if MPI.COMM_WORLD.Get_rank() == 0:
             misfit_dict = process_outputs(
-                outputs, ds, updated_models, self.windows,
+                outputs, ds, updated_models, windows,
                 freq, freq2, FWI.FILTER_TYPE
             )
         else:

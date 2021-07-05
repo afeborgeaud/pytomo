@@ -46,8 +46,7 @@ if __name__ == '__main__':
 
     sac_files = list(
         glob.iglob('/work/anselme/central_pac/DATA/DATA/20*/*T'))
-    sac_files = list(
-        glob.iglob('/Users/navy/git/dsmpy/tests/sac_files_2/*T'))
+
     sac_meta = read_sac_meta(sac_files)
 
     windows_dict = WindowMaker.load(window_file)

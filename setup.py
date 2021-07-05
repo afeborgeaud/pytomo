@@ -32,6 +32,7 @@ if __name__ == '__main__':
             'sklearn',
             'cartopy',
             'seaborn',
+            'sklearn'
         ],
         python_requires='>=3.7',
         package_data={

@@ -24,7 +24,7 @@ import logging
 
 def freqency_hash(freq: float, freq2: float) -> str:
     """Return a hash to use as a key."""
-    return f'{freq:.3f}_{freq2:.3f}'
+    return f'{freq:.2f}_{freq2:.2f}'
 
 
 def frequencies_from_hash(freq_hash: str) -> (float, float):
@@ -85,7 +85,7 @@ class FWI:
         self.windows_dict = windows_dict
         self.n_phases = n_phases
         self.mode = mode
-        self.results = FWIResult(windows)
+        self.results = FWIResult(windows_dict)
 
     def step(self, model, freq, freq2, n_pca_components=[4]):
         """Advance one step in the FWI iteration.
@@ -110,7 +110,8 @@ class FWI:
         ds = self.dataset_dict[freq_hash]
         windows = self.windows_dict[freq_hash]
         window_npts = np.array(
-            [window.get_length() * ds.sampling_hz for window in self.windows]
+            [window.get_length() * ds.sampling_hz
+             for window in windows]
         ).astype('int').max()
 
         tlen = minimum_tlen(windows)
@@ -182,7 +183,8 @@ class FWI:
                             'freq2': freq2, 'rmse': rmses[i],
                             'variance': variances[i]}
                            for i in range(len(n_pca_components))]
-            self.results.add(updated_models, models_meta, misfit_dict)
+            self.results.add(
+                updated_models, models_meta, misfit_dict, freq_hash)
 
         return updated_model
 

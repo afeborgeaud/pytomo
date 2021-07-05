@@ -46,6 +46,9 @@ if __name__ == '__main__':
 
     sac_files = list(
         glob.iglob('/work/anselme/central_pac/DATA/DATA/20*/*T'))
+    sac_files = list(
+        glob.iglob('/Users/navy/git/dsmpy/tests/sac_files_2/*T')
+    )
 
     sac_meta = read_sac_meta(sac_files)
 
@@ -129,7 +132,7 @@ if __name__ == '__main__':
         model_ref, model_params, dataset_dict,
         windows_ScS_proc_dict, n_phases=1, mode=mode)
 
-    model_1 = fwi.step(model_ref, 0.01, 0.04, n_pca_components=[8])
+    model_1 = fwi.step(model_ref, 0.01, 0.08, n_pca_components=[8])
     model_2 = fwi.step(model_1, 0.01, 0.04, n_pca_components=[8])
     model_3 = fwi.step(model_2, 0.01, 0.08, n_pca_components=[8, 12, 16])
     model_4 = fwi.step(model_3, 0.01, 0.08, n_pca_components=[8, 12, 16])

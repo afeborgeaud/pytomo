@@ -11,13 +11,21 @@ class FWIResult:
     """Pack the inversion results for full-waveform inversion and
     the metadata needed to reproduce the results."""
 
-    def __init__(self, windows):
-        self.windows = windows
+    def __init__(self, windows_dict):
+        """
+
+        Args:
+            windows_dict (dict of list): dict of list of Window.
+                Keys are frequency hashes as obtained by
+                frequency_hash().
+        """
+        self.windows_dict = windows_dict
         self.models_at_iter = []
         self.models_meta_at_iter = []
         self.misfits_at_iter = []
+        self.frequency_hashes = []
 
-    def add(self, models, models_meta, misfits):
+    def add(self, models, models_meta, misfits, freq_hash):
         """Add results of an iteration step.
 
         Args:
@@ -28,11 +36,13 @@ class FWIResult:
             misfits (dict): Keys are misfit names (corr, variance).
                 Values are ndarray of shape (n_models, n_windows)
                 with misfit values.
+            freq_hash (str): frequency hash
 
         """
         self.models_at_iter.append(models)
         self.models_meta_at_iter.append(models_meta)
         self.misfits_at_iter.append(misfits)
+        self.frequency_hashes.append(freq_hash)
 
     def save(self, path):
         """Save self using pickle.dump().

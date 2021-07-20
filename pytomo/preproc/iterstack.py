@@ -206,7 +206,7 @@ class IterStack:
         windows = []
         for trace in self.traces:
             # keep only the first arrival
-            window = WindowMaker.windows_from_obspy_traces(
+            window = WindowMaker.windows_from_obspy_trace(
                 trace, self.modelname, self.phasenames,
                 self.t_before, self.t_after)[0]
             windows.append(window)

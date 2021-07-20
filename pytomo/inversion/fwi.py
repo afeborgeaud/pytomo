@@ -3,7 +3,7 @@ from dsmpy.modelparameters import ModelParameters, ParameterType
 from dsmpy.windowmaker import WindowMaker
 from dsmpy.window import Window
 from dsmpy.component import Component
-from dsmpy.utils.sklearnutils import get_XY
+from dsmpy.utils.sklearnutils import get_XY, get_check_key
 from dsmpy.dataset import Dataset
 from dsmpy.dsm import compute_models_parallel
 from pytomo.work.ca.params import get_dataset, get_model_syntest1_prem_vshvsv
@@ -24,7 +24,7 @@ import logging
 
 def freqency_hash(freq: float, freq2: float) -> str:
     """Return a hash to use as a key."""
-    return f'{freq:.2f}_{freq2:.2f}'
+    return f'{freq:.3f}_{freq2:.3f}'
 
 
 def frequencies_from_hash(freq_hash: str) -> (float, float):
@@ -65,7 +65,7 @@ class FWI:
 
     def __init__(
             self, model_ref, model_params, dataset_dict,
-            windows_dict, n_phases, mode):
+            windows_dict, n_phases, mode, phase_ref=None, buffer=10.):
         """
 
         Args:
@@ -78,6 +78,10 @@ class FWI:
             n_phases (int): number of distinct phases in windows
             mode (int): computation mode.
                 0: P-SV + SH, 1: P-SV, 2: SH
+            phase_ref (str): reference phase used for static
+                corrections
+            buffer (float): buffer in seconds used to find
+                the best shift for static correction
         """
         self.model_ref = model_ref
         self.model_params = model_params
@@ -86,8 +90,20 @@ class FWI:
         self.n_phases = n_phases
         self.mode = mode
         self.results = FWIResult(windows_dict)
+        self.var = 2.5
+        self.corr = 0.
+        self.ratio = 2.5
+        self.phase_ref = phase_ref
+        self.buffer = buffer
 
-    def step(self, model, freq, freq2, n_pca_components=[4]):
+    def set_selection(self, var: float, corr: float, ratio: float):
+        """Set the variance, correlation, and ratio cutoffs
+        used when deciding whether or not to keep a particular record."""
+        self.var = var
+        self.corr = corr
+        self.ratio = ratio
+
+    def step(self, model, freq, freq2, n_pca_components=[4], alphas=[1.]):
         """Advance one step in the FWI iteration.
 
         Args:
@@ -120,41 +136,50 @@ class FWI:
         if MPI.COMM_WORLD.Get_rank() == 0:
             logging.info(f'tlen={tlen}, nspc={nspc}')
 
-        X, y = get_XY(
+        X, y, checked = get_XY(
             model, ds, windows, tlen=tlen, nspc=nspc,
             freq=freq, freq2=freq2, filter_type=FWI.FILTER_TYPE,
-            sampling_hz=ds.sampling_hz, mode=self.mode)
+            sampling_hz=ds.sampling_hz, phase_ref=self.phase_ref,
+            buffer=self.buffer, mode=self.mode)
 
         if MPI.COMM_WORLD.Get_rank() == 0:
+            logging.info(f'Number of records used in inversion step: {len(checked)}')
+
             pipe = Pipeline(steps=[
                 ('scaler', StandardScaler()),
                 ('pca', PCA()),
-                ('reg', linear_model.Ridge(alpha=0.))
+                ('reg', linear_model.Ridge())
             ])
 
             value_dicts = []
             rmses = []
+            logging.info('Computing PCA')
             for n_pca in n_pca_components:
-                pipe.set_params(pca__n_components=n_pca)
-                pipe.fit(X, y)
-                y_pred = pipe.predict(X)
-                mse = mean_squared_error(y, y_pred)
-                rmse = np.sqrt(mse)
-                rmses.append(rmse)
-                logging.info(f'n_pca={n_pca}, rmse={rmse}')
+                for alpha in alphas:
+                    pipe.set_params(
+                        pca__n_components=n_pca)
+                    pipe.fit(X, y)
+                    y_pred = pipe.predict(X)
+                    mse = mean_squared_error(y, y_pred)
+                    rmse = np.sqrt(mse)
+                    rmses.append(rmse)
+                    logging.info(f'n_pca={n_pca}, alpha={alpha}: rmse={rmse}')
 
-                coefs_trans = pipe['reg'].coef_.reshape(1, -1)
-                coefs_scaled = pipe['pca'].inverse_transform(coefs_trans)
-                coefs = pipe['scaler'].transform(coefs_scaled)
+                    coefs_trans = pipe['reg'].coef_.reshape(1, -1)
+                    coefs_scaled = pipe['pca'].inverse_transform(
+                        coefs_trans)
+                    coefs = pipe['scaler'].transform(coefs_scaled)
 
-                best_params = np.array(coefs).reshape(
-                    len(self.model_params.get_types()), -1)
-                value_dicts.append(
-                    {p_type: best_params[i]
-                     for i, p_type in enumerate(
-                        self.model_params.get_types())})
+                    best_params = np.array(coefs).reshape(
+                        len(self.model_params.get_types()), -1)
+                    best_params *= alpha
+                    value_dicts.append(
+                        {p_type: best_params[i]
+                         for i, p_type in enumerate(
+                            self.model_params.get_types())})
         else:
             value_dicts = None
+        logging.info('Done')
 
         value_dicts = MPI.COMM_WORLD.bcast(value_dicts, root=0)
         updated_models = [
@@ -165,8 +190,12 @@ class FWI:
             ds, updated_models, tlen=tlen,
             nspc=nspc, sampling_hz=ds.sampling_hz, mode=self.mode)
         if MPI.COMM_WORLD.Get_rank() == 0:
+            selected_windows = [
+                w for w in windows
+                if get_check_key(w) in checked
+            ]
             misfit_dict = process_outputs(
-                outputs, ds, updated_models, windows,
+                outputs, ds, updated_models, selected_windows,
                 freq, freq2, FWI.FILTER_TYPE
             )
         else:
@@ -201,6 +230,7 @@ class FWI:
         ax.set_xlim([6.5, 8])
         ax.legend()
         fig.savefig(figname, bbox_inches='tight')
+        plt.close(fig)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 from pytomo.dataset.plotutils import display_windows
 from dsmpy.windowmaker import WindowMaker
 import pygmt
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     windows = WindowMaker.load('selected_shift_windows_ScS_S_sS.pkl')
@@ -30,3 +31,4 @@ if __name__ == '__main__':
             frame=["af", "WSne", "g"], region=[-100, 220, -60, 70]
         )
     fig.savefig('map.pdf')
+    plt.show()

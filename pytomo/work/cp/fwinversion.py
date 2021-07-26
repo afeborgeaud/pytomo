@@ -49,9 +49,6 @@ if __name__ == '__main__':
 
     sac_files = list(
         glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
-    # sac_files = list(
-    #    glob.iglob('/Users/navy/git/dsmpy/tests/sac_files_2/*T')
-    # )
 
     catalog = read_catalog()
     sac_meta, traces = read_sac_meta(sac_files)
@@ -97,7 +94,7 @@ if __name__ == '__main__':
     windows_proc = windows_ScS_trimmed + windows_S
 
     # set a buffer for shifting windows using the reference phase
-    WindowMaker.set_limit(windows_proc, t_before - buffer, t_after + buffer)
+    WindowMaker.set_limit(windows_proc, t_before + buffer, t_after + buffer)
 
     logging.info(
         f'Number of processed ScS windows: '

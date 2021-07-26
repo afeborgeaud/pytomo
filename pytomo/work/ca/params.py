@@ -98,11 +98,19 @@ def get_ref_event():
     event.source_time_function.half_duration = 2.
     return event
 
+def get_ref_event2():
+    catalog = read_catalog()
+    event = Event.event_from_catalog(
+        catalog, '200707211327A')
+    event.source_time_function.half_duration = 2.
+    return event
+
 def get_dataset(
         model, tlen=1638.4, nspc=64, sampling_hz=20, mode=0,
-        add_noise=False, noise_normalized_std=1.):
+        add_noise=False, noise_normalized_std=1., event=None):
     #TODO fix outputs.us=NaN when event.latitude==station.latitude
-    event = get_ref_event()
+    if event is None:
+        event = get_ref_event()
     events = [event]
     stations = [
         Station(
@@ -224,6 +232,72 @@ def get_model_syntest1_prem_vshvsv():
     model_updated = model.multiply(values_mat)
 
     return model_updated
+
+
+def get_model_syntest2_prem_vshvsv():
+    types = [ParameterType.VSH, ParameterType.VSV]
+    radii = np.array([3480. + 20 * i for i in range(21)])
+    model_params = ModelParameters(types, radii, mesh_type='boxcar')
+    model = SeismicModel.prem().boxcar_mesh(model_params)
+    values_vsh = np.array(
+        [0.15 if i <= 9 else 0.
+         for i in range(model_params.get_n_grd_params())])
+    values_vsv = np.array(
+        [0. if i <= 4 else 0.
+         for i in range(model_params.get_n_grd_params())]
+    )
+    values_dict = {
+        ParameterType.VSH: values_vsh,
+        ParameterType.VSV: values_vsv
+    }
+    values_mat = model_params.get_values_matrix(values_dict)
+    model_updated = model.multiply(values_mat)
+
+    return model_updated
+
+
+def get_model_syntest2_prem_vshqmu():
+    types = [ParameterType.VSH, ParameterType.QMU]
+    radii = np.array([3480. + 20 * i for i in range(21)])
+    model_params = ModelParameters(types, radii, mesh_type='boxcar')
+    model = SeismicModel.prem().boxcar_mesh(model_params)
+    values_vsh = np.array(
+        [0.15 if i <= 9 else 0.
+         for i in range(model_params.get_n_grd_params())])
+    values_qmu = np.array(
+        [150 if i <= 9 else 0.
+         for i in range(model_params.get_n_grd_params())]
+    )
+    values_dict = {
+        ParameterType.VSH: values_vsh,
+        ParameterType.QMU: values_qmu
+    }
+    values_mat = model_params.get_values_matrix(values_dict)
+    model_updated = model.multiply(values_mat)
+
+    return model_updated
+
+
+def get_model_syntest3_prem_vshqmu():
+    types = [ParameterType.VSH, ParameterType.QMU]
+    radii = np.array([3480. + 20 * i for i in range(21)])
+    model_params = ModelParameters(types, radii, mesh_type='boxcar')
+    model = SeismicModel.prem().boxcar_mesh(model_params)
+    values_vsh = np.array(
+        [0. if i <= 9 else 0.
+         for i in range(model_params.get_n_grd_params())])
+    values_qmu = np.array(
+        [150 for i in range(model_params.get_n_grd_params())]
+    )
+    values_dict = {
+        ParameterType.VSH: values_vsh,
+        ParameterType.QMU: values_qmu
+    }
+    values_mat = model_params.get_values_matrix(values_dict)
+    model_updated = model.multiply(values_mat)
+
+    return model_updated
+
 
 def get_model_syntest2():
     model_ref = SeismicModel.ak135()

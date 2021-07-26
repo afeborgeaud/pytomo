@@ -1,0 +1,28 @@
+INFO:root:Done
+tion step
+INFO:root:freq=0.01, freq2=0.05
+INFO:root:tlen=1638.4, nspc=128
+INFO:root:Building y
+INFO:root:Building X
+INFO:root:model 0
+INFO:root:model 1
+INFO:root:model 2
+INFO:root:model 3
+INFO:root:model 4
+INFO:root:model 5
+INFO:root:model 6
+INFO:root:model 7
+INFO:root:model 8
+INFO:root:model 9
+INFO:root:model 10
+INFO:root:model 11
+INFO:root:model 12
+INFO:root:model 13
+INFO:root:model 14
+INFO:root:model 15
+INFO:root:model 16
+INFO:root:model 17
+INFO:root:model 18
+INFO:root:model 19
+INFO:root:Number of records used in inversion step: 24
+INFO:root:Computing PCA

@@ -19,6 +19,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
 import logging
 
 
@@ -95,6 +96,7 @@ class FWI:
         self.ratio = 2.5
         self.phase_ref = phase_ref
         self.buffer = buffer
+        self.ignore_types = set()
 
     def set_selection(self, var: float, corr: float, ratio: float):
         """Set the variance, correlation, and ratio cutoffs
@@ -102,6 +104,16 @@ class FWI:
         self.var = var
         self.corr = corr
         self.ratio = ratio
+
+    def set_ignore_types(self, parameter_types, ignore=True):
+        """Do not update the parameter types.
+        Switch these parameters on again by calling it
+        with ignore=True"""
+        if ignore:
+            self.ignore_types = set(parameter_types)
+        else:
+            self.ignore_types -= set(parameter_types)
+
 
     def step(self, model, freq, freq2, n_pca_components=[4], alphas=[1.]):
         """Advance one step in the FWI iteration.
@@ -143,40 +155,109 @@ class FWI:
             buffer=self.buffer, mode=self.mode)
 
         if MPI.COMM_WORLD.Get_rank() == 0:
-            logging.info(f'Number of records used in inversion step: {len(checked)}')
+            logging.info(
+                f'Number of records used in inversion step: {len(checked)}')
 
-            pipe = Pipeline(steps=[
-                ('scaler', StandardScaler()),
-                ('pca', PCA()),
-                ('reg', linear_model.Ridge())
-            ])
+            # switch parameters ON/OFF from self.ignore_types
+            _, itypes, _ = model.get_model_params().get_free_all_indices()
+            parameter_types = [model.get_model_params().get_types()[i]
+                               for i in itypes]
+            mask = [False if p_type in self.ignore_types else True
+                    for p_type in parameter_types]
+            X = X[:, mask]
+            used_types = [p_type
+                          for p_type in model.get_model_params().get_types()
+                          if p_type not in self.ignore_types]
+
+            # TODO create a method for this piece of code
+            # if QMU, sum all the layers to keep only a single QMU layer
+            # this is because QMU cannot be well resolved
+            if ParameterType.QMU in used_types:
+                iqs = [i for i, p_type in enumerate(parameter_types)
+                       if p_type == ParameterType.QMU]
+                iq0 = iqs[0]
+                i_keep = [i for i in range(X.shape[1])
+                          if i not in iqs or i == iq0]
+                i_iq0 = i_keep.index(iq0)
+                X[:, iqs[0]] = X[:, iqs].sum(axis=1)
+                X = X[:, i_keep]
+                # place the single QMU parameter at the last column of X
+                X[:, [i_iq0, -1]] = X[:, [-1, i_iq0]]
+                used_types = [p_type for i, p_type in enumerate(used_types)
+                              if i in i_keep]
+
+            if ParameterType.QMU in used_types:
+                # Do not include QMU in the PCA.
+                # Instead, keep QMU features as is.
+                pipe = Pipeline([
+                    ('scaler', StandardScaler()),
+                    ('reduce_dim', ColumnTransformer(
+                        [
+                            ('pca', PCA(), slice(-1)),
+                            ('pass', 'passthrough', [-1])
+                        ],
+                    )
+                    ),
+                    ('reg', linear_model.Ridge())
+                ])
+            else:
+                pipe = Pipeline([
+                    ('scaler', StandardScaler()),
+                    ('reduce_dim', PCA()),
+                    ('reg', linear_model.Ridge())
+                ])
 
             value_dicts = []
             rmses = []
             logging.info('Computing PCA')
             for n_pca in n_pca_components:
                 for alpha in alphas:
-                    pipe.set_params(
-                        pca__n_components=n_pca)
+                    if ParameterType.QMU in used_types:
+                        pipe.set_params(
+                            reduce_dim__pca__n_components=n_pca)
+                    else:
+                        pipe.set_params(
+                            reduce_dim__n_components=n_pca)
                     pipe.fit(X, y)
                     y_pred = pipe.predict(X)
                     mse = mean_squared_error(y, y_pred)
                     rmse = np.sqrt(mse)
                     rmses.append(rmse)
-                    logging.info(f'n_pca={n_pca}, alpha={alpha}: rmse={rmse}')
+                    logging.info(f'n_pca={n_pca}: rmse={rmse}')
 
                     coefs_trans = pipe['reg'].coef_.reshape(1, -1)
-                    coefs_scaled = pipe['pca'].inverse_transform(
-                        coefs_trans)
-                    coefs = pipe['scaler'].transform(coefs_scaled)
 
-                    best_params = np.array(coefs).reshape(
-                        len(self.model_params.get_types()), -1)
+                    if ParameterType.QMU in used_types:
+                        coefs_scaled = np.hstack((
+                            pipe['reduce_dim'].transformers_[0][1]
+                            .inverse_transform(
+                                coefs_trans[:, :-1]),
+                            coefs_trans[:, -1].reshape(1, -1))
+                        )
+                    else:
+                        coefs_scaled = pipe['reduce_dim'].inverse_transform(
+                            coefs_trans)
+
+                    coefs = pipe['scaler'].transform(coefs_scaled)
+                    best_params = np.array(coefs).flatten()
+
+                    # TODO write a method for this piece of code
+                    # rewrite the single QMU layers as n layers
+                    if ParameterType.QMU in used_types:
+                        n_grd_p = self.model_params.get_n_grd_params()
+                        best_params = np.hstack((
+                            best_params,
+                            np.repeat(best_params[-1], n_grd_p - 1)
+                        ))
+                        # best_params[-n_grd_p:] /= n_grd_p
+
+                    best_params = best_params.reshape(
+                        len(used_types), -1)
                     best_params *= alpha
                     value_dicts.append(
                         {p_type: best_params[i]
                          for i, p_type in enumerate(
-                            self.model_params.get_types())})
+                            used_types)})
         else:
             value_dicts = None
         logging.info('Done')
@@ -203,7 +284,15 @@ class FWI:
         misfit_dict = MPI.COMM_WORLD.bcast(misfit_dict, root=0)
         variances = misfit_dict['variance'].mean(axis=1)
         logging.info(f'variances = {variances}')
-        updated_model = updated_models[np.argmin(variances)]
+        variances_per = (variances - variances.min()) / variances.min()
+
+        # we select the model with the smallest number of PCA components
+        # among the models with variance within 1% of the minimum
+        # variance, to avoid overly complex models.
+        k = np.argwhere(variances_per <= 0.01)[0][0]
+        logging.info(f'Keeping model {k}')
+
+        updated_model = updated_models[k]
 
         if MPI.COMM_WORLD.Get_rank() == 0:
             self.plot_model_log(
@@ -218,19 +307,23 @@ class FWI:
         return updated_model
 
     def plot_model_log(self, model, figname: str):
-        fig, ax = plt.subplots(1, figsize=(4, 7))
-        self.model_ref.plot(
-            types=self.model_params.get_types(), ax=ax, label='ref')
-        get_model_syntest1_prem_vshvsv().plot(
-            types=self.model_params.get_types(), ax=ax, label='target')
-        model.plot(
-            types=self.model_params.get_types(), ax=ax, label='update')
-        nodes = self.model_params.get_nodes()
-        ax.set_ylim([nodes.min(), nodes.max()])
-        ax.set_xlim([6.5, 8])
-        ax.legend()
-        fig.savefig(figname, bbox_inches='tight')
-        plt.close(fig)
+        for p_type in self.model_params.get_types():
+            fig, ax = plt.subplots(1, figsize=(4, 7))
+            self.model_ref.plot(
+                types=[p_type], ax=ax, label='ref')
+            model.plot(
+                types=[p_type], ax=ax, label='update')
+            nodes = self.model_params.get_nodes()
+            ax.set_ylim([nodes.min(), nodes.max()])
+            if p_type in [ParameterType.VSH, ParameterType.VSV]:
+                ax.set_xlim([6.5, 8])
+            elif p_type == ParameterType.QMU:
+                ax.set_xlim([100, 800])
+            else:
+                ax.set_xlim([6.5, 8])
+            ax.legend()
+            fig.savefig(str(p_type) + '_' + figname, bbox_inches='tight')
+            plt.close(fig)
 
 
 if __name__ == '__main__':

@@ -159,9 +159,11 @@ class FWI:
                 f'Number of records used in inversion step: {len(checked)}')
 
             # switch parameters ON/OFF from self.ignore_types
-            _, itypes, _ = model.get_model_params().get_free_all_indices()
+            _, itypes, iradii = model.get_model_params().get_free_all_indices()
             parameter_types = [model.get_model_params().get_types()[i]
                                for i in itypes]
+            parameter_radii = [model.get_model_params().get_grd_params()[i]
+                               for i in iradii]
             mask = [False if p_type in self.ignore_types else True
                     for p_type in parameter_types]
             X = X[:, mask]
@@ -185,6 +187,7 @@ class FWI:
                 X[:, [i_iq0, -1]] = X[:, [-1, i_iq0]]
                 used_types = [p_type for i, p_type in enumerate(used_types)
                               if i in i_keep]
+                r_mean = np.mean([parameter_radii[i] for i in iqs])
 
             if ParameterType.QMU in used_types:
                 # Do not include QMU in the PCA.
@@ -245,6 +248,10 @@ class FWI:
                     # rewrite the single QMU layers as n layers
                     if ParameterType.QMU in used_types:
                         n_grd_p = self.model_params.get_n_grd_params()
+                        dq = best_params[-1]
+                        Q = model.get_value_at(r_mean, ParameterType.QMU)
+                        dQ = -Q**2 * dq
+                        params_Q = np.repeat(dQ, n_grd_p - 1)
                         best_params = np.hstack((
                             best_params,
                             np.repeat(best_params[-1], n_grd_p - 1)

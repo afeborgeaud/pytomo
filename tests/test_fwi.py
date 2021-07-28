@@ -14,8 +14,9 @@ from mpi4py import MPI
 import math
 
 if __name__ == '__main__':
-    types = [ParameterType.QMU]
-    radii = [3480. + 20 * i for i in range(21)]
+    types = [ParameterType.VSH, ParameterType.QMU]
+    # radii = [3480. + 20 * i for i in range(21)]
+    radii = [3480., 3880]
     model_params = ModelParameters(
         types=types,
         radii=radii,
@@ -32,7 +33,7 @@ if __name__ == '__main__':
     buffer = 10.
 
     dataset, _ = get_dataset(
-        get_model_syntest3_prem_vshqmu(), tlen=1638.4, nspc=512,
+        get_model_syntest3_prem_vshqmu(), tlen=1638.4, nspc=256,
         sampling_hz=sampling_hz,
         mode=mode, add_noise=False, noise_normalized_std=1.)
 
@@ -73,9 +74,9 @@ if __name__ == '__main__':
 
     # fwi.set_ignore_types([ParameterType.QMU])
     model_1 = fwi.step(
-        model_ref, 0.01, 0.05, n_pca_components=[2, 4], alphas=[.8, 1.])
+        model_ref, 0.01, 0.05, n_pca_components=[1], alphas=[.8, 1.])
     model_2 = fwi.step(
-        model_1, 0.01, 0.08, n_pca_components=[4, 6], alphas=[.8, 1.])
+        model_1, 0.01, 0.08, n_pca_components=[1], alphas=[.8, 1.])
 
     fwi.set_ignore_types([ParameterType.QMU], ignore=False)
     model_3 = fwi.step(

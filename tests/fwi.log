@@ -1,0 +1,226 @@
+INFO:root:Done
+INFO:root:variances = [ 0.02679762  0.01987495  0.03181161  0.02779528  0.03862467  0.03864825]
+INFO:root:Keeping model 1
+INFO:root:Done
+INFO:root:variances = [ 0.01302985  0.00996953  0.00800224  0.00483706  0.00741832  0.00419171]
+INFO:root:Keeping model 5
+INFO:root:Done
+INFO:root:variances = [ 0.00486125  0.00383124  0.00470158]
+INFO:root:Keeping model 1
+INFO:root:Done
+INFO:root:variances = [ 0.00443873  0.00718782  0.0070978   0.00763557]
+INFO:root:Keeping model 0
+oot:model 19
+INFO:root:model 20
+INFO:root:model 21
+INFO:root:model 22
+INFO:root:model 23
+INFO:root:model 24
+INFO:root:model 25
+INFO:root:model 26
+INFO:root:model 27
+INFO:root:model 28
+INFO:root:model 29
+INFO:root:model 30
+INFO:root:model 31
+INFO:root:model 32
+INFO:root:model 33
+INFO:root:model 34
+INFO:root:model 35
+INFO:root:model 36
+INFO:root:model 37
+INFO:root:model 38
+INFO:root:model 39
+INFO:root:Number of records used in inversion step: 24
+INFO:root:Computing PCA
+INFO:root:n_pca=2: rmse=0.06444260866082792
+INFO:root:(1, 2)
+INFO:root:n_pca=2: rmse=0.06444260866082792
+INFO:root:(1, 2)
+INFO:root:n_pca=4: rmse=0.05281846340188665
+INFO:root:(1, 4)
+INFO:root:n_pca=4: rmse=0.05281846340188665
+INFO:root:(1, 4)
+INFO:root:n_pca=6: rmse=0.04799767272791639
+INFO:root:(1, 6)
+INFO:root:n_pca=6: rmse=0.04799767272791639
+INFO:root:(1, 6)
+INFO:root:Done
+INFO:root:variances = [ 0.02679762  0.01987495  0.03181161  0.02779528  0.03862467  0.03864825]
+INFO:root:Keeping model 1
+INFO:root:Iteration step
+INFO:root:freq=0.01, freq2=0.08
+INFO:root:tlen=1638.4, nspc=256
+INFO:root:Building y
+INFO:root:Building X
+INFO:root:model 0
+INFO:root:model 1
+INFO:root:model 2
+INFO:root:model 3
+INFO:root:model 4
+INFO:root:model 5
+INFO:root:model 6
+INFO:root:model 7
+INFO:root:model 8
+INFO:root:model 9
+INFO:root:model 10
+INFO:root:model 11
+INFO:root:model 12
+INFO:root:model 13
+INFO:root:model 14
+INFO:root:model 15
+INFO:root:model 16
+INFO:root:model 17
+INFO:root:model 18
+INFO:root:model 19
+INFO:root:model 20
+INFO:root:model 21
+INFO:root:model 22
+INFO:root:model 23
+INFO:root:model 24
+INFO:root:model 25
+INFO:root:model 26
+INFO:root:model 27
+INFO:root:model 28
+INFO:root:model 29
+INFO:root:model 30
+INFO:root:model 31
+INFO:root:model 32
+INFO:root:model 33
+INFO:root:model 34
+INFO:root:model 35
+INFO:root:model 36
+INFO:root:model 37
+INFO:root:model 38
+INFO:root:model 39
+INFO:root:Number of records used in inversion step: 24
+INFO:root:Computing PCA
+INFO:root:n_pca=4: rmse=0.030908443407099934
+INFO:root:(1, 4)
+INFO:root:n_pca=4: rmse=0.03090844340709994
+INFO:root:(1, 4)
+INFO:root:n_pca=6: rmse=0.014845919087104448
+INFO:root:(1, 6)
+INFO:root:n_pca=6: rmse=0.014845919087104444
+INFO:root:(1, 6)
+INFO:root:n_pca=8: rmse=0.013554282597789806
+INFO:root:(1, 8)
+INFO:root:n_pca=8: rmse=0.013554282597789803
+INFO:root:(1, 8)
+INFO:root:Done
+INFO:root:variances = [ 0.01302985  0.00996953  0.00800224  0.00483706  0.00741832  0.00419171]
+INFO:root:Keeping model 5
+INFO:root:Iteration step
+INFO:root:freq=0.01, freq2=0.08
+INFO:root:tlen=1638.4, nspc=256
+INFO:root:Building y
+INFO:root:Building X
+INFO:root:model 0
+INFO:root:model 1
+INFO:root:model 2
+INFO:root:model 3
+INFO:root:model 4
+INFO:root:model 5
+INFO:root:model 6
+INFO:root:model 7
+INFO:root:model 8
+INFO:root:model 9
+INFO:root:model 10
+INFO:root:model 11
+INFO:root:model 12
+INFO:root:model 13
+INFO:root:model 14
+INFO:root:model 15
+INFO:root:model 16
+INFO:root:model 17
+INFO:root:model 18
+INFO:root:model 19
+INFO:root:model 20
+INFO:root:model 21
+INFO:root:model 22
+INFO:root:model 23
+INFO:root:model 24
+INFO:root:model 25
+INFO:root:model 26
+INFO:root:model 27
+INFO:root:model 28
+INFO:root:model 29
+INFO:root:model 30
+INFO:root:model 31
+INFO:root:model 32
+INFO:root:model 33
+INFO:root:model 34
+INFO:root:model 35
+INFO:root:model 36
+INFO:root:model 37
+INFO:root:model 38
+INFO:root:model 39
+INFO:root:Number of records used in inversion step: 24
+INFO:root:Computing PCA
+INFO:root:n_pca=4: rmse=0.011044425224551164
+INFO:root:(1, 6)
+INFO:root:n_pca=6: rmse=0.01053375250967743
+INFO:root:(1, 8)
+INFO:root:n_pca=8: rmse=0.009258340588759142
+INFO:root:(1, 10)
+INFO:root:Done
+INFO:root:variances = [ 0.00486125  0.00383124  0.00470158]
+INFO:root:Keeping model 1
+INFO:root:Iteration step
+INFO:root:freq=0.01, freq2=0.125
+INFO:root:tlen=1638.4, nspc=512
+INFO:root:Building y
+INFO:root:Building X
+INFO:root:model 0
+INFO:root:model 1
+INFO:root:model 2
+INFO:root:model 3
+INFO:root:model 4
+INFO:root:model 5
+INFO:root:model 6
+INFO:root:model 7
+INFO:root:model 8
+INFO:root:model 9
+INFO:root:model 10
+INFO:root:model 11
+INFO:root:model 12
+INFO:root:model 13
+INFO:root:model 14
+INFO:root:model 15
+INFO:root:model 16
+INFO:root:model 17
+INFO:root:model 18
+INFO:root:model 19
+INFO:root:model 20
+INFO:root:model 21
+INFO:root:model 22
+INFO:root:model 23
+INFO:root:model 24
+INFO:root:model 25
+INFO:root:model 26
+INFO:root:model 27
+INFO:root:model 28
+INFO:root:model 29
+INFO:root:model 30
+INFO:root:model 31
+INFO:root:model 32
+INFO:root:model 33
+INFO:root:model 34
+INFO:root:model 35
+INFO:root:model 36
+INFO:root:model 37
+INFO:root:model 38
+INFO:root:model 39
+INFO:root:Number of records used in inversion step: 24
+INFO:root:Computing PCA
+INFO:root:n_pca=8: rmse=0.013418747741992162
+INFO:root:(1, 10)
+INFO:root:n_pca=10: rmse=0.00973209798298889
+INFO:root:(1, 12)
+INFO:root:n_pca=12: rmse=0.009611585006388623
+INFO:root:(1, 14)
+INFO:root:n_pca=14: rmse=0.007767208790610052
+INFO:root:(1, 16)
+INFO:root:Done
+INFO:root:variances = [ 0.00443873  0.00718782  0.0070978   0.00763557]
+INFO:root:Keeping model 0

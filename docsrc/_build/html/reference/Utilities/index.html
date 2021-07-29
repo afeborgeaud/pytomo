@@ -55,6 +55,47 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pytomo.utilities.minimum_nspc">
+<span class="sig-prename descclassname"><span class="pre">pytomo.utilities.</span></span><span class="sig-name descname"><span class="pre">minimum_nspc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tlen</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">int</span><a class="headerlink" href="#pytomo.utilities.minimum_nspc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the minimum nspc for accurate computation given freq2.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tlen</strong> – length of synthetics in seconds</p></li>
+<li><p><strong>freq2</strong> – the maximum filtering frequency in Hz</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>the minimum number of frequency point for computation</dt><dd><p>of accurate synthetics</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomo.utilities.minimum_tlen">
+<span class="sig-prename descclassname"><span class="pre">pytomo.utilities.</span></span><span class="sig-name descname"><span class="pre">minimum_tlen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">float</span><a class="headerlink" href="#pytomo.utilities.minimum_tlen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the minimum tlen that includes the longest time window.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>windows</strong> (<em>list of Window</em>) – time windows</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the minimum length for synthetics in seconds</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pytomo.utilities.white_noise">
 <span class="sig-prename descclassname"><span class="pre">pytomo.utilities.</span></span><span class="sig-name descname"><span class="pre">white_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">std</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">numpy.ndarray</span><a class="headerlink" href="#pytomo.utilities.white_noise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute random gaussian noise</p>

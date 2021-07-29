@@ -56,45 +56,61 @@
 <span id="fwi"></span><h2>fwi<a class="headerlink" href="#module-pytomo.inversion.fwi" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.inversion.fwi.</span></span><span class="sig-name descname"><span class="pre">FWI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_phases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.inversion.fwi.</span></span><span class="sig-name descname"><span class="pre">FWI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_phases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI" title="Permalink to this definition">¶</a></dt>
 <dd><p>Implement full-waveform inversion.</p>
 <p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model_params</span> <span class="o">=</span> <span class="n">ModelParameters</span><span class="p">(</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">dsmpy.seismicmodel</span> <span class="kn">import</span> <span class="n">SeismicModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">dsmpy.modelparameters</span> <span class="kn">import</span> <span class="n">ModelParameters</span><span class="p">,</span> <span class="n">ParameterType</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">dsmpy.windowmaker</span> <span class="kn">import</span> <span class="n">WindowMaker</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">dsmpy.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">read_sac_meta</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model_params</span> <span class="o">=</span> <span class="n">ModelParameters</span><span class="p">(</span>
 <span class="gp">... </span>   <span class="n">types</span><span class="o">=</span><span class="p">[</span><span class="n">ParameterType</span><span class="o">.</span><span class="n">VSH</span><span class="p">],</span>
 <span class="gp">... </span>   <span class="n">radii</span><span class="o">=</span><span class="p">[</span><span class="mf">3480.</span> <span class="o">+</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">21</span><span class="p">)],</span>
 <span class="gp">... </span>   <span class="n">mesh_type</span><span class="o">=</span><span class="s1">&#39;boxcar&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model_ref</span> <span class="o">=</span> <span class="n">SeismicModel</span><span class="o">.</span><span class="n">prem</span><span class="p">()</span><span class="o">.</span><span class="n">boxcar_mesh</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">dataset_from_sac</span><span class="p">(</span>
-<span class="gp">... </span>   <span class="n">sac_files</span><span class="p">,</span> <span class="n">headonly</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">windows</span> <span class="o">=</span> <span class="n">WindowMaker</span><span class="o">.</span><span class="n">windows_from_dataset</span><span class="p">(</span>
-<span class="gp">... </span>   <span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;prem&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ScS&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">Component</span><span class="o">.</span><span class="n">T</span><span class="p">],</span>
-<span class="gp">... </span>   <span class="n">t_before</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">t_after</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sac_files</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># list of SAC files to use in inversion</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sac_meta</span><span class="p">,</span> <span class="n">traces</span> <span class="o">=</span> <span class="n">read_sac_meta</span><span class="p">(</span><span class="n">sac_files</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">windows</span> <span class="o">=</span> <span class="n">WindowMaker</span><span class="o">.</span><span class="n">windows_from_obspy_traces</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">traces</span><span class="p">,</span> <span class="s1">&#39;prem&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ScS&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">Component</span><span class="o">.</span><span class="n">T</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">t_before</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">t_after</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">buffer</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">WindowMaker</span><span class="o">.</span><span class="n">set_limit</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">windows</span><span class="p">,</span> <span class="n">t_before</span> <span class="o">+</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">t_after</span> <span class="o">+</span> <span class="n">buffer</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">freqs</span><span class="p">,</span> <span class="n">freqs2</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">freq</span><span class="p">,</span> <span class="n">freq2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">freqs</span><span class="p">,</span> <span class="n">freqs2</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">dataset_from_sac_process</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="n">sac_files</span><span class="p">,</span> <span class="n">windows</span><span class="p">,</span> <span class="n">freq</span><span class="p">,</span> <span class="n">freq2</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">dataset_dict</span><span class="p">[</span><span class="n">freqency_hash</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">freq2</span><span class="p">)]</span> <span class="o">=</span> <span class="n">ds</span>
+<span class="gp">... </span>    <span class="n">windows_dict</span><span class="p">[</span><span class="n">freqency_hash</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">freq2</span><span class="p">)]</span> <span class="o">=</span> <span class="n">windows</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">fwi</span> <span class="o">=</span> <span class="n">FWI</span><span class="p">(</span>
-<span class="gp">... </span>   <span class="n">model_ref</span><span class="p">,</span> <span class="n">model_params</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span>
-<span class="gp">... </span>   <span class="n">windows</span><span class="p">,</span> <span class="n">n_phases</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">... </span>   <span class="n">model_ref</span><span class="p">,</span> <span class="n">model_params</span><span class="p">,</span> <span class="n">dataset_dict</span><span class="p">,</span>
+<span class="gp">... </span>   <span class="n">windows_dict</span><span class="p">,</span> <span class="n">n_phases</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<span class="gp">... </span>   <span class="n">phase_ref</span><span class="o">=</span><span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="n">buffer</span><span class="o">=</span><span class="n">buffer</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model_1</span> <span class="o">=</span> <span class="n">fwi</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
-<span class="go">        model_ref, freq=0.01, freq2=0.04, n_pca_components=[4])</span>
+<span class="gp">... </span>    <span class="n">model_ref</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">freq2</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">n_pca_components</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model_2</span> <span class="o">=</span> <span class="n">fwi</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">model_1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.04</span><span class="p">,</span> <span class="n">n_pca_components</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model_3</span> <span class="o">=</span> <span class="n">fwi</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
-<span class="gp">... </span>   <span class="n">model_2</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">,</span> <span class="n">n_pca_components</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">])</span>
+<span class="gp">... </span>    <span class="n">model_1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">,</span> <span class="n">n_pca_components</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">])</span>
 </pre></div>
 </div>
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI.minimum_nspc">
-<span class="sig-name descname"><span class="pre">minimum_nspc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">int</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI.minimum_nspc" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find the minimum nspc for accurate computation given freq2.</p>
+<dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI.set_ignore_types">
+<span class="sig-name descname"><span class="pre">set_ignore_types</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter_types</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI.set_ignore_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do not update the parameter types.
+Switch these parameters on again by calling it
+with ignore=True</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI.minimum_tlen">
-<span class="sig-name descname"><span class="pre">minimum_tlen</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">float</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI.minimum_tlen" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find the minimum tlen that includes the longest time window.</p>
+<dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI.set_selection">
+<span class="sig-name descname"><span class="pre">set_selection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI.set_selection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the variance, correlation, and ratio cutoffs
+used when deciding whether or not to keep a particular record.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomo.inversion.fwi.FWI.step">
-<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_pca_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[4]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI.step" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_pca_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[4]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[1.0]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.fwi.FWI.step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Advance one step in the FWI iteration.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -116,6 +132,19 @@ to test (default is [4,])</p></li>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomo.inversion.fwi.freqency_hash">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.fwi.</span></span><span class="sig-name descname"><span class="pre">freqency_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq2</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">str</span><a class="headerlink" href="#pytomo.inversion.fwi.freqency_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a hash to use as a key.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomo.inversion.fwi.frequencies_from_hash">
+<span class="sig-prename descclassname"><span class="pre">pytomo.inversion.fwi.</span></span><span class="sig-name descname"><span class="pre">frequencies_from_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">freq_hash:</span> <span class="pre">str)</span> <span class="pre">-&gt;</span> <span class="pre">(&lt;class</span> <span class="pre">'float'&gt;</span></em>, <em class="sig-param"><span class="pre">&lt;class</span> <span class="pre">'float'&gt;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.fwi.frequencies_from_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return freq_min, freq_max from a frequency hash obtained
+using frequency_hash().</p>
 </dd></dl>
 
 </section>
@@ -457,6 +486,55 @@ object.</p>
 </section>
 <section id="module-pytomo.inversion.inversionresult">
 <span id="inversionresult"></span><h2>inversionresult<a class="headerlink" href="#module-pytomo.inversion.inversionresult" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.FWIResult">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.inversion.inversionresult.</span></span><span class="sig-name descname"><span class="pre">FWIResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.FWIResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pack the inversion results for full-waveform inversion and
+the metadata needed to reproduce the results.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.FWIResult.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">models_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">misfits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq_hash</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.FWIResult.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add results of an iteration step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>models</strong> (<em>list of SeismicModel</em>) – inverted models for
+different metaparameters.</p></li>
+<li><p><strong>models_meta</strong> (<em>list of dict</em>) – entries should correspond to
+the models list.</p></li>
+<li><p><strong>misfits</strong> (<em>dict</em>) – Keys are misfit names (corr, variance).
+Values are ndarray of shape (n_models, n_windows)
+with misfit values.</p></li>
+<li><p><strong>freq_hash</strong> (<em>str</em>) – frequency hash</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.FWIResult.load">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.FWIResult.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read file into self using pickle.load().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – name of the file that contains self.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pytomo.inversion.inversionresult.FWIResult.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.FWIResult.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save self using pickle.dump().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – name of the output file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="pytomo.inversion.inversionresult.InversionResult">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pytomo.inversion.inversionresult.</span></span><span class="sig-name descname"><span class="pre">InversionResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">windows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.inversion.inversionresult.InversionResult" title="Permalink to this definition">¶</a></dt>

@@ -39,28 +39,42 @@ class FWI:
     """Implement full-waveform inversion.
 
     Examples:
+        >>> from dsmpy.seismicmodel import SeismicModel
+        >>> from dsmpy.modelparameters import ModelParameters, ParameterType
+        >>> from dsmpy.windowmaker import WindowMaker
+        >>> from dsmpy.dataset import Dataset, read_sac_meta
         >>> model_params = ModelParameters(
         ...    types=[ParameterType.VSH],
         ...    radii=[3480. + 20 * i for i in range(21)],
         ...    mesh_type='boxcar')
         >>> model_ref = SeismicModel.prem().boxcar_mesh(model_params)
-        >>> dataset = Dataset.dataset_from_sac(
-        ...    sac_files, headonly=False):
-        >>> windows = WindowMaker.windows_from_dataset(
-        ...    dataset, 'prem', ['ScS'], [Component.T],
-        ...    t_before=20, t_after=40)
+        >>> sac_files = [] # list of SAC files to use in inversion
+        >>> sac_meta, traces = read_sac_meta(sac_files)
+        >>> windows = WindowMaker.windows_from_obspy_traces(
+        ...     traces, 'prem', ['ScS'], [Component.T],
+        ...     t_before=10, t_after=30)
+        >>> buffer = 10
+        >>> WindowMaker.set_limit(
+        ...     windows, t_before + buffer, t_after + buffer)
+        >>> freqs, freqs2 = [0.01, 0.01], [0.05, 0.08]
+        >>> dataset_dict = dict()
+        >>> for freq, freq2 in zip(freqs, freqs2):
+        ...     ds = Dataset.dataset_from_sac_process(
+        ...         sac_files, windows, freq, freq2)
+        ...     dataset_dict[freqency_hash(freq, freq2)] = ds
+        ...     windows_dict[freqency_hash(freq, freq2)] = windows
         >>> fwi = FWI(
-        ...    model_ref, model_params, dataset,
-        ...    windows, n_phases=1, mode=2)
+        ...    model_ref, model_params, dataset_dict,
+        ...    windows_dict, n_phases=1, mode=2,
+        ...    phase_ref='S', buffer=buffer)
         >>> model_1 = fwi.step(
-        ...     model_ref, freq=0.01, freq2=0.04, n_pca_components=[4])
+        ...     model_ref, freq=0.01, freq2=0.05, n_pca_components=[2, 4])
         >>> model_2 = fwi.step(
-        ...     model_1, 0.01, 0.04, n_pca_components=[4])
-        >>> model_3 = fwi.step(
-        ...    model_2, 0.01, 0.08, n_pca_components=[4, 6, 8])
+        ...     model_1, 0.01, 0.08, n_pca_components=[4, 6, 8])
     """
 
     FILTER_TYPE = 'bandpass'
+    N_PCA_QMU = 2
     logging.basicConfig(
         level=logging.INFO, filename='fwi.log', filemode='w')
 
@@ -174,35 +188,44 @@ class FWI:
             # TODO create a method for this piece of code
             # if QMU, sum all the layers to keep only a single QMU layer
             # this is because QMU cannot be well resolved
-            if ParameterType.QMU in used_types:
-                iqs = [i for i, p_type in enumerate(parameter_types)
-                       if p_type == ParameterType.QMU]
-                iq0 = iqs[0]
-                i_keep = [i for i in range(X.shape[1])
-                          if i not in iqs or i == iq0]
-                i_iq0 = i_keep.index(iq0)
-                X[:, iqs[0]] = X[:, iqs].sum(axis=1)
-                X = X[:, i_keep]
-                # place the single QMU parameter at the last column of X
-                X[:, [i_iq0, -1]] = X[:, [-1, i_iq0]]
-                used_types = [p_type for i, p_type in enumerate(used_types)
-                              if i in i_keep]
-                r_mean = np.mean([parameter_radii[i] for i in iqs])
+            # if ParameterType.QMU in used_types:
+            #     iqs = [i for i, p_type in enumerate(parameter_types)
+            #            if p_type == ParameterType.QMU]
+            #     iq0 = iqs[0]
+            #     i_keep = [i for i in range(X.shape[1])
+            #               if i not in iqs or i == iq0]
+            #     i_iq0 = i_keep.index(iq0)
+            #     X[:, iqs[0]] = X[:, iqs].sum(axis=1)
+            #     X = X[:, i_keep]
+            #     # place the single QMU parameter at the last column of X
+            #     X[:, [i_iq0, -1]] = X[:, [-1, i_iq0]]
+            #     used_types = [p_type for i, p_type in enumerate(used_types)
+            #                   if i in i_keep]
+            #     r_mean = np.mean([parameter_radii[i] for i in iqs])
+
+            n_grd_p = self.model_params.get_n_grd_params()
 
             if ParameterType.QMU in used_types:
+                if len(used_types) == 1:
+                    pipe = Pipeline([
+                        ('scaler', StandardScaler()),
+                        ('reduce_dim', PCA()),
+                        ('reg', linear_model.Ridge())
+                    ])
                 # Do not include QMU in the PCA.
                 # Instead, keep QMU features as is.
-                pipe = Pipeline([
-                    ('scaler', StandardScaler()),
-                    ('reduce_dim', ColumnTransformer(
-                        [
-                            ('pca', PCA(), slice(-1)),
-                            ('pass', 'passthrough', [-1])
-                        ],
-                    )
-                    ),
-                    ('reg', linear_model.Ridge())
-                ])
+                else:
+                    pipe = Pipeline([
+                        ('scaler', StandardScaler()),
+                        ('reduce_dim', ColumnTransformer(
+                            [
+                                ('pca', PCA(), slice(-n_grd_p)),
+                                ('pcaQ', PCA(), slice(-n_grd_p, X.shape[1]))
+                            ],
+                        )
+                        ),
+                        ('reg', linear_model.Ridge())
+                    ])
             else:
                 pipe = Pipeline([
                     ('scaler', StandardScaler()),
@@ -216,8 +239,14 @@ class FWI:
             for n_pca in n_pca_components:
                 for alpha in alphas:
                     if ParameterType.QMU in used_types:
-                        pipe.set_params(
-                            reduce_dim__pca__n_components=n_pca)
+                        if len(used_types) == 1:
+                            pipe.set_params(
+                                reduce_dim__n_components=n_pca)
+                        else:
+                            pipe.set_params(
+                                reduce_dim__pca__n_components=n_pca,
+                                reduce_dim__pcaQ__n_components=self.N_PCA_QMU,
+                            )
                     else:
                         pipe.set_params(
                             reduce_dim__n_components=n_pca)
@@ -230,13 +259,22 @@ class FWI:
 
                     coefs_trans = pipe['reg'].coef_.reshape(1, -1)
 
+                    logging.info(coefs_trans.shape)
+
                     if ParameterType.QMU in used_types:
-                        coefs_scaled = np.hstack((
-                            pipe['reduce_dim'].transformers_[0][1]
-                            .inverse_transform(
-                                coefs_trans[:, :-1]),
-                            coefs_trans[:, -1].reshape(1, -1))
-                        )
+                        if len(used_types) == 1:
+                            coefs_scaled = pipe[
+                                'reduce_dim'].inverse_transform(
+                                coefs_trans)
+                        else:
+                            coefs_scaled = np.hstack((
+                                pipe['reduce_dim'].transformers_[0][1]
+                                .inverse_transform(
+                                    coefs_trans[:, :-self.N_PCA_QMU]),
+                                pipe['reduce_dim'].transformers_[1][1]
+                                    .inverse_transform(
+                                    coefs_trans[:, -self.N_PCA_QMU:]))
+                            )
                     else:
                         coefs_scaled = pipe['reduce_dim'].inverse_transform(
                             coefs_trans)
@@ -245,18 +283,12 @@ class FWI:
                     best_params = np.array(coefs).flatten()
 
                     # TODO write a method for this piece of code
-                    # rewrite the single QMU layers as n layers
-                    if ParameterType.QMU in used_types:
-                        n_grd_p = self.model_params.get_n_grd_params()
-                        dq = best_params[-1]
-                        Q = model.get_value_at(r_mean, ParameterType.QMU)
-                        dQ = -Q**2 * dq
-                        params_Q = np.repeat(dQ, n_grd_p - 1)
-                        best_params = np.hstack((
-                            best_params,
-                            np.repeat(best_params[-1], n_grd_p - 1)
-                        ))
-                        # best_params[-n_grd_p:] /= n_grd_p
+                    # TODO take care of QKAPPA
+                    # if ParameterType.QMU in used_types:
+                    #     Qs = np.array([
+                    #         model.get_value_at(r, ParameterType.QMU)
+                    #         for r in parameter_radii[-n_grd_p:]])
+                    #     best_params[-n_grd_p:] *= -Qs**2
 
                     best_params = best_params.reshape(
                         len(used_types), -1)

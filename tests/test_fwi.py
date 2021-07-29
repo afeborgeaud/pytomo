@@ -15,8 +15,8 @@ import math
 
 if __name__ == '__main__':
     types = [ParameterType.VSH, ParameterType.QMU]
-    # radii = [3480. + 20 * i for i in range(21)]
-    radii = [3480., 3880]
+    radii = [3480. + 20 * i for i in range(21)]
+    # radii = [3480., 3880]
     model_params = ModelParameters(
         types=types,
         radii=radii,
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     buffer = 10.
 
     dataset, _ = get_dataset(
-        get_model_syntest3_prem_vshqmu(), tlen=1638.4, nspc=256,
+        get_model_syntest2_prem_vshqmu(), tlen=1638.4, nspc=512,
         sampling_hz=sampling_hz,
         mode=mode, add_noise=False, noise_normalized_std=1.)
 
@@ -72,15 +72,15 @@ if __name__ == '__main__':
         windows_dict, n_phases=1, mode=mode, phase_ref='S', buffer=buffer)
     fwi.set_selection(var=2.5, corr=0, ratio=2.5)
 
-    # fwi.set_ignore_types([ParameterType.QMU])
+    fwi.set_ignore_types([ParameterType.QMU])
     model_1 = fwi.step(
-        model_ref, 0.01, 0.05, n_pca_components=[1], alphas=[.8, 1.])
+        model_ref, 0.01, 0.05, n_pca_components=[2, 4, 6], alphas=[.8, 1.])
     model_2 = fwi.step(
-        model_1, 0.01, 0.08, n_pca_components=[1], alphas=[.8, 1.])
+        model_1, 0.01, 0.08, n_pca_components=[4, 6, 8], alphas=[.8, 1.])
 
     fwi.set_ignore_types([ParameterType.QMU], ignore=False)
     model_3 = fwi.step(
-        model_2, 0.01, 0.08, n_pca_components=[4, 6, 8], alphas=[.8, 1.])
+        model_2, 0.01, 0.08, n_pca_components=[4, 6, 8], alphas=[1.])
     model_4 = fwi.step(
         model_3, 0.01, 0.125, n_pca_components=[8, 10, 12, 14],
         alphas=[1.])

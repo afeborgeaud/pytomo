@@ -135,6 +135,34 @@ per event, named event_id.stf.
 
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomo.preproc.iterstack.find_best_shift">
+<span class="sig-prename descclassname"><span class="pre">pytomo.preproc.iterstack.</span></span><span class="sig-name descname"><span class="pre">find_best_shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_template</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_polarity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.iterstack.find_best_shift" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Compute the index shift to maximize the correlation</dt><dd><p>between y[shift:shift+n] and y_template,
+where n=len(y_template)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<em>np.ndarray</em>) – must have len(y) &gt;= len(y_template)</p></li>
+<li><p><strong>y_template</strong> (<em>np.ndarray</em>) – </p></li>
+<li><p><strong>shift_polarity</strong> – allows to switch polarity (default is False)</p></li>
+<li><p><strong>skip_freq</strong> – skip points to reduce computation
+time (default is 1, i.e. no skip)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>best shift
+int: polarity (1 or -1)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-pytomo.preproc.stfgridsearch">
 <span id="stfgridsearch"></span><h2>stfgridsearch<a class="headerlink" href="#module-pytomo.preproc.stfgridsearch" title="Permalink to this headline">¶</a></h2>
@@ -145,26 +173,27 @@ per event, named event_id.stf.
 Args:</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomo.preproc.stfgridsearch.STFGridSearch.compute_parallel">
-<span class="sig-name descname"><span class="pre">compute_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.stfgridsearch.STFGridSearch.compute_parallel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute using MPI.
-:param comm: MPI communicator
-:type comm: mpi4py.COMM_WORLD
-:param mode: 0: sh+psv, 1: psv, 2:sh
-:type mode: int
-:param verbose: 0: quiet, 1: debug
-:type verbose: int</p>
+<span class="sig-name descname"><span class="pre">compute_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.stfgridsearch.STFGridSearch.compute_parallel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute using MPI.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><dl class="simple">
-<dt>dict with event_id as key and</dt><dd><p>a=ndarray((n_durations,n_amplitudes,3)) as values.
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mode</strong> (<em>int</em>) – 0: sh+psv, 1: psv, 2:sh</p></li>
+<li><p><strong>dir</strong> (<em>str</em>) – </p></li>
+<li><p><strong>verbose</strong> (<em>int</em>) – 0: quiet, 1: debug</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>dict with event_id as key and</dt><dd><p>a=np.ndarray((n_durations,n_amplitudes,3)) as values.
 a[:,:,0] gives durations; a[:,:,1] gives amplitudes;
 a[:,:,2] gives misfit values</p>
 </dd>
 </dl>
 </p>
 </dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>misfit_dict (dict)</p>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>misfit_dict (dict)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -172,21 +201,23 @@ a[:,:,2] gives misfit values</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pytomo.preproc.stfgridsearch.STFGridSearch.get_best_parameters">
 <span class="sig-name descname"><span class="pre">get_best_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">misfit_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">count_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.stfgridsearch.STFGridSearch.get_best_parameters" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get best duration and amplitude correction from misfit_dict.
-:param misfit_dict: dict returned by compute_parallel()
-:type misfit_dict: dict
-:param count_dict: dict returbed by compute_parallel()
-:type count_dict: dict</p>
+<dd><p>Get best duration and amplitude correction from misfit_dict.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><dl class="simple">
-<dt>keys are event_id; values are</dt><dd><p>tuples (duration, amplitude).</p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>misfit_dict</strong> (<em>dict</em>) – dict returned by compute_parallel()</p></li>
+<li><p><strong>count_dict</strong> (<em>dict</em>) – dict returbed by compute_parallel()</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>best_params_dict. keys are event_id; values are</dt><dd><p>tuples (duration, amplitude).</p>
 </dd>
 </dl>
 </p>
 </dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>best_params_dict (dict)</p>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -207,6 +238,22 @@ a[:,:,2] gives misfit values</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>traces (obspy.traces)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pytomo.preproc.stream.sac_files_iterator">
+<span class="sig-prename descclassname"><span class="pre">pytomo.preproc.stream.</span></span><span class="sig-name descname"><span class="pre">sac_files_iterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sacpaths_regex</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytomo.preproc.stream.sac_files_iterator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields chunks of sac files in which the number of events
+is &lt;= the number of CPU cores.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sacpaths_regex</strong> – regex to the sac files locations on disk
+(e.g., /root_dir/event*/<a href="#id1"><span class="problematic" id="id2">*</span></a>[RZT])</p>
+</dd>
+<dt class="field-even">Yields</dt>
+<dd class="field-even"><p><em>list of str</em> – list of paths to sac files</p>
 </dd>
 </dl>
 </dd></dl>

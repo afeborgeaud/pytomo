@@ -1,5 +1,5 @@
 # pytomo
-[![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-370/)
+[![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-380/)
 
 Tools for seismic data processing and tomography in Python. Use [dsmpy](https://github.com/afeborgeaud/dsmpy) for exact 1-D waveform computation.<br>
 Documentation and tutorials can be found [here](https://afeborgeaud.github.io/pytomo/).
@@ -7,7 +7,7 @@ Documentation and tutorials can be found [here](https://afeborgeaud.github.io/py
 # INSTALLATION
 
 ## Preferred method: dependencies using conda and building from source
-1) Install (dsmpy)[https://github.com/afeborgeaud/dsmpy]. In the process, you should have created a ```dsm``` conda environment.
+1) Install [dsmpy](https://github.com/afeborgeaud/dsmpy). In the process, you should have created a ```dsm``` conda environment.
 2) Clone the pytomo repository
 ```bash
 git clone https://github.com/afeborgeaud/pytomo

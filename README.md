@@ -2,7 +2,7 @@
 [![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-380/)
 
 Tools for seismic data processing and tomography in Python. Use [dsmpy](https://github.com/afeborgeaud/dsmpy) for exact 1-D waveform computation.<br>
-Documentation and tutorials can be found [here](https://afeborgeaud.github.io/pytomo/).
+The documentation with several usage examples can be found [here](https://afeborgeaud.github.io/pytomo/).
 
 # INSTALLATION
 

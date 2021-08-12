@@ -43,8 +43,6 @@ if __name__ == '__main__':
         radii=radii,
         mesh_type='boxcar')
     model_ref = SeismicModel.prem().boxcar_mesh(model_params)
-
-    window_file = 'selected_shift_windows_ScS_S_sS.pkl'
     mode = 2
 
     sac_files = list(

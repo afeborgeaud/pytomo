@@ -16,25 +16,38 @@ import matplotlib.pyplot as plt
 from mpi4py import MPI
 import logging
 import glob
-import collections
 
 logging.basicConfig(
     level=logging.INFO, filename='fwinversion.log', filemode='w')
 
 if __name__ == '__main__':
+    # type of mode parameters for inversion
     types = [ParameterType.VSH]
+
+    # radii of layers to parametrize the inversion model
     radii = [3480. + 20 * i for i in range(21)]
+
+    # define model parameter object for a boxcar mesh
+    # (constant-property layers)
     model_params = ModelParameters(
         types=types,
         radii=radii,
         mesh_type='boxcar')
+
+    # let the reference model be prem
     model_ref = SeismicModel.prem().boxcar_mesh(model_params)
+
+    # computation mode. mode = 2 computes only the SH wavefield
     mode = 2
 
+    # list of paths to SAC files used as data for the inversion
     sac_files = list(
         glob.iglob('/work/anselme/central_pac/DATA/DATA/tmp/20*/*T'))
 
+    # read the GCMT catalog
     catalog = read_catalog()
+
+    # read metadata on the SAC files, and filter events/stations
     sac_meta, traces = read_sac_meta(sac_files)
     traces_filt = [tr for tr, meta in zip(traces, sac_meta)
                       if (
@@ -48,10 +61,9 @@ if __name__ == '__main__':
                       ]
     logging.info(f'Number of pre-selected SAC files: {len(traces_filt)}')
 
+    # define the time windows to cut the data
     t_before = 20.
     t_after = 40.
-    buffer = 10.
-
     windows = WindowMaker.windows_from_obspy_traces(
         traces_filt, 'prem', ['S', 'ScS', 'sS'], [Component.T],
         t_before=t_before, t_after=t_after
@@ -71,19 +83,23 @@ if __name__ == '__main__':
         elif w.phase_name == 'sS':
             windows_S_sS.append(w)
 
+    # trim the ScS windows when they overlap with S or sS
     windows_S_sS_trim = WindowMaker.set_limit(
         windows_S_sS, t_before=5, t_after=15, inplace=False)
     windows_ScS_trimmed = WindowMaker.trim_windows(
         windows_ScS, windows_S_sS_trim)
     windows_proc = windows_ScS_trimmed + windows_S
 
-    # set a buffer for shifting windows using the reference phase
+    # set a buffer used to compute static corrections for ScS
+    # using S as a reference phase
+    buffer = 10.
     WindowMaker.set_limit(windows_proc, t_before + buffer, t_after + buffer)
 
     logging.info(
         f'Number of processed ScS windows: '
         f'{len([w for w in windows_proc if w.phase_name == "ScS"])}')
 
+    # read, filter, and cut the data from the SAC files
     dataset_dict = dict()
     windows_dict = dict()
     for freq, freq2 in [[0.01, 0.05], [0.01, 0.08]]:
@@ -97,14 +113,24 @@ if __name__ == '__main__':
     logging.info('Starting the inversion...')
     fwi = FWI(
         model_ref, model_params, dataset_dict,
-        windows_dict, n_phases=1, mode=mode, phase_ref='S', buffer=buffer)
+        windows_dict, n_phases=2, mode=mode, phase_ref='S', buffer=buffer)
+
+    # During the gradient descent, consider only the data that
+    # satisfy the selection criterion.
     fwi.set_selection(var=2.5, corr=0., ratio=2.5)
 
-    model_1 = fwi.step(model_ref, 0.01, 0.05, n_pca_components=[2, 4], alphas=[.8, 1.])
-    model_2 = fwi.step(model_1, 0.01, 0.05, n_pca_components=[2, 4], alphas=[.8, 1.])
-    model_3 = fwi.step(model_2, 0.01, 0.08, n_pca_components=[4, 6], alphas=[.8, 1.])
-    model_4 = fwi.step(model_3, 0.01, 0.08, n_pca_components=[4, 6], alphas=[.8, 1.])
-    # model_5 = fwi.step(model_4, 0.01, 0.08, n_pca_components=[12, 16, 20, 24])
+    # Perform 5 iterations using first longer periods (20 s)
+    # then shorter periods (12.5 s)
+    model_1 = fwi.step(
+        model_ref, 0.01, 0.05, n_pca_components=[2, 4], alphas=[.8, 1.])
+    model_2 = fwi.step(
+        model_1, 0.01, 0.05, n_pca_components=[2, 4], alphas=[.8, 1.])
+    model_3 = fwi.step(
+        model_2, 0.01, 0.08, n_pca_components=[4, 6], alphas=[.8, 1.])
+    model_4 = fwi.step(
+        model_3, 0.01, 0.08, n_pca_components=[4, 6], alphas=[.8, 1.])
+    model_5 = fwi.step(
+        model_4, 0.01, 0.08, n_pca_components=[12, 16, 20, 24])
 
     if MPI.COMM_WORLD.Get_rank() == 0:
         # save FWI result to object
@@ -120,6 +146,7 @@ if __name__ == '__main__':
         model_2.plot(types=types, ax=ax, label='it2')
         model_3.plot(types=types, ax=ax, label='it3')
         model_4.plot(types=types, ax=ax, label='it4')
+        model_5.plot(types=types, ax=ax, label='it5')
         ax.set_ylim([3480, 4000])
         ax.set_xlim([6.5, 8])
         ax.legend()

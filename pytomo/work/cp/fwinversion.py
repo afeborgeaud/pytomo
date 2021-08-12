@@ -21,20 +21,6 @@ import collections
 logging.basicConfig(
     level=logging.INFO, filename='fwinversion.log', filemode='w')
 
-
-def filter_from_windows(eventid_station):
-    filt_windows = [
-        w for w in windows
-        if (w.event.event_id == eventid_station[0]
-            and w.station == eventid_station[1])
-    ]
-    return len(filt_windows) > 0
-
-def filter_corridor(evenentid_station):
-    event = catalog[catalog == evenentid_station[0]]
-    station = evenentid_station[1]
-
-
 if __name__ == '__main__':
     types = [ParameterType.VSH]
     radii = [3480. + 20 * i for i in range(21)]
